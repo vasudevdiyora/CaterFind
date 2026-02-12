@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+/* Catering Management Platform - Dark Theme Design System */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@theme {
+  /* Professional Dark Theme - Sophisticated Color Palette */
+
+  /* Base Colors - Darker, more professional */
+  --color-background: oklch(0.18 0.015 250);
+  --color-foreground: oklch(0.98 0 0);
+
+  /* Card backgrounds - Slightly lighter than base for depth */
+  --color-card: oklch(0.22 0.015 250);
+  --color-card-foreground: oklch(0.98 0 0);
+
+  --color-popover: oklch(0.22 0.015 250);
+  --color-popover-foreground: oklch(0.98 0 0);
+
+  /* Primary - Professional Orange (like Dashboard CTAs) */
+  --color-primary: oklch(0.65 0.15 45);
+  --color-primary-foreground: oklch(0.98 0 0);
+
+  /* Secondary - Muted slate */
+  --color-secondary: oklch(0.28 0.015 250);
+  --color-secondary-foreground: oklch(0.98 0 0);
+
+  /* Muted - Subtle backgrounds */
+  --color-muted: oklch(0.28 0.015 250);
+  --color-muted-foreground: oklch(0.60 0.01 250);
+
+  /* Accent - Same as primary for consistency */
+  --color-accent: oklch(0.65 0.15 45);
+  --color-accent-foreground: oklch(0.98 0 0);
+
+  /* Destructive - Professional red */
+  --color-destructive: oklch(0.55 0.20 25);
+  --color-destructive-foreground: oklch(1 0 0);
+
+  /* Borders and Inputs - Subtle but visible */
+  --color-border: oklch(0.32 0.015 250);
+  --color-input: oklch(0.25 0.015 250);
+  --color-ring: oklch(0.65 0.15 45);
+
+  /* Border Radius */
+  --radius-lg: 0.75rem;
+  --radius-md: calc(0.75rem - 2px);
+  --radius-sm: calc(0.75rem - 4px);
+
+  /* Sidebar - Darkest for contrast */
+  --color-sidebar-background: oklch(0.16 0.015 250);
+  --color-sidebar-foreground: oklch(0.98 0 0);
+  --color-sidebar-primary: oklch(0.65 0.15 45);
+  --color-sidebar-primary-foreground: oklch(0.98 0 0);
+  --color-sidebar-accent: oklch(0.25 0.015 250);
+  --color-sidebar-accent-foreground: oklch(0.98 0 0);
+  --color-sidebar-border: oklch(0.28 0.015 250);
+  --color-sidebar-ring: oklch(0.65 0.15 45);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Enhanced visual separation for sections */
+  .form-section,
+  .recipients-section,
+  .template-section,
+  .table-container,
+  .compose-section,
+  .history-section,
+  .stat-card,
+  .content-card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Legacy CSS Variable Mappings for Existing Stylesheets */
+  :root {
+    /* Background colors */
+    --bg-primary: var(--color-background);
+    --bg-card: var(--color-card);
+    --bg-hover: var(--color-secondary);
+    --bg-input: var(--color-input);
+    --bg-sidebar: var(--color-sidebar-background);
+
+    /* Text colors */
+    --text-primary: var(--color-foreground);
+    --text-secondary: var(--color-muted-foreground);
+    --text-muted: oklch(0.50 0.01 250);
+
+    /* Border and other colors */
+    --border-color: var(--color-border);
+    --primary-color: var(--color-primary);
+    --danger-color: var(--color-destructive);
+
+    /* Border radius */
+    --border-radius-sm: var(--radius-sm);
+    --border-radius-md: var(--radius-md);
+    --border-radius-lg: var(--radius-lg);
+
+    /* Sidebar width */
+    --sidebar-width: 240px;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

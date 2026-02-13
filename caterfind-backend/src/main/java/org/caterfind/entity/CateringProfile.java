@@ -28,10 +28,40 @@ public class CateringProfile {
     @Column(name = "business_name", nullable = false)
     private String businessName;
 
-    @Column(length = 20)
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "primary_phone", length = 20)
+    private String primaryPhone;
+
+    @Column(name = "alternate_phone", length = 20)
+    private String alternatePhone;
+
+    @Column(length = 100)
+    private String email;
+
+    @Column(name = "street_address")
+    private String streetAddress;
+
+    @Column(length = 100)
+    private String area;
+
+    @Column(length = 50)
+    private String city;
+
+    @Column(length = 100)
+    private String landmark;
+
+    @Column(name = "service_radius")
+    private Integer serviceRadius;
+
+    // Legacy address field - mapped to getFullAddress logic if needed or removed
+    // For now replacing strict 'address' with granular fields.
+    // Ensure database schema updates via Hibernate ddl-auto=update
+    @Column(name = "phone")
     private String phone;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "address")
     private String address;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -47,11 +77,12 @@ public class CateringProfile {
     public CateringProfile() {
     }
 
-    public CateringProfile(User user, String businessName, String phone, String address) {
+    public CateringProfile(User user, String businessName, String primaryPhone, String streetAddress, String city) {
         this.user = user;
         this.businessName = businessName;
-        this.phone = phone;
-        this.address = address;
+        this.primaryPhone = primaryPhone;
+        this.streetAddress = streetAddress;
+        this.city = city;
     }
 
     // Getters and Setters
@@ -77,6 +108,78 @@ public class CateringProfile {
 
     public void setBusinessName(String businessName) {
         this.businessName = businessName;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getPrimaryPhone() {
+        return primaryPhone;
+    }
+
+    public void setPrimaryPhone(String primaryPhone) {
+        this.primaryPhone = primaryPhone;
+    }
+
+    public String getAlternatePhone() {
+        return alternatePhone;
+    }
+
+    public void setAlternatePhone(String alternatePhone) {
+        this.alternatePhone = alternatePhone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getStreetAddress() {
+        return streetAddress;
+    }
+
+    public void setStreetAddress(String streetAddress) {
+        this.streetAddress = streetAddress;
+    }
+
+    public String getArea() {
+        return area;
+    }
+
+    public void setArea(String area) {
+        this.area = area;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getLandmark() {
+        return landmark;
+    }
+
+    public void setLandmark(String landmark) {
+        this.landmark = landmark;
+    }
+
+    public Integer getServiceRadius() {
+        return serviceRadius;
+    }
+
+    public void setServiceRadius(Integer serviceRadius) {
+        this.serviceRadius = serviceRadius;
     }
 
     public String getPhone() {

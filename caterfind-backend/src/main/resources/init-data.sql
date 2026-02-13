@@ -27,8 +27,8 @@ INSERT INTO users (email, password, role, created_at) VALUES
 -- INSERT CATERING PROFILE
 -- ============================================================
 -- Business profile for the default caterer
-INSERT INTO catering_profile (user_id, business_name, phone, address, created_at) VALUES
-(1, 'Royal Caterers', '+91-9876543210', '123 Main Street, Mumbai, Maharashtra 400001', NOW());
+INSERT INTO catering_profile (user_id, business_name, primary_phone, street_address, city, area, description, created_at) VALUES
+(1, 'Royal Caterers', '+91-9876543210', '123 Main Street', 'Mumbai', 'Maharashtra', 'Premium catering services for all occasions.', NOW());
 
 -- ============================================================
 -- INSERT PREDEFINED CONTACT LABELS

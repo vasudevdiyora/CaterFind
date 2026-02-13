@@ -5,6 +5,7 @@ import Contacts from './pages/Contacts';
 import Inventory from './pages/Inventory';
 import Messages from './pages/Messages';
 import MyBusiness from './pages/MyBusiness';
+import Availability from './pages/Availability';
 import CatererLayout from '@/components/layouts/CatererLayout';
 
 /**
@@ -58,6 +59,8 @@ function App() {
         return <Dashboard user={user} />;
       case 'business':
         return <MyBusiness user={user} />;
+      case 'availability':
+        return <Availability user={user} />;
       case 'contacts':
         return <Contacts user={user} />;
       case 'messages':

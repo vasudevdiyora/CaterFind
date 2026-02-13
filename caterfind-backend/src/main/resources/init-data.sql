@@ -15,20 +15,20 @@
 
 -- Default CATERER account
 -- Login: admin@caterfind.com / admin123
-INSERT INTO users (email, password, role) VALUES
-('admin@caterfind.com', 'admin123', 'CATERER');
+INSERT INTO users (email, password, role, created_at) VALUES
+('admin@caterfind.com', 'admin123', 'CATERER', NOW());
 
 -- Default CLIENT account (for testing "not implemented" message)
 -- Login: client@test.com / client123
-INSERT INTO users (email, password, role) VALUES
-('client@test.com', 'client123', 'CLIENT');
+INSERT INTO users (email, password, role, created_at) VALUES
+('client@test.com', 'client123', 'CLIENT', NOW());
 
 -- ============================================================
 -- INSERT CATERING PROFILE
 -- ============================================================
 -- Business profile for the default caterer
-INSERT INTO catering_profile (user_id, business_name, phone, address) VALUES
-(1, 'Royal Caterers', '+91-9876543210', '123 Main Street, Mumbai, Maharashtra 400001');
+INSERT INTO catering_profile (user_id, business_name, primary_phone, street_address, city, area, description, created_at) VALUES
+(1, 'Royal Caterers', '+91-9876543210', '123 Main Street', 'Mumbai', 'Maharashtra', 'Premium catering services for all occasions.', NOW());
 
 -- ============================================================
 -- INSERT PREDEFINED CONTACT LABELS

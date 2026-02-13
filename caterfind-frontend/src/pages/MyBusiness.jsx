@@ -33,21 +33,32 @@ function MyBusiness({ user }) {
     }, []);
 
     const loadBusinessProfile = async () => {
+        const catererId = user?.userId || user?.id; // Handle both cases for robustness
+        if (!catererId) {
+            setLoading(false);
+            return;
+        }
+
         try {
-            // In production, fetch from backend API
-            // For now, use mock data or user's catering profile
-            setFormData({
-                businessName: 'Sharma Catering Services',
-                description: 'Authentic North Indian cuisine with 25+ years of experience. Specializing in traditional wedding feasts.',
-                primaryPhone: '+91 98765 43210',
-                alternatePhone: '+91 98765 43211',
-                email: 'sharma@catering.com',
-                streetAddress: '45, Lajpat Nagar',
-                area: 'Lajpat Nagar Market',
-                city: 'New Delhi',
-                landmark: 'Near Central Market',
-                serviceRadius: 50
-            });
+            const response = await fetch(`http://localhost:8080/api/profile?catererId=${catererId}`);
+            if (response.ok) {
+                const data = await response.json();
+                setFormData({
+                    businessName: data.businessName || '',
+                    description: data.description || '',
+                    primaryPhone: data.primaryPhone || '',
+                    alternatePhone: data.alternatePhone || '',
+                    email: data.email || '',
+                    streetAddress: data.streetAddress || '',
+                    area: data.area || '',
+                    city: data.city || '',
+                    landmark: data.landmark || '',
+                    serviceRadius: data.serviceRadius || 50
+                });
+            } else {
+                console.log('Profile not found or error loading');
+                // Optional: set defaults if first time
+            }
         } catch (error) {
             console.error('Failed to load business profile:', error);
         } finally {
@@ -65,11 +76,24 @@ function MyBusiness({ user }) {
     const handleSave = async (e) => {
         e.preventDefault();
         setSaving(true);
+        const catererId = user?.userId || user?.id;
+
         try {
-            // In production, save to backend API
-            console.log('Saving business profile:', formData);
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-            alert('Business profile updated successfully!');
+            const response = await fetch(`http://localhost:8080/api/profile?catererId=${catererId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
+
+            if (response.ok) {
+                const updatedData = await response.json();
+                setFormData(updatedData); // Update with server response
+                alert('Business profile updated successfully!');
+            } else {
+                throw new Error('Failed to update profile');
+            }
         } catch (error) {
             console.error('Failed to save business profile:', error);
             alert('Failed to save changes. Please try again.');

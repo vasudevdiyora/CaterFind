@@ -23,6 +23,7 @@ function Sidebar({ currentPage, onNavigate, onLogout }) {
     const menuItems = [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
         { id: 'business', label: 'My Business', icon: '🏢' },
+        { id: 'availability', label: 'Availability', icon: '📅' },
         { id: 'contacts', label: 'Contacts', icon: '👥' },
         { id: 'inventory', label: 'Inventory', icon: '📦' },
         { id: 'messages', label: 'Messages', icon: '💬' },

@@ -200,7 +200,8 @@ function Contacts({ user }) {
                                 </td>
                                 <td>
                                     <span className="preferred-method">
-                                        {contact.preferredContactMethod === 'EMAIL' ? '📧 Email' : '📱 SMS'}
+                                        {contact.preferredContactMethod === 'EMAIL' ? '📧 Email' :
+                                            contact.preferredContactMethod === 'CALL' ? '📞 Call' : '📱 SMS'}
                                     </span>
                                 </td>
                                 <td>
@@ -272,6 +273,7 @@ function Contacts({ user }) {
                                 >
                                     <option value="EMAIL">📧 Email</option>
                                     <option value="SMS">📱 SMS</option>
+                                    <option value="CALL">📞 Call</option>
                                 </select>
                             </div>
                             <div className="form-row">

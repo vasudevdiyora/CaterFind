@@ -67,7 +67,8 @@ public class Message {
      */
     public enum ContactMethod {
         EMAIL,
-        SMS
+        SMS,
+        CALL
     }
 
     /**

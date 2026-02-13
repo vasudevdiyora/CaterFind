@@ -54,7 +54,8 @@ public class Contact {
      */
     public enum ContactMethod {
         EMAIL,
-        SMS
+        SMS,
+        CALL
     }
 
     // Automatically set createdAt timestamp before persisting

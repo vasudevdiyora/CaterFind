@@ -47,15 +47,16 @@ public class MessageService {
     @Autowired
     private SmsService smsService;
 
+    @Autowired
+    private CallService callService;
+
     /**
      * Send broadcast message to multiple contacts.
      * 
      * For each contact:
-     * 1. Check preferred contact method (EMAIL or SMS)
-     * 2. Call appropriate service (EmailService or SmsService)
+     * 1. Check preferred contact method (EMAIL, SMS, or CALL)
+     * 2. Call appropriate service
      * 3. Log message in database
-     * 
-     * NOTE: EmailService and SmsService are STUBS (no real sending).
      * 
      * @param catererId User ID of the caterer
      * @param request   Message request with contact IDs and message text
@@ -84,17 +85,29 @@ public class MessageService {
             Message.ContactMethod method = Message.ContactMethod.EMAIL;
 
             // Send via preferred contact method
-            if (contact.getPreferredContactMethod() == Contact.ContactMethod.EMAIL) {
-                sent = emailService.sendEmail(
-                        contact.getEmail(),
-                        "Message from Caterer",
-                        request.getMessageText());
-                method = Message.ContactMethod.EMAIL;
-            } else if (contact.getPreferredContactMethod() == Contact.ContactMethod.SMS) {
-                sent = smsService.sendSms(
-                        contact.getPhone(),
-                        request.getMessageText());
-                method = Message.ContactMethod.SMS;
+            try {
+                if (contact.getPreferredContactMethod() == Contact.ContactMethod.EMAIL) {
+                    sent = emailService.sendEmail(
+                            contact.getEmail(),
+                            "Message from Caterer",
+                            request.getMessageText());
+                    method = Message.ContactMethod.EMAIL;
+                } else if (contact.getPreferredContactMethod() == Contact.ContactMethod.SMS) {
+                    sent = smsService.sendSms(
+                            contact.getPhone(),
+                            request.getMessageText());
+                    method = Message.ContactMethod.SMS;
+                } else if (contact.getPreferredContactMethod() == Contact.ContactMethod.CALL) {
+                    callService.makeCall(
+                            contact.getPhone(),
+                            request.getMessageText());
+                    sent = true; // Assuming no exception means success for now
+                    method = Message.ContactMethod.CALL;
+                }
+            } catch (Exception e) {
+                System.err.println(
+                        "❌ Failed to send message via " + contact.getPreferredContactMethod() + ": " + e.getMessage());
+                sent = false;
             }
 
             // Log message in database
@@ -144,6 +157,9 @@ public class MessageService {
                 if (contact.getPreferredContactMethod() == Contact.ContactMethod.EMAIL) {
                     method = Message.ContactMethod.EMAIL;
                     recipientEmail = contact.getEmail();
+                } else if (contact.getPreferredContactMethod() == Contact.ContactMethod.CALL) {
+                    method = Message.ContactMethod.CALL;
+                    recipientPhone = contact.getPhone();
                 } else {
                     method = Message.ContactMethod.SMS;
                     recipientPhone = contact.getPhone();
@@ -152,21 +168,34 @@ public class MessageService {
         }
 
         // 2. Send Message
-        if (method == Message.ContactMethod.EMAIL) {
-            if (recipientEmail != null && !recipientEmail.isEmpty()) {
-                sent = emailService.sendEmail(recipientEmail, "Reorder Request: " + dealerName, messageText);
+        try {
+            if (method == Message.ContactMethod.EMAIL) {
+                if (recipientEmail != null && !recipientEmail.isEmpty()) {
+                    sent = emailService.sendEmail(recipientEmail, "Reorder Request: " + dealerName, messageText);
+                } else {
+                    System.out.println("❌ No email provided for reorder via EMAIL.");
+                    return false;
+                }
+            } else if (method == Message.ContactMethod.CALL) {
+                if (recipientPhone != null && !recipientPhone.isEmpty()) {
+                    callService.makeCall(recipientPhone, messageText);
+                    sent = true;
+                } else {
+                    System.out.println("❌ No phone number provided for reorder via CALL.");
+                    return false;
+                }
             } else {
-                System.out.println("❌ No email provided for reorder via EMAIL.");
-                return false;
+                // SMS
+                if (recipientPhone != null && !recipientPhone.isEmpty()) {
+                    sent = smsService.sendSms(recipientPhone, messageText);
+                } else {
+                    System.out.println("❌ No phone number provided for reorder via SMS.");
+                    return false;
+                }
             }
-        } else {
-            // SMS
-            if (recipientPhone != null && !recipientPhone.isEmpty()) {
-                sent = smsService.sendSms(recipientPhone, messageText);
-            } else {
-                System.out.println("❌ No phone number provided for reorder via SMS.");
-                return false;
-            }
+        } catch (Exception e) {
+            System.err.println("❌ Failed to send reorder message: " + e.getMessage());
+            return false;
         }
 
         // 3. Log message

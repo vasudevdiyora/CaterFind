@@ -76,6 +76,10 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
             alert('Cannot send SMS: No phone number available for this contact.');
             return;
         }
+        if (contactMethod === 'CALL' && !contactPhone) {
+            alert('Cannot call: No phone number available for this contact.');
+            return;
+        }
         if (contactMethod === 'EMAIL' && !contactEmail) {
             alert('Cannot send Email: No email address available for this contact.');
             return;
@@ -110,7 +114,9 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
         }
     };
 
-    const isReady = (contactMethod === 'SMS' && contactPhone) || (contactMethod === 'EMAIL' && contactEmail);
+    const isReady = (contactMethod === 'SMS' && contactPhone) ||
+        (contactMethod === 'EMAIL' && contactEmail) ||
+        (contactMethod === 'CALL' && contactPhone);
 
     return (
         <div className="modal-overlay">

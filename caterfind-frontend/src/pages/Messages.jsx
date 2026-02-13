@@ -193,7 +193,8 @@ function Messages({ user }) {
                                             <p className="history-message">{log.messageText}</p>
                                             <div className="history-item-footer">
                                                 <span className="history-method">
-                                                    {log.contactMethod === 'EMAIL' ? '📧 EMAIL' : '📱 SMS'}
+                                                    {log.contactMethod === 'EMAIL' ? '📧 EMAIL' :
+                                                        log.contactMethod === 'CALL' ? '📞 CALL' : '📱 SMS'}
                                                 </span>
                                             </div>
                                         </div>

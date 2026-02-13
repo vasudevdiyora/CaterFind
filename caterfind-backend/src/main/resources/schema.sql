@@ -56,7 +56,7 @@ CREATE TABLE contacts (
     name VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
     email VARCHAR(255),
-    preferred_contact_method ENUM('EMAIL', 'SMS') DEFAULT 'EMAIL',
+    preferred_contact_method ENUM('EMAIL', 'SMS', 'CALL') DEFAULT 'EMAIL',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (caterer_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_caterer (caterer_id)
@@ -126,7 +126,7 @@ CREATE TABLE messages (
     caterer_id BIGINT NOT NULL,
     contact_id BIGINT NOT NULL,
     message_text TEXT NOT NULL,
-    contact_method ENUM('EMAIL', 'SMS') NOT NULL,
+    contact_method ENUM('EMAIL', 'SMS', 'CALL') NOT NULL,
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status ENUM('SENT', 'FAILED') DEFAULT 'SENT',
     FOREIGN KEY (caterer_id) REFERENCES users(id) ON DELETE CASCADE,

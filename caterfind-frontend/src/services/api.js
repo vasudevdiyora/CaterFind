@@ -36,6 +36,23 @@ export const authAPI = {
       body: JSON.stringify({ email, password })
     });
     return response.json();
+  },
+
+  /**
+   * Register new caterer.
+   * 
+   * @param {string} email - User email
+   * @param {string} password - User password
+   * @param {string} businessName - Business Name
+   * @returns {Promise} Login response with role
+   */
+  register: async (email, password, businessName) => {
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, businessName })
+    });
+    return response.json();
   }
 };
 

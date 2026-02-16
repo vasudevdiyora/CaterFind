@@ -46,4 +46,23 @@ public class AuthController {
             return ResponseEntity.status(401).body(response);
         }
     }
+
+    /**
+     * Register endpoint.
+     * 
+     * Creates a new caterer account and logs them in.
+     * 
+     * @param request Registration details
+     * @return LoginResponse
+     */
+    @PostMapping("/register")
+    public ResponseEntity<LoginResponse> register(@RequestBody org.caterfind.dto.RegisterRequest request) {
+        LoginResponse response = authService.register(request);
+
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
 }

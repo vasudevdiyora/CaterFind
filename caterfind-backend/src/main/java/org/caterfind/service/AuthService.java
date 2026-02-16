@@ -61,4 +61,46 @@ public class AuthService {
                 user.getRole().name() // "CATERER" or "CLIENT"
         );
     }
+
+    @Autowired
+    private org.caterfind.repository.CateringProfileRepository cateringProfileRepository;
+
+    /**
+     * Register a new caterer.
+     * 
+     * Creates a new User with CATERER role.
+     * Creates an initial CateringProfile with the provided business name.
+     * 
+     * @param request Registration details
+     * @return LoginResponse with user info and role
+     */
+    public LoginResponse register(org.caterfind.dto.RegisterRequest request) {
+        // Check if email already exists
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            return LoginResponse.failure("Email already registered");
+        }
+
+        // Create new User
+        User user = new User();
+        user.setEmail(request.getEmail());
+        user.setPassword(request.getPassword()); // Plain text for demo
+        user.setRole(User.UserRole.CATERER);
+
+        User savedUser = userRepository.save(user);
+
+        // Create initial CateringProfile
+        org.caterfind.entity.CateringProfile profile = new org.caterfind.entity.CateringProfile();
+        profile.setUser(savedUser);
+        profile.setBusinessName(request.getBusinessName());
+        // Set defaults
+        profile.setServiceRadius(50);
+
+        cateringProfileRepository.save(profile);
+
+        // Return success response (auto-login)
+        return LoginResponse.success(
+                savedUser.getId(),
+                savedUser.getEmail(),
+                savedUser.getRole().name());
+    }
 }

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+
 
 /**
  * Availability Page
@@ -10,19 +12,17 @@ import React, { useState } from 'react';
  */
 const Availability = ({ user }) => {
     // Current date for default view
-    const [currentDate, setCurrentDate] = useState(new Date(2026, 1)); // Feb 2026 as per screenshot
-    
+    // Current date for default view - initialized to today
+    const [currentDate, setCurrentDate] = useState(new Date());
+
+
     // State to store status of dates. 
     // Format: "YYYY-MM-DD": "available" | "busy"
-    const [availabilityMap, setAvailabilityMap] = useState({
-        '2026-02-05': 'busy',
-        '2026-02-10': 'busy',
-        '2026-02-15': 'available',
-        '2026-02-20': 'busy',
-        '2026-02-25': 'available',
-    });
+    const [availabilityMap, setAvailabilityMap] = useState({});
 
-    const [selectedDate, setSelectedDate] = useState(new Date(2026, 1, 13)); // Default selected date
+
+    const [selectedDate, setSelectedDate] = useState(new Date()); // Default selected date to today
+
 
     // Calendar helpers
     const daysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -31,6 +31,16 @@ const Availability = ({ user }) => {
     const monthNames = ["January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
     ];
+
+    const goToPrevMonth = () => {
+        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    };
+
+    const goToNextMonth = () => {
+        // Limit to 1 year from now if needed, but let's just allow it
+        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    };
+
 
     const generateCalendarDays = () => {
         const days = [];
@@ -61,7 +71,7 @@ const Availability = ({ user }) => {
     const handleDateClick = (day) => {
         if (!day) return;
         const key = formatDateKey(day);
-        
+
         // Update selected date for visual focus (yellow border)
         setSelectedDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), day));
 
@@ -85,13 +95,13 @@ const Availability = ({ user }) => {
         if (!day) return "invisible";
         const key = formatDateKey(day);
         const status = availabilityMap[key];
-        const isSelected = selectedDate && 
-                           selectedDate.getDate() === day && 
-                           selectedDate.getMonth() === currentDate.getMonth() && 
-                           selectedDate.getFullYear() === currentDate.getFullYear();
+        const isSelected = selectedDate &&
+            selectedDate.getDate() === day &&
+            selectedDate.getMonth() === currentDate.getMonth() &&
+            selectedDate.getFullYear() === currentDate.getFullYear();
 
         let baseClass = "h-10 w-10 flex items-center justify-center rounded-lg text-sm cursor-pointer transition-colors";
-        
+
         if (status === 'available') {
             baseClass += " bg-emerald-800 text-emerald-100 hover:bg-emerald-700";
         } else if (status === 'busy') {
@@ -111,19 +121,35 @@ const Availability = ({ user }) => {
         <div className="p-8 text-white min-h-screen bg-transparent">
             <div className="mb-6">
                 <h1 className="text-2xl font-bold flex items-center gap-2">
-                    <span className="text-amber-500">📅</span> Availability Calendar
+                    <span className="text-amber-500"><CalendarIcon className="h-6 w-6" /></span> Availability Calendar
                 </h1>
+
                 <p className="text-slate-400 mt-1">Tap dates to mark as busy or available</p>
             </div>
 
             <div className="max-w-md bg-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-xl backdrop-blur-sm">
-                
+
                 {/* Header */}
-                <div className="text-center mb-6">
-                    <h2 className="text-lg font-semibold">
+                <div className="flex items-center justify-between mb-6">
+                    <button
+                        onClick={goToPrevMonth}
+                        className="p-2 hover:bg-slate-800 rounded-full transition-colors"
+                        title="Previous Month"
+                    >
+                        <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <h2 className="text-lg font-semibold min-w-[150px]">
                         {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                     </h2>
+                    <button
+                        onClick={goToNextMonth}
+                        className="p-2 hover:bg-slate-800 rounded-full transition-colors"
+                        title="Next Month"
+                    >
+                        <ChevronRight className="h-5 w-5" />
+                    </button>
                 </div>
+
 
                 {/* Days of Week */}
                 <div className="grid grid-cols-7 gap-2 mb-2 text-center">
@@ -137,12 +163,12 @@ const Availability = ({ user }) => {
                 {/* Calendar Grid */}
                 <div className="grid grid-cols-7 gap-2">
                     {generateCalendarDays().map((day, index) => (
-                        <div 
-                            key={index} 
+                        <div
+                            key={index}
                             className="flex justify-center"
                         >
                             {day ? (
-                                <button 
+                                <button
                                     onClick={() => handleDateClick(day)}
                                     className={getDayClass(day)}
                                 >

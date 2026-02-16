@@ -7,7 +7,9 @@ import Inventory from './pages/Inventory';
 import Messages from './pages/Messages';
 import MyBusiness from './pages/MyBusiness';
 import Availability from './pages/Availability';
+import DishLibrary from './pages/DishLibrary';
 import CatererLayout from '@/components/layouts/CatererLayout';
+
 
 /**
  * Main App Component
@@ -72,6 +74,9 @@ function App() {
         return <Messages user={user} />;
       case 'inventory':
         return <Inventory user={user} />;
+      case 'dishes':
+        return <DishLibrary user={user} />;
+
       default:
         return <Dashboard user={user} />;
     }

@@ -7,8 +7,9 @@ import { useState } from 'react';
 import { NavLink } from '@/components/NavLink';
 import {
     LayoutDashboard, Building2, Users, MessageSquare,
-    Package, Menu, X, LogOut, Contact, Calendar
+    Package, Menu, X, LogOut, Contact, Calendar, UtensilsCrossed
 } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 
 const CatererLayout = ({ children, user, onLogout, onNavigate, currentPage }) => {
@@ -33,7 +34,9 @@ const CatererLayout = ({ children, user, onLogout, onNavigate, currentPage }) =>
         { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { id: 'business', icon: Building2, label: 'My Business' },
         { id: 'availability', icon: Calendar, label: 'Availability' },
+        { id: 'dishes', icon: UtensilsCrossed, label: 'Dish Library' },
         { id: 'contacts', icon: Contact, label: 'Contacts' },
+
         { id: 'inventory', icon: Package, label: 'Inventory' },
         { id: 'messages', icon: MessageSquare, label: 'Messages' },
     ];

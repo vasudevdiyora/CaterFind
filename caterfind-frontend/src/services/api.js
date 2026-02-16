@@ -35,8 +35,13 @@ export const authAPI = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
-    return response.json();
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Login failed');
+    }
+    return data;
   },
+
 
   /**
    * Register new caterer.
@@ -52,8 +57,13 @@ export const authAPI = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, businessName })
     });
-    return response.json();
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Registration failed');
+    }
+    return data;
   }
+
 };
 
 /**
@@ -280,3 +290,64 @@ export const messageAPI = {
     return response.json();
   }
 };
+
+/**
+ * Dish API
+ */
+export const dishAPI = {
+  /**
+   * Get all dishes for a caterer.
+   * 
+   * @param {number} userId - Caterer user ID
+   * @returns {Promise} Array of dishes
+   */
+  getAll: async (userId) => {
+    const response = await fetch(`${API_BASE_URL}/dishes?userId=${userId}`);
+    return response.json();
+  },
+
+  /**
+   * Create a new dish.
+   * 
+   * @param {object} dishData - Dish data (name, category, imageUrl, description, type, labels, userId)
+   * @returns {Promise} Created dish
+   */
+  create: async (dishData) => {
+    const response = await fetch(`${API_BASE_URL}/dishes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dishData)
+    });
+    return response.json();
+  },
+
+  /**
+   * Update an existing dish.
+   * 
+   * @param {number} id - Dish ID
+   * @param {object} dishData - Updated dish data
+   * @returns {Promise} Updated dish
+   */
+  update: async (id, dishData) => {
+    const response = await fetch(`${API_BASE_URL}/dishes/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dishData)
+    });
+    return response.json();
+  },
+
+  /**
+   * Delete a dish.
+   * 
+   * @param {number} id - Dish ID
+   * @returns {Promise} Response
+   */
+  delete: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/dishes/${id}`, {
+      method: 'DELETE'
+    });
+    return response;
+  }
+};
+

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Contacts from './pages/Contacts';
 import Inventory from './pages/Inventory';
@@ -30,6 +31,9 @@ function App() {
   // Current page state
   const [currentPage, setCurrentPage] = useState('dashboard');
 
+  // Authentication View State (login or register)
+  const [authView, setAuthView] = useState('login');
+
   /**
    * Handle successful login.
    * Stores user info and redirects to dashboard.
@@ -46,6 +50,7 @@ function App() {
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
       setUser(null);
+      setAuthView('login');
       setCurrentPage('dashboard');
     }
   };
@@ -72,9 +77,12 @@ function App() {
     }
   };
 
-  // If not logged in, show login page
+  // If not logged in, show login or register page
   if (!user) {
-    return <Login onLogin={handleLogin} />;
+    if (authView === 'register') {
+      return <Register onLogin={handleLogin} onSwitchToLogin={() => setAuthView('login')} />;
+    }
+    return <Login onLogin={handleLogin} onSwitchToRegister={() => setAuthView('register')} />;
   }
 
   // If logged in as caterer, show dashboard with CatererLayout

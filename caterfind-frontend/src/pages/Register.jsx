@@ -1,36 +1,44 @@
 import { useState } from 'react';
 import { authAPI } from '../services/api';
-import { UtensilsCrossed, Mail, Lock, ArrowRight, Info } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { UtensilsCrossed, Mail, Lock, Store, ArrowRight, Info, ArrowLeft } from 'lucide-react';
 
 /**
- * Login Page Component (Tailwind v4 + Loveable Style)
+ * Register Page Component (Tailwind v4 + Loveable Style)
  */
-function Login({ onLogin, onSwitchToRegister }) {
+function Register({ onLogin, onSwitchToLogin }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [businessName, setBusinessName] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        if (password !== confirmPassword) {
+            setError('Passwords do not match');
+            return;
+        }
+
+        if (password.length < 6) {
+            setError('Password must be at least 6 characters');
+            return;
+        }
+
         setLoading(true);
 
         try {
-            const response = await authAPI.login(email, password);
+            const response = await authAPI.register(email, password, businessName);
 
             if (response.success) {
-                if (response.role === 'CATERER') {
-                    onLogin(response);
-                } else {
-                    setError('Client dashboard is not implemented. This system is for caterers only.');
-                }
+                onLogin(response);
             } else {
-                setError(response.message || 'Invalid email or password');
+                setError(response.message || 'Registration failed');
             }
         } catch (err) {
-            setError('Login failed. Please check your credentials.');
+            setError('Registration failed. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -44,8 +52,8 @@ function Login({ onLogin, onSwitchToRegister }) {
                     <div className="mx-auto h-16 w-16 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20 rotate-3 hover:rotate-0 transition-transform duration-300">
                         <UtensilsCrossed className="h-8 w-8 text-primary-foreground" />
                     </div>
-                    <h1 className="text-4xl font-extrabold tracking-tight mt-6">CaterFind</h1>
-                    <p className="text-muted-foreground text-lg">Catering Business Management</p>
+                    <h1 className="text-4xl font-extrabold tracking-tight mt-6">Join CaterFind</h1>
+                    <p className="text-muted-foreground text-lg">Create your business profile</p>
                 </div>
 
                 {/* Card */}
@@ -53,6 +61,22 @@ function Login({ onLogin, onSwitchToRegister }) {
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50" />
 
                     <form className="space-y-6" onSubmit={handleSubmit}>
+                        {/* Business Name Field */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium leading-none flex items-center gap-2 text-muted-foreground">
+                                <Store className="h-4 w-4" />
+                                Business Name
+                            </label>
+                            <input
+                                type="text"
+                                className="flex h-12 w-full rounded-xl border bg-input px-4 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all border-border/50 hover:border-primary/50"
+                                placeholder="My Catering Co."
+                                value={businessName}
+                                onChange={(e) => setBusinessName(e.target.value)}
+                                required
+                            />
+                        </div>
+
                         {/* Email Field */}
                         <div className="space-y-2">
                             <label className="text-sm font-medium leading-none flex items-center gap-2 text-muted-foreground">
@@ -62,7 +86,7 @@ function Login({ onLogin, onSwitchToRegister }) {
                             <input
                                 type="email"
                                 className="flex h-12 w-full rounded-xl border bg-input px-4 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all border-border/50 hover:border-primary/50"
-                                placeholder="admin@caterfind.com"
+                                placeholder="name@example.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
@@ -85,6 +109,22 @@ function Login({ onLogin, onSwitchToRegister }) {
                             />
                         </div>
 
+                        {/* Confirm Password Field */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium leading-none flex items-center gap-2 text-muted-foreground">
+                                <Lock className="h-4 w-4" />
+                                Confirm Password
+                            </label>
+                            <input
+                                type="password"
+                                className="flex h-12 w-full rounded-xl border bg-input px-4 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all border-border/50 hover:border-primary/50"
+                                placeholder="••••••••"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                required
+                            />
+                        </div>
+
                         {error && (
                             <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-start gap-2 animate-in shake duration-300">
                                 <Info className="h-4 w-4 mt-0.5 shrink-0" />
@@ -97,44 +137,25 @@ function Login({ onLogin, onSwitchToRegister }) {
                             className="w-full h-12 inline-flex items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-lg shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none"
                             disabled={loading}
                         >
-                            {loading ? 'Logging in...' : 'Login to Dashboard'}
+                            {loading ? 'Creating Account...' : 'Create Account'}
                             {!loading && <ArrowRight className="ml-2 h-5 w-5" />}
                         </button>
                     </form>
-                </div>
 
-                {/* Footer Info */}
-                <div className="text-center space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                        Don't have an account?{' '}
+                    <div className="mt-6 text-center">
                         <button
                             type="button"
-                            onClick={onSwitchToRegister}
-                            className="font-medium text-primary hover:underline transition-all"
+                            onClick={onSwitchToLogin}
+                            className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-2 mx-auto"
                         >
-                            Sign up here
+                            <ArrowLeft className="h-4 w-4" />
+                            Back to Login
                         </button>
-                    </p>
-
-                    <div className="p-4 rounded-xl bg-muted/30 border border-border/50 inline-block text-left max-w-xs mx-auto">
-                        <p className="text-xs font-bold text-primary uppercase tracking-widest mb-2 flex items-center gap-2">
-                            <Info className="h-3 w-3" />
-                            Demo Account
-                        </p>
-                        <p className="text-sm text-foreground">
-                            <strong>Email:</strong> admin@caterfind.com
-                        </p>
-                        <p className="text-sm text-foreground">
-                            <strong>Pass:</strong> admin123
-                        </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                        © 2026 CaterFind Business. All rights reserved.
-                    </p>
                 </div>
             </div>
         </div>
     );
 }
 
-export default Login;
+export default Register;

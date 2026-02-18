@@ -33,6 +33,16 @@ public class CateringProfileController {
     }
 
     /**
+     * Get all catering profiles.
+     *
+     * @return List of CateringProfileDTO
+     */
+    @GetMapping("/all")
+    public ResponseEntity<java.util.List<CateringProfileDTO>> getAllProfiles() {
+        return ResponseEntity.ok(cateringProfileService.getAllProfiles());
+    }
+
+    /**
      * Update catering profile.
      *
      * @param catererId User ID of the caterer

@@ -48,7 +48,7 @@ public class MessageService {
     private SmsService smsService;
 
     @Autowired
-    private CallService callService;
+    private VoiceCallService callService;
 
     /**
      * Send broadcast message to multiple contacts.

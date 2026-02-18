@@ -41,6 +41,17 @@ public class CateringProfileService {
     }
 
     /**
+     * Get all catering profiles.
+     *
+     * @return List of CateringProfileDTO
+     */
+    public java.util.List<CateringProfileDTO> getAllProfiles() {
+        return cateringProfileRepository.findAll().stream()
+                .map(this::mapToDTO)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
      * Update catering profile for a user.
      * Creates new profile if one doesn't exist.
      *
@@ -71,6 +82,11 @@ public class CateringProfileService {
         profile.setCity(dto.getCity());
         profile.setLandmark(dto.getLandmark());
         profile.setServiceRadius(dto.getServiceRadius());
+        // Only update rating/image if provided (optional)
+        if (dto.getRating() != null)
+            profile.setRating(dto.getRating());
+        if (dto.getImageUrl() != null)
+            profile.setImageUrl(dto.getImageUrl());
 
         // Sync legacy fields for backward compatibility
         profile.setPhone(dto.getPrimaryPhone());
@@ -103,6 +119,8 @@ public class CateringProfileService {
         dto.setCity(entity.getCity());
         dto.setLandmark(entity.getLandmark());
         dto.setServiceRadius(entity.getServiceRadius());
+        dto.setRating(entity.getRating());
+        dto.setImageUrl(entity.getImageUrl());
         return dto;
     }
 }

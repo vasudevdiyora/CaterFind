@@ -24,10 +24,10 @@ function Login({ onLogin, onSwitchToRegister }) {
             const response = await authAPI.login(email, password);
 
             if (response.success) {
-                if (response.role === 'CATERER') {
+                if (response.role === 'CATERER' || response.role === 'CLIENT') {
                     onLogin(response);
                 } else {
-                    setError('Client dashboard is not implemented. This system is for caterers only.');
+                    setError('Unknown role. Please contact support.');
                 }
             } else {
                 setError(response.message || 'Invalid email or password');

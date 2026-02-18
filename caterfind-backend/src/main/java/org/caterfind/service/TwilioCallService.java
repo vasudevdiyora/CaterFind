@@ -3,13 +3,15 @@ package org.caterfind.service;
 import com.twilio.rest.api.v2010.account.Call;
 import com.twilio.type.PhoneNumber;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
 import java.net.URLEncoder;
 
 @Service
-public class CallService {
+@ConditionalOnProperty(name = "app.calling.provider", havingValue = "twilio", matchIfMissing = true)
+public class TwilioCallService implements VoiceCallService {
 
     @Value("${twilio.phoneNumber}")
     private String from;
@@ -17,6 +19,7 @@ public class CallService {
     @Value("${twilio.callbackUrl}")
     private String callbackUrl;
 
+    @Override
     public void makeCall(String to, String message) throws Exception {
         URI uri = new URI(
                 callbackUrl + "/twiml?msg=" +
@@ -26,5 +29,7 @@ public class CallService {
                 new PhoneNumber(to),
                 new PhoneNumber(from),
                 uri).create();
+
+        System.out.println("📞 Twilio Call Initiated to: " + to);
     }
 }

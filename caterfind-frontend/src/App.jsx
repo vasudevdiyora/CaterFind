@@ -9,6 +9,8 @@ import MyBusiness from './pages/MyBusiness';
 import Availability from './pages/Availability';
 import DishLibrary from './pages/DishLibrary';
 import CatererLayout from '@/components/layouts/CatererLayout';
+import ClientLayout from '@/components/layouts/ClientLayout';
+import ClientHome from './pages/ClientHome';
 
 
 /**
@@ -90,7 +92,16 @@ function App() {
     return <Login onLogin={handleLogin} onSwitchToRegister={() => setAuthView('register')} />;
   }
 
-  // If logged in as caterer, show dashboard with CatererLayout
+  // If logged in as CLIENT, show ClientLayout with ClientHome
+  if (user.role === 'CLIENT') {
+    return (
+      <ClientLayout user={user} onLogout={handleLogout}>
+        <ClientHome user={user} />
+      </ClientLayout>
+    );
+  }
+
+  // If logged in as CATERER, show dashboard with CatererLayout
   return (
     <CatererLayout
       user={user}

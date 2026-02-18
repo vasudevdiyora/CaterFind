@@ -1,7 +1,7 @@
 package org.caterfind.controller;
 
 import org.caterfind.dto.CallRequest;
-import org.caterfind.service.CallService;
+import org.caterfind.service.VoiceCallService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class CallController {
 
     @Autowired
-    private CallService callService;
+    private VoiceCallService callService;
 
     @PostMapping("/api/make-call")
     public ResponseEntity<String> makeCall(@RequestBody CallRequest req) {

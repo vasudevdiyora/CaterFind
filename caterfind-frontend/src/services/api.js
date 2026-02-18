@@ -292,6 +292,54 @@ export const messageAPI = {
 };
 
 /**
+ * Calling API
+ */
+export const callAPI = {
+  /**
+   * Initiate a voice call.
+   * 
+   * @param {string} to - Customer phone number
+   * @param {string} message - Message to say (if applicable)
+   * @returns {Promise} Response
+   */
+  makeCall: async (to, message) => {
+    const response = await fetch(`${API_BASE_URL}/api/make-call`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, message })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Call failed');
+    }
+    return response.text();
+  }
+};
+
+/**
+ * Profile API (Caterer Profiles)
+ */
+export const profileAPI = {
+  get: async (catererId) => {
+    const response = await fetch(`${API_BASE_URL}/api/profile?catererId=${catererId}`);
+    return response.json();
+  },
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/profile/all`);
+    return response.json();
+  },
+  update: async (catererId, data) => {
+    const response = await fetch(`${API_BASE_URL}/api/profile?catererId=${catererId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return response.json();
+  }
+};
+
+/**
  * Dish API
  */
 export const dishAPI = {

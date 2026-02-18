@@ -55,6 +55,12 @@ public class CateringProfile {
     @Column(name = "service_radius")
     private Integer serviceRadius;
 
+    @Column(name = "rating")
+    private Double rating; // Average rating (e.g., 4.5)
+
+    @Column(name = "image_url")
+    private String imageUrl; // URL to profile image
+
     // Legacy address field - mapped to getFullAddress logic if needed or removed
     // For now replacing strict 'address' with granular fields.
     // Ensure database schema updates via Hibernate ddl-auto=update
@@ -180,6 +186,22 @@ public class CateringProfile {
 
     public void setServiceRadius(Integer serviceRadius) {
         this.serviceRadius = serviceRadius;
+    }
+
+    public Double getRating() {
+        return rating;
+    }
+
+    public void setRating(Double rating) {
+        this.rating = rating;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public String getPhone() {

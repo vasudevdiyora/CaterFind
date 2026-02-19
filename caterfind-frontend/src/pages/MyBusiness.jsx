@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { fileAPI } from '../services/api';
 import '../styles/MyBusiness.css';
 
 /**
@@ -27,6 +28,13 @@ function MyBusiness({ user }) {
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
+    const [uploadingVideo, setUploadingVideo] = useState(false);
+    const [businessPhotos, setBusinessPhotos] = useState([]);
+    const [businessVideos, setBusinessVideos] = useState([]);
+
+    const photoInputRef = useRef(null);
+    const videoInputRef = useRef(null);
 
     useEffect(() => {
         loadBusinessProfile();
@@ -56,11 +64,10 @@ function MyBusiness({ user }) {
                     serviceRadius: data.serviceRadius || 50
                 });
             } else {
-                console.log('Profile not found or error loading');
                 // Optional: set defaults if first time
             }
         } catch (error) {
-            console.error('Failed to load business profile:', error);
+            // Error loading profile
         } finally {
             setLoading(false);
         }
@@ -95,7 +102,6 @@ function MyBusiness({ user }) {
                 throw new Error('Failed to update profile');
             }
         } catch (error) {
-            console.error('Failed to save business profile:', error);
             alert('Failed to save changes. Please try again.');
         } finally {
             setSaving(false);
@@ -103,11 +109,75 @@ function MyBusiness({ user }) {
     };
 
     const handlePhotoUpload = () => {
-        alert('Photo upload functionality - In production, this would open a file picker');
+        photoInputRef.current?.click();
     };
 
     const handleVideoUpload = () => {
-        alert('Video upload functionality - In production, this would open a file picker');
+        videoInputRef.current?.click();
+    };
+
+    const handlePhotoChange = async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        setUploadingPhoto(true);
+        try {
+            for (const file of files) {
+                const result = await fileAPI.upload(file);
+                setBusinessPhotos(prev => [...prev, {
+                    url: result.url,
+                    name: file.name
+                }]);
+            }
+        } catch (error) {
+            alert('Failed to upload photos: ' + error.message);
+        } finally {
+            setUploadingPhoto(false);
+            e.target.value = ''; // Reset input
+        }
+    };
+
+    const handleVideoChange = async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        setUploadingVideo(true);
+        try {
+            for (const file of files) {
+                const result = await fileAPI.upload(file);
+                setBusinessVideos(prev => [...prev, {
+                    url: result.url,
+                    name: file.name
+                }]);
+            }
+        } catch (error) {
+            alert('Failed to upload videos: ' + error.message);
+        } finally {
+            setUploadingVideo(false);
+            e.target.value = ''; // Reset input
+        }
+    };
+
+    const removePhoto = async (index, photoUrl) => {
+        if (confirm('Delete this photo?')) {
+            try {
+                await fileAPI.delete(photoUrl);
+                setBusinessPhotos(prev => prev.filter((_, i) => i !== index));
+            } catch (error) {
+                alert('Failed to delete photo');
+            }
+        }
+    };
+
+    const removeVideo = async (index, videoUrl) => {
+        if (confirm('Delete this video?')) {
+            try {
+                await fileAPI.delete(videoUrl);
+                setBusinessVideos(prev => prev.filter((_, i) => i !== index));
+            } catch (error) {
+                alert('Failed to delete video');
+            }
+        }
     };
 
     if (loading) {
@@ -217,13 +287,12 @@ function MyBusiness({ user }) {
 
                     <div className="form-row">
                         <div className="form-field">
-                            <label className="field-label">Area / Locality</label>
+                            <label className="field-label">Area</label>
                             <input
                                 type="text"
                                 className="field-input"
                                 value={formData.area}
                                 onChange={(e) => handleChange('area', e.target.value)}
-                                required
                             />
                         </div>
 
@@ -278,28 +347,116 @@ function MyBusiness({ user }) {
 
                     <div className="form-field">
                         <label className="field-label">Business Photos</label>
+                        <input
+                            ref={photoInputRef}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handlePhotoChange}
+                            style={{ display: 'none' }}
+                        />
                         <button
                             type="button"
                             className="upload-button"
                             onClick={handlePhotoUpload}
+                            disabled={uploadingPhoto}
                         >
                             <span className="upload-icon">⬆️</span>
-                            Upload Photos
+                            {uploadingPhoto ? 'Uploading...' : 'Upload Photos'}
                         </button>
                         <p className="field-hint">Upload photos of your kitchen, dishes, and events</p>
+                        
+                        {businessPhotos.length > 0 && (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '16px', marginTop: '16px' }}>
+                                {businessPhotos.map((photo, index) => (
+                                    <div key={index} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '2px solid var(--border-color, #333)' }}>
+                                        <img 
+                                            src={fileAPI.getImageUrl(photo.url)} 
+                                            alt={photo.name}
+                                            style={{ width: '100%', height: '150px', objectFit: 'cover' }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => removePhoto(index, photo.url)}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '8px',
+                                                right: '8px',
+                                                background: 'rgba(255, 0, 0, 0.8)',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '50%',
+                                                width: '28px',
+                                                height: '28px',
+                                                cursor: 'pointer',
+                                                fontSize: '18px',
+                                                fontWeight: 'bold',
+                                                lineHeight: '1'
+                                            }}
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <div className="form-field">
                         <label className="field-label">Videos (Optional)</label>
+                        <input
+                            ref={videoInputRef}
+                            type="file"
+                            accept="video/*"
+                            multiple
+                            onChange={handleVideoChange}
+                            style={{ display: 'none' }}
+                        />
                         <button
                             type="button"
                             className="upload-button"
                             onClick={handleVideoUpload}
+                            disabled={uploadingVideo}
                         >
                             <span className="upload-icon">⬆️</span>
-                            Upload Videos
+                            {uploadingVideo ? 'Uploading...' : 'Upload Videos'}
                         </button>
                         <p className="field-hint">Showcase your catering services with videos</p>
+                        
+                        {businessVideos.length > 0 && (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', marginTop: '16px' }}>
+                                {businessVideos.map((video, index) => (
+                                    <div key={index} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '2px solid var(--border-color, #333)' }}>
+                                        <video 
+                                            src={fileAPI.getImageUrl(video.url)}
+                                            controls
+                                            style={{ width: '100%', height: '150px', objectFit: 'cover', backgroundColor: '#000' }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeVideo(index, video.url)}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '8px',
+                                                right: '8px',
+                                                background: 'rgba(255, 0, 0, 0.8)',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '50%',
+                                                width: '28px',
+                                                height: '28px',
+                                                cursor: 'pointer',
+                                                fontSize: '18px',
+                                                fontWeight: 'bold',
+                                                lineHeight: '1'
+                                            }}
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 

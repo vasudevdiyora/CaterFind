@@ -37,7 +37,7 @@ function Dashboard({ user }) {
                     // pendingRequests and upcomingEvents are not yet real in backend, keep mocked or add fields later
                 }));
             } catch (error) {
-                console.error("Failed to fetch dashboard stats", error);
+                // Error fetching dashboard stats
             }
         };
 

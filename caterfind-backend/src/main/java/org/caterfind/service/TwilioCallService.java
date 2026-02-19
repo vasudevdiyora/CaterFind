@@ -1,13 +1,14 @@
 package org.caterfind.service;
 
-import com.twilio.rest.api.v2010.account.Call;
-import com.twilio.type.PhoneNumber;
+import java.net.URI;
+import java.net.URLEncoder;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
-import java.net.URI;
-import java.net.URLEncoder;
+import com.twilio.rest.api.v2010.account.Call;
+import com.twilio.type.PhoneNumber;
 
 @Service
 @ConditionalOnProperty(name = "app.calling.provider", havingValue = "twilio", matchIfMissing = true)
@@ -29,7 +30,5 @@ public class TwilioCallService implements VoiceCallService {
                 new PhoneNumber(to),
                 new PhoneNumber(from),
                 uri).create();
-
-        System.out.println("📞 Twilio Call Initiated to: " + to);
     }
 }

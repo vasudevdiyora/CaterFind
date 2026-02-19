@@ -1,9 +1,10 @@
 package org.caterfind.service;
 
-import com.twilio.rest.api.v2010.account.Message;
-import com.twilio.type.PhoneNumber;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import com.twilio.rest.api.v2010.account.Message;
+import com.twilio.type.PhoneNumber;
 
 /**
  * SMS Service for sending text messages via Twilio.
@@ -38,11 +39,6 @@ public class SmsService {
                     new PhoneNumber(formattedPhone),
                     new PhoneNumber(fromNumber),
                     message).create();
-
-            System.out.println("📱 SMS SENT via Twilio");
-            System.out.println("To: " + formattedPhone);
-            System.out.println("Message SID: " + twilioMessage.getSid());
-            System.out.println("Status: " + twilioMessage.getStatus());
 
             return true;
 

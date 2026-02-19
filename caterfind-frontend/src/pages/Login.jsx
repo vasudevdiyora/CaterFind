@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { authAPI } from '../services/api';
-import { UtensilsCrossed, Mail, Lock, ArrowRight, Info, Eye, EyeOff } from 'lucide-react';
+import { UtensilsCrossed, Mail, Lock, ArrowRight, Info, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
 /**
  * Login Page Component (Tailwind v4 + Loveable Style)
  */
-function Login({ onLogin, onSwitchToRegister }) {
+function Login({ onLogin, onSwitchToRegister, onBack, selectedRole }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -41,6 +41,17 @@ function Login({ onLogin, onSwitchToRegister }) {
 
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
+            {/* Back Button */}
+            {onBack && (
+                <button
+                    onClick={onBack}
+                    className="absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                    <span className="text-sm font-medium">Back</span>
+                </button>
+            )}
+
             <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {/* Header */}
                 <div className="text-center space-y-2">
@@ -48,7 +59,11 @@ function Login({ onLogin, onSwitchToRegister }) {
                         <UtensilsCrossed className="h-8 w-8 text-primary-foreground" />
                     </div>
                     <h1 className="text-4xl font-extrabold tracking-tight mt-6">CaterFind</h1>
-                    <p className="text-muted-foreground text-lg">Catering Business Management</p>
+                    <p className="text-muted-foreground text-lg">
+                        {selectedRole === 'CATERER' 
+                            ? 'Catering Business Management'
+                            : 'Find Perfect Caterers'}
+                    </p>
                 </div>
 
                 {/* Card */}
@@ -129,18 +144,6 @@ function Login({ onLogin, onSwitchToRegister }) {
                         </button>
                     </p>
 
-                    <div className="p-4 rounded-xl bg-muted/30 border border-border/50 inline-block text-left max-w-xs mx-auto">
-                        <p className="text-xs font-bold text-primary uppercase tracking-widest mb-2 flex items-center gap-2">
-                            <Info className="h-3 w-3" />
-                            Demo Account
-                        </p>
-                        <p className="text-sm text-foreground">
-                            <strong>Email:</strong> admin@caterfind.com
-                        </p>
-                        <p className="text-sm text-foreground">
-                            <strong>Pass:</strong> admin123
-                        </p>
-                    </div>
                     <p className="text-xs text-muted-foreground">
                         © 2026 CaterFind Business. All rights reserved.
                     </p>

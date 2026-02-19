@@ -1,9 +1,5 @@
 package org.caterfind.service;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Service;
-
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -11,6 +7,10 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Service;
 
 @Service
 @ConditionalOnProperty(name = "app.calling.provider", havingValue = "exotel")
@@ -51,8 +51,6 @@ public class ExotelCallService implements VoiceCallService {
         }
         String url = String.format("https://%s/v1/Accounts/%s/Calls/connect", hostname, sid);
 
-        System.out.println("🔗 Exotel URL: " + url); // Debug log
-
         // Prepare Form Data
         StringBuilder formData = new StringBuilder();
         formData.append("From=").append(URLEncoder.encode(to, StandardCharsets.UTF_8));
@@ -90,8 +88,7 @@ public class ExotelCallService implements VoiceCallService {
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() >= 200 && response.statusCode() < 300) {
-            System.out.println("✅ Exotel Call Initiated to: " + to);
-            System.out.println("Response: " + response.body());
+            // Call initiated successfully
         } else {
             System.err.println("❌ Failed to initiate Exotel call. Status: " + response.statusCode());
             System.err.println("Response: " + response.body());

@@ -43,3 +43,8 @@ build/
 **/application-dev.properties
 **/application-prod.properties
 *.env
+
+### File Uploads ###
+# Don't commit uploaded files
+uploads/
+uploads/**

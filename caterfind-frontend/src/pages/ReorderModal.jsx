@@ -43,7 +43,7 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
                         email = contact.email;
                     }
                 } catch (err) {
-                    console.error('Failed to fetch contact details', err);
+                    // Error fetching contact details
                 }
             }
 
@@ -107,7 +107,6 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
                 alert('Failed: ' + response.message);
             }
         } catch (error) {
-            console.error('Reorder error:', error);
             alert('Failed to send reorder. Please try again.');
         } finally {
             setLoading(false);

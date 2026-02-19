@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Star, Filter } from 'lucide-react';
 import { profileAPI } from '../services/api';
+import CatererDetail from './CatererDetail';
 
 const ClientHome = ({ user }) => {
     const [caterers, setCaterers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState('All'); // All, Veg, Non-Veg - Mock filter for now
+    const [selectedCatererId, setSelectedCatererId] = useState(null);
 
     useEffect(() => {
         loadCaterers();
@@ -17,7 +19,7 @@ const ClientHome = ({ user }) => {
             const data = await profileAPI.getAll();
             setCaterers(data);
         } catch (error) {
-            console.error('Failed to load caterers:', error);
+            // Error loading caterers
         } finally {
             setLoading(false);
         }
@@ -27,6 +29,16 @@ const ClientHome = ({ user }) => {
         caterer.businessName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         caterer.city?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    // If a caterer is selected, show detail page
+    if (selectedCatererId) {
+        return (
+            <CatererDetail
+                catererId={selectedCatererId}
+                onBack={() => setSelectedCatererId(null)}
+            />
+        );
+    }
 
     return (
         <div className="p-6 bg-[#1a1a1a] min-h-screen text-white">
@@ -68,7 +80,11 @@ const ClientHome = ({ user }) => {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredCaterers.map(caterer => (
-                        <div key={caterer.id} className="bg-[#2a2a2a] rounded-xl overflow-hidden hover:transform hover:scale-[1.02] transition-all duration-300 shadow-lg">
+                        <div
+                            key={caterer.id}
+                            onClick={() => setSelectedCatererId(caterer.userId ?? caterer.id)}
+                            className="bg-[#2a2a2a] rounded-xl overflow-hidden hover:transform hover:scale-[1.02] transition-all duration-300 shadow-lg cursor-pointer"
+                        >
                             <div className="h-48 bg-gray-700 relative">
                                 <img
                                     src={caterer.imageUrl || "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=800&q=80"}

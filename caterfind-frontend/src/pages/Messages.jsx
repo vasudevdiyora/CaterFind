@@ -26,7 +26,7 @@ function Messages({ user }) {
             const data = await contactAPI.getAll(user.userId);
             setContacts(data);
         } catch (error) {
-            console.error('Failed to fetch contacts:', error);
+            // Error fetching contacts
         }
     };
 
@@ -35,7 +35,7 @@ function Messages({ user }) {
             const data = await messageAPI.getLogs(user.userId);
             setMessageLogs(data);
         } catch (error) {
-            console.error('Failed to fetch message logs:', error);
+            // Error fetching message logs
         }
     };
 

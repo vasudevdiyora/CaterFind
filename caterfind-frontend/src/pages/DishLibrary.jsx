@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Filter, Plus, Pencil, Trash2, X, Check, UtensilsCrossed, Info } from 'lucide-react';
-import { dishAPI } from '../services/api';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, Filter, Plus, Pencil, Trash2, X, Check, UtensilsCrossed, Info, Upload } from 'lucide-react';
+import { dishAPI, fileAPI } from '../services/api';
 import '../styles/Table.css'; // Reuse table/modal styles
 
 /**
@@ -19,6 +19,9 @@ function DishLibrary({ user }) {
     const [showModal, setShowModal] = useState(false);
     const [editingDish, setEditingDish] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [uploadingImage, setUploadingImage] = useState(false);
+
+    const imageInputRef = useRef(null);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -59,7 +62,7 @@ function DishLibrary({ user }) {
             setAvailableCategories([...new Set([...defaultCategories, ...dishCategories])]);
             setAvailableLabels([...new Set([...defaultLabels, ...dishLabels])]);
         } catch (error) {
-            console.error('Failed to fetch dishes:', error);
+            // Error fetching dishes
         } finally {
             setLoading(false);
         }
@@ -122,7 +125,7 @@ function DishLibrary({ user }) {
                 await dishAPI.delete(id);
                 fetchDishes();
             } catch (error) {
-                console.error('Failed to delete dish:', error);
+                // Error deleting dish
             }
         }
     };
@@ -151,7 +154,7 @@ function DishLibrary({ user }) {
             setShowModal(false);
             fetchDishes();
         } catch (error) {
-            console.error('Failed to save dish:', error);
+            // Error saving dish
         }
     };
 
@@ -176,6 +179,26 @@ function DishLibrary({ user }) {
                 setAvailableLabels(prev => [...prev, formData.customLabel]);
             }
         }
+    };
+
+    const handleImageUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploadingImage(true);
+        try {
+            const result = await fileAPI.upload(file);
+            setFormData(prev => ({ ...prev, imageUrl: result.url }));
+        } catch (error) {
+            alert('Failed to upload image: ' + error.message);
+        } finally {
+            setUploadingImage(false);
+            e.target.value = ''; // Reset input
+        }
+    };
+
+    const triggerImageUpload = () => {
+        imageInputRef.current?.click();
     };
 
     return (
@@ -245,7 +268,7 @@ function DishLibrary({ user }) {
                             <div className="relative h-48 bg-muted overflow-hidden">
                                 {dish.imageUrl ? (
                                     <img
-                                        src={dish.imageUrl}
+                                        src={dish.imageUrl.startsWith('http') ? dish.imageUrl : fileAPI.getImageUrl(dish.imageUrl)}
                                         alt={dish.name}
                                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                     />
@@ -356,17 +379,48 @@ function DishLibrary({ user }) {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-muted-foreground">Photo URL</label>
+                                <label className="text-sm font-medium text-muted-foreground">Dish Photo</label>
                                 <input
-                                    type="text"
-                                    className="w-full bg-input border border-border/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                    placeholder="Paste an image URL (Unsplash/etc)"
-                                    value={formData.imageUrl}
-                                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                                    ref={imageInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageUpload}
+                                    style={{ display: 'none' }}
                                 />
-                                <p className="text-[10px] text-muted-foreground italic flex items-center gap-1">
-                                    <Info className="h-3 w-3" /> Image hosting coming soon.
-                                </p>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        className="flex-1 bg-input border border-border/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                        placeholder="Paste image URL or upload..."
+                                        value={formData.imageUrl}
+                                        onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={triggerImageUpload}
+                                        disabled={uploadingImage}
+                                        className="px-4 py-3 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-xl transition-all flex items-center gap-2 disabled:opacity-50"
+                                    >
+                                        <Upload className="h-4 w-4" />
+                                        {uploadingImage ? 'Uploading...' : 'Upload'}
+                                    </button>
+                                </div>
+                                {formData.imageUrl && (
+                                    <div className="mt-2 relative inline-block">
+                                        <img 
+                                            src={formData.imageUrl.startsWith('http') ? formData.imageUrl : fileAPI.getImageUrl(formData.imageUrl)}
+                                            alt="Preview" 
+                                            className="h-32 w-32 object-cover rounded-lg border-2 border-border/50"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, imageUrl: '' })}
+                                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-2">

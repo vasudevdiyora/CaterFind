@@ -61,17 +61,16 @@ function Inventory({ user }) {
             const data = await inventoryAPI.getAll(user.userId);
             setItems(data);
         } catch (error) {
-            console.error('Failed to fetch inventory:', error);
+            // Error fetching inventory
         }
     };
 
     const fetchContacts = async () => {
         try {
             const data = await contactAPI.getAll(user.userId);
-            console.log('Fetched contacts:', data); // Debug log
             setContacts(data);
         } catch (error) {
-            console.error('Failed to fetch contacts:', error);
+            // Error fetching contacts
         }
     };
 
@@ -82,7 +81,7 @@ function Inventory({ user }) {
             await inventoryAPI.update(itemId, { ...item, quantity: newQuantity });
             fetchItems();
         } catch (error) {
-            console.error('Failed to update quantity:', error);
+            // Error updating quantity
         }
     };
 
@@ -92,7 +91,7 @@ function Inventory({ user }) {
                 await inventoryAPI.delete(id);
                 fetchItems();
             } catch (error) {
-                console.error('Failed to delete item:', error);
+                // Error deleting item
             }
         }
     };
@@ -142,7 +141,7 @@ function Inventory({ user }) {
             });
             fetchItems();
         } catch (error) {
-            console.error('Failed to save item:', error);
+            // Error saving item
         }
     };
 
@@ -372,7 +371,6 @@ function Inventory({ user }) {
                                     <select
                                         className="form-input"
                                         onChange={e => {
-                                            console.log('Selected contact ID:', e.target.value);
                                             handleDealerSelect(e.target.value);
                                         }}
                                         defaultValue=""
@@ -436,7 +434,6 @@ function Inventory({ user }) {
                     }}
                     onSuccess={() => {
                         // Optional: Refresh items/logs if needed
-                        console.log('Reorder sent');
                     }}
                 />
             )}

@@ -1,5 +1,8 @@
 package org.caterfind.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.caterfind.dto.MessageDTO;
 import org.caterfind.dto.MessageRequest;
 import org.caterfind.entity.Contact;
@@ -8,10 +11,6 @@ import org.caterfind.repository.ContactRepository;
 import org.caterfind.repository.MessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Message service for broadcast messaging.
@@ -65,19 +64,15 @@ public class MessageService {
     public int sendBroadcastMessage(Long catererId, MessageRequest request) {
         int sentCount = 0;
 
-        System.out.println("📨 Sending broadcast message to " + request.getContactIds().size() + " contact(s)");
-
         // Iterate through each contact ID
         for (Long contactId : request.getContactIds()) {
             Contact contact = contactRepository.findById(contactId).orElse(null);
             if (contact == null) {
-                System.out.println("⚠️ Contact ID " + contactId + " not found");
                 continue;
             }
 
             // Check if contact belongs to this caterer
             if (!contact.getCatererId().equals(catererId)) {
-                System.out.println("⚠️ Contact " + contact.getName() + " does not belong to caterer " + catererId);
                 continue;
             }
 
@@ -124,7 +119,6 @@ public class MessageService {
             }
         }
 
-        System.out.println("✅ Successfully sent " + sentCount + " message(s)");
         return sentCount;
     }
 
@@ -140,8 +134,6 @@ public class MessageService {
      */
     public boolean sendReorderMessage(Long catererId, String dealerName, String dealerPhone, Long contactId,
             String messageText) {
-        System.out.println("🔄 Sending reorder message to " + dealerName + " (" + dealerPhone + ")");
-
         boolean sent = false;
         Message.ContactMethod method = Message.ContactMethod.SMS; // Default to SMS
 
@@ -173,7 +165,6 @@ public class MessageService {
                 if (recipientEmail != null && !recipientEmail.isEmpty()) {
                     sent = emailService.sendEmail(recipientEmail, "Reorder Request: " + dealerName, messageText);
                 } else {
-                    System.out.println("❌ No email provided for reorder via EMAIL.");
                     return false;
                 }
             } else if (method == Message.ContactMethod.CALL) {
@@ -181,7 +172,6 @@ public class MessageService {
                     callService.makeCall(recipientPhone, messageText);
                     sent = true;
                 } else {
-                    System.out.println("❌ No phone number provided for reorder via CALL.");
                     return false;
                 }
             } else {
@@ -189,7 +179,6 @@ public class MessageService {
                 if (recipientPhone != null && !recipientPhone.isEmpty()) {
                     sent = smsService.sendSms(recipientPhone, messageText);
                 } else {
-                    System.out.println("❌ No phone number provided for reorder via SMS.");
                     return false;
                 }
             }
@@ -215,7 +204,6 @@ public class MessageService {
             message.setRecipientPhone(recipientPhone);
 
             messageRepository.save(message);
-            System.out.println("✅ Reorder message logged via " + method);
         }
 
         return sent;

@@ -51,7 +51,7 @@ function Contacts({ user }) {
             const data = await contactAPI.getAll(user.userId);
             setContacts(data);
         } catch (error) {
-            console.error('Failed to fetch contacts:', error);
+            // Error fetching contacts
         }
     };
 
@@ -61,7 +61,7 @@ function Contacts({ user }) {
                 await contactAPI.delete(id);
                 fetchContacts();
             } catch (error) {
-                console.error('Failed to delete contact:', error);
+                // Error deleting contact
             }
         }
     };
@@ -97,7 +97,7 @@ function Contacts({ user }) {
             });
             fetchContacts();
         } catch (error) {
-            console.error('Failed to save contact:', error);
+            // Error saving contact
         }
     };
 

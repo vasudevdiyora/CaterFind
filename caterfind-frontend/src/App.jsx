@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -38,6 +39,9 @@ function App() {
   // Authentication View State (login or register)
   const [authView, setAuthView] = useState('login');
 
+  // Landing page - role selection state
+  const [selectedRole, setSelectedRole] = useState(null);
+
   /**
    * Handle successful login.
    * Stores user info and redirects to dashboard.
@@ -49,14 +53,23 @@ function App() {
 
   /**
    * Handle logout.
-   * Clears user info and returns to login page.
+   * Clears user info and returns to landing page.
    */
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
       setUser(null);
       setAuthView('login');
       setCurrentPage('dashboard');
+      setSelectedRole(null); // Reset to landing page
     }
+  };
+
+  /**
+   * Handle role selection from landing page
+   */
+  const handleRoleSelect = (role) => {
+    setSelectedRole(role);
+    setAuthView('login'); // Show login page after role selection
   };
 
   /**
@@ -78,18 +91,37 @@ function App() {
         return <Inventory user={user} />;
       case 'dishes':
         return <DishLibrary user={user} />;
-
       default:
         return <Dashboard user={user} />;
     }
   };
 
-  // If not logged in, show login or register page
+  // If not logged in, show landing page first, then login/register
   if (!user) {
-    if (authView === 'register') {
-      return <Register onLogin={handleLogin} onSwitchToLogin={() => setAuthView('login')} />;
+    // Show landing page if no role selected yet
+    if (!selectedRole) {
+      return <Landing onRoleSelect={handleRoleSelect} />;
     }
-    return <Login onLogin={handleLogin} onSwitchToRegister={() => setAuthView('register')} />;
+
+    // Show register/login page after role selection
+    if (authView === 'register') {
+      return (
+        <Register 
+          onLogin={handleLogin} 
+          onSwitchToLogin={() => setAuthView('login')}
+          onBack={() => setSelectedRole(null)}
+          selectedRole={selectedRole}
+        />
+      );
+    }
+    return (
+      <Login 
+        onLogin={handleLogin} 
+        onSwitchToRegister={() => setAuthView('register')}
+        onBack={() => setSelectedRole(null)}
+        selectedRole={selectedRole}
+      />
+    );
   }
 
   // If logged in as CLIENT, show ClientLayout with ClientHome

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { authAPI } from '../services/api';
-import { UtensilsCrossed, Mail, Lock, Store, ArrowRight, Info, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { UtensilsCrossed, Mail, Lock, Store, ArrowRight, Info, ArrowLeft, Eye, EyeOff, ChefHat } from 'lucide-react';
 
 
 /**
  * Register Page Component (Tailwind v4 + Loveable Style)
  */
-function Register({ onLogin, onSwitchToLogin }) {
+function Register({ onLogin, onSwitchToLogin, onBack, selectedRole }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -42,7 +42,6 @@ function Register({ onLogin, onSwitchToLogin }) {
                 setError(response.message || 'Registration failed');
             }
         } catch (err) {
-            console.error('Registration error:', err);
             setError(err.message || 'Registration failed. Please try again.');
         } finally {
 
@@ -52,6 +51,17 @@ function Register({ onLogin, onSwitchToLogin }) {
 
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
+            {/* Back Button */}
+            {onBack && (
+                <button
+                    onClick={onBack}
+                    className="absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                    <span className="text-sm font-medium">Back</span>
+                </button>
+            )}
+
             <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {/* Header */}
                 <div className="text-center space-y-2">
@@ -59,7 +69,11 @@ function Register({ onLogin, onSwitchToLogin }) {
                         <UtensilsCrossed className="h-8 w-8 text-primary-foreground" />
                     </div>
                     <h1 className="text-4xl font-extrabold tracking-tight mt-6">Join CaterFind</h1>
-                    <p className="text-muted-foreground text-lg">Create your business profile</p>
+                    <p className="text-muted-foreground text-lg">
+                        {selectedRole === 'CATERER'
+                            ? 'Create your business profile'
+                            : 'Start finding perfect caterers'}
+                    </p>
                 </div>
 
                 {/* Card */}
@@ -67,21 +81,23 @@ function Register({ onLogin, onSwitchToLogin }) {
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50" />
 
                     <form className="space-y-6" onSubmit={handleSubmit}>
-                        {/* Business Name Field */}
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none flex items-center gap-2 text-muted-foreground">
-                                <Store className="h-4 w-4" />
-                                Business Name
-                            </label>
-                            <input
-                                type="text"
-                                className="flex h-12 w-full rounded-xl border bg-input px-4 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all border-border/50 hover:border-primary/50"
-                                placeholder="My Catering Co."
-                                value={businessName}
-                                onChange={(e) => setBusinessName(e.target.value)}
-                                required
-                            />
-                        </div>
+                        {/* Business Name Field - Only for Caterers */}
+                        {selectedRole === 'CATERER' && (
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium leading-none flex items-center gap-2 text-muted-foreground">
+                                    <Store className="h-4 w-4" />
+                                    Business Name
+                                </label>
+                                <input
+                                    type="text"
+                                    className="flex h-12 w-full rounded-xl border bg-input px-4 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all border-border/50 hover:border-primary/50"
+                                    placeholder="My Catering Co."
+                                    value={businessName}
+                                    onChange={(e) => setBusinessName(e.target.value)}
+                                    required={selectedRole === 'CATERER'}
+                                />
+                            </div>
+                        )}
 
                         {/* Email Field */}
                         <div className="space-y-2">

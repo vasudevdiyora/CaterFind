@@ -323,6 +323,7 @@ export const callAPI = {
 export const profileAPI = {
   get: async (catererId) => {
     const response = await fetch(`${API_BASE_URL}/api/profile?catererId=${catererId}`);
+    if (!response.ok) return null;
     return response.json();
   },
   getAll: async () => {
@@ -396,6 +397,59 @@ export const dishAPI = {
       method: 'DELETE'
     });
     return response;
+  }
+};
+
+/**
+ * File Upload API
+ */
+export const fileAPI = {
+  /**
+   * Upload image/video file to server
+   * 
+   * @param {File} file - File object from input[type="file"]
+   * @returns {Promise<{url: string}>} Object with URL of uploaded file
+   */
+  upload: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/api/files/upload`, {
+      method: 'POST',
+      body: formData // Don't set Content-Type header, browser will set it automatically with boundary
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to upload file');
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Delete uploaded file
+   * 
+   * @param {string} fileUrl - URL of the file to delete (e.g., "/uploads/images/abc123.jpg")
+   * @returns {Promise} Response
+   */
+  delete: async (fileUrl) => {
+    const response = await fetch(`${API_BASE_URL}/api/files?url=${encodeURIComponent(fileUrl)}`, {
+      method: 'DELETE'
+    });
+    return response.json();
+  },
+
+  /**
+   * Get full URL for displaying image
+   * 
+   * @param {string} relativePath - Relative path from backend (e.g., "/uploads/images/abc123.jpg")
+   * @returns {string} Full URL (e.g., "http://localhost:8080/uploads/images/abc123.jpg")
+   */
+  getImageUrl: (relativePath) => {
+    if (!relativePath) return '';
+    if (relativePath.startsWith('http')) return relativePath; // External URL
+    return `${API_BASE_URL}${relativePath}`;
   }
 };
 

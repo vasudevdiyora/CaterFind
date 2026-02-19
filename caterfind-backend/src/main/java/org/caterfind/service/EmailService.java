@@ -42,11 +42,6 @@ public class EmailService {
 
             mailSender.send(email);
 
-            System.out.println("📧 EMAIL SENT via JavaMail");
-            System.out.println("From: " + fromEmail);
-            System.out.println("To: " + toEmail);
-            System.out.println("Subject: " + subject);
-
             return true;
 
         } catch (Exception e) {

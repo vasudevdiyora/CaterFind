@@ -7,6 +7,8 @@
 -- ============================================================
 
 -- Drop existing tables if re-running (for development only)
+DROP TABLE IF EXISTS availability_status;
+DROP TABLE IF EXISTS calendar_events;
 DROP TABLE IF EXISTS messages;
 DROP TABLE IF EXISTS inventory_items;
 DROP TABLE IF EXISTS contact_label_mapping;
@@ -136,6 +138,39 @@ CREATE TABLE messages (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
+-- CALENDAR_EVENTS TABLE
+-- ============================================================
+-- Stores calendar events added to the availability calendar
+-- Events older than 30 days are automatically deleted via scheduled job
+-- user_id refers to caterer who created the event
+CREATE TABLE calendar_events (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    event_date DATE NOT NULL,
+    event_host_name VARCHAR(255) NOT NULL,
+    managed_by VARCHAR(255),
+    location VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_date (user_id, event_date),
+    INDEX idx_event_date (event_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- AVAILABILITY_STATUS TABLE
+-- ============================================================
+-- Stores availability status (available/busy) per caterer per date
+CREATE TABLE availability_status (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    available_date DATE NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_availability_user_date (user_id, available_date),
+    INDEX idx_availability_date (available_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
 -- SCHEMA DESIGN NOTES
 -- ============================================================
 -- 1. Normalization: Contact labels are separate to avoid data duplication
@@ -143,4 +178,5 @@ CREATE TABLE messages (
 -- 3. Constraints: Foreign keys ensure referential integrity
 -- 4. Indexes: Added on frequently queried columns (caterer_id, email, low_stock)
 -- 5. Generated column: is_low_stock auto-updates when quantity changes
+-- 6. Calendar events: idx_event_date allows fast cleanup queries for old events
 -- ============================================================

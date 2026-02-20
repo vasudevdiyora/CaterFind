@@ -34,7 +34,7 @@ function Register({ onLogin, onSwitchToLogin, onBack, selectedRole }) {
         setLoading(true);
 
         try {
-            const response = await authAPI.register(email, password, businessName);
+            const response = await authAPI.register(email, password, businessName, selectedRole);
 
             if (response.success) {
                 onLogin(response);

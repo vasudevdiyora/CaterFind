@@ -23,7 +23,8 @@ function MyBusiness({ user }) {
         area: '',
         city: '',
         landmark: '',
-        serviceRadius: 50
+        serviceRadius: 50,
+        imageUrl: '' // Profile image URL - saved to database
     });
 
     const [loading, setLoading] = useState(true);
@@ -61,7 +62,8 @@ function MyBusiness({ user }) {
                     area: data.area || '',
                     city: data.city || '',
                     landmark: data.landmark || '',
-                    serviceRadius: data.serviceRadius || 50
+                    serviceRadius: data.serviceRadius || 50,
+                    imageUrl: data.imageUrl || ''
                 });
             } else {
                 // Optional: set defaults if first time
@@ -128,6 +130,11 @@ function MyBusiness({ user }) {
                     url: result.url,
                     name: file.name
                 }]);
+                
+                // Set the first uploaded photo as the profile image
+                if (formData.imageUrl === '') {
+                    handleChange('imageUrl', result.url);
+                }
             }
         } catch (error) {
             alert('Failed to upload photos: ' + error.message);
@@ -345,6 +352,27 @@ function MyBusiness({ user }) {
                 <div className="form-section">
                     <h2 className="section-heading">📸 Photos & Media</h2>
 
+                    {/* Profile Image Preview */}
+                    <div className="form-field">
+                        <label className="field-label">Profile Image</label>
+                        {formData.imageUrl && (
+                            <div style={{ marginBottom: '16px' }}>
+                                <img 
+                                    src={fileAPI.getImageUrl(formData.imageUrl)} 
+                                    alt="Profile"
+                                    style={{ 
+                                        width: '200px', 
+                                        height: '200px', 
+                                        objectFit: 'cover',
+                                        borderRadius: '8px',
+                                        border: '2px solid var(--border-color, #333)'
+                                    }}
+                                />
+                                <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>Current profile image</p>
+                            </div>
+                        )}
+                    </div>
+
                     <div className="form-field">
                         <label className="field-label">Business Photos</label>
                         <input
@@ -369,12 +397,29 @@ function MyBusiness({ user }) {
                         {businessPhotos.length > 0 && (
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '16px', marginTop: '16px' }}>
                                 {businessPhotos.map((photo, index) => (
-                                    <div key={index} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '2px solid var(--border-color, #333)' }}>
+                                    <div key={index} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: formData.imageUrl === photo.url ? '3px solid #4CAF50' : '2px solid var(--border-color, #333)' }}>
                                         <img 
                                             src={fileAPI.getImageUrl(photo.url)} 
                                             alt={photo.name}
-                                            style={{ width: '100%', height: '150px', objectFit: 'cover' }}
+                                            style={{ width: '100%', height: '150px', objectFit: 'cover', cursor: 'pointer' }}
+                                            onClick={() => handleChange('imageUrl', photo.url)}
+                                            title="Click to set as profile image"
                                         />
+                                        {formData.imageUrl === photo.url && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '8px',
+                                                left: '8px',
+                                                background: '#4CAF50',
+                                                color: 'white',
+                                                padding: '4px 8px',
+                                                borderRadius: '4px',
+                                                fontSize: '12px',
+                                                fontWeight: 'bold'
+                                            }}>
+                                                ✓ Profile Image
+                                            </div>
+                                        )}
                                         <button
                                             type="button"
                                             onClick={() => removePhoto(index, photo.url)}

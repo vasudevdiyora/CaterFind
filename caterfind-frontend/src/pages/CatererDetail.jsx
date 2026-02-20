@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Star, MapPin, Phone, Mail } from 'lucide-react';
 import { profileAPI, fileAPI } from '../services/api';
+import ClientAvailability from './ClientAvailability';
 
 /**
  * Caterer Detail Page (Loveable Design)
@@ -69,7 +70,7 @@ const CatererDetail = ({ catererId, onBack }) => {
                 {/* Hero Image */}
                 <div className="h-[400px] overflow-hidden">
                     <img
-                        src={caterer.imageUrl || "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=1600&q=80"}
+                        src={fileAPI.getImageUrl(caterer.imageUrl) || "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=1600&q=80"}
                         alt={caterer.businessName}
                         className="w-full h-full object-cover"
                     />
@@ -138,6 +139,18 @@ const CatererDetail = ({ catererId, onBack }) => {
                             </div>
                         ))}
                     </div>
+                </div>
+
+                {/* Availability Section */}
+                <div className="mb-8">
+                    <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                        <span className="text-orange-400">📅</span> Availability
+                    </h2>
+                    <ClientAvailability
+                        catererId={catererId}
+                        embedded={true}
+                        showBack={false}
+                    />
                 </div>
 
                 {/* Contact Information */}

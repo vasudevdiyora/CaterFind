@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Star, Filter } from 'lucide-react';
-import { profileAPI } from '../services/api';
+import { profileAPI, fileAPI } from '../services/api';
 import CatererDetail from './CatererDetail';
 
 const ClientHome = ({ user }) => {
@@ -30,7 +30,7 @@ const ClientHome = ({ user }) => {
         caterer.city?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // If a caterer is selected, show detail page
+    // If a caterer is selected, show detail page (with availability embedded)
     if (selectedCatererId) {
         return (
             <CatererDetail
@@ -87,7 +87,7 @@ const ClientHome = ({ user }) => {
                         >
                             <div className="h-48 bg-gray-700 relative">
                                 <img
-                                    src={caterer.imageUrl || "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=800&q=80"}
+                                    src={caterer.imageUrl ? fileAPI.getImageUrl(caterer.imageUrl) : "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=800&q=80"}
                                     alt={caterer.businessName}
                                     className="w-full h-full object-cover"
                                 />

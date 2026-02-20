@@ -44,18 +44,19 @@ export const authAPI = {
 
 
   /**
-   * Register new caterer.
+   * Register new user (caterer or client).
    * 
    * @param {string} email - User email
    * @param {string} password - User password
-   * @param {string} businessName - Business Name
+   * @param {string} businessName - Business Name (required for CATERER, empty for CLIENT)
+   * @param {string} role - User role (CATERER or CLIENT)
    * @returns {Promise} Login response with role
    */
-  register: async (email, password, businessName) => {
+  register: async (email, password, businessName, role = 'CATERER') => {
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, businessName })
+      body: JSON.stringify({ email, password, businessName, role })
     });
     const data = await response.json();
     if (!response.ok) {
@@ -450,6 +451,119 @@ export const fileAPI = {
     if (!relativePath) return '';
     if (relativePath.startsWith('http')) return relativePath; // External URL
     return `${API_BASE_URL}${relativePath}`;
+  }
+};
+
+/**
+ * Calendar Event API
+ */
+export const calendarAPI = {
+  /**
+   * Create a new calendar event
+   * 
+   * @param {number} userId - Caterer user ID
+   * @param {object} eventData - Event data { eventDate, eventHostName, managedBy?, location? }
+   * @returns {Promise} Created event
+   */
+  create: async (userId, eventData) => {
+    const response = await fetch(`${API_BASE_URL}/api/calendar/events?userId=${userId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(eventData)
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to create event');
+    }
+    return response.json();
+  },
+
+  /**
+   * Get all events for a user
+   * 
+   * @param {number} userId - Caterer user ID
+   * @returns {Promise} Array of events
+   */
+  getAll: async (userId) => {
+    const response = await fetch(`${API_BASE_URL}/api/calendar/events?userId=${userId}`);
+    return response.json();
+  },
+
+  /**
+   * Get events for a specific date
+   * 
+   * @param {number} userId - Caterer user ID
+   * @param {string} date - Date in YYYY-MM-DD format
+   * @returns {Promise} Array of events
+   */
+  getByDate: async (userId, date) => {
+    const response = await fetch(`${API_BASE_URL}/api/calendar/events?userId=${userId}&date=${date}`);
+    return response.json();
+  },
+
+  /**
+   * Get events in a date range
+   * 
+   * @param {number} userId - Caterer user ID
+   * @param {string} startDate - Start date in YYYY-MM-DD format
+   * @param {string} endDate - End date in YYYY-MM-DD format
+   * @returns {Promise} Array of events
+   */
+  getByRange: async (userId, startDate, endDate) => {
+    const response = await fetch(`${API_BASE_URL}/api/calendar/events?userId=${userId}&startDate=${startDate}&endDate=${endDate}`);
+    return response.json();
+  },
+
+  /**
+   * Delete an event
+   * 
+   * @param {number} eventId - Event ID
+   * @returns {Promise} Response
+   */
+  delete: async (eventId) => {
+    const response = await fetch(`${API_BASE_URL}/api/calendar/events/${eventId}`, {
+      method: 'DELETE'
+    });
+    return response.json();
+  }
+};
+
+/**
+ * Availability API
+ */
+export const availabilityAPI = {
+  /**
+   * Set availability status for a date
+   * 
+   * @param {number} userId - Caterer user ID
+   * @param {object} data - { date: "YYYY-MM-DD", status: "available" | "busy" | null }
+   * @returns {Promise} Created/updated status or null
+   */
+  setStatus: async (userId, data) => {
+    const response = await fetch(`${API_BASE_URL}/api/availability?userId=${userId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (response.status === 204) return null;
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update availability');
+    }
+    return response.json();
+  },
+
+  /**
+   * Get availability for a date range
+   * 
+   * @param {number} userId - Caterer user ID
+   * @param {string} startDate - YYYY-MM-DD
+   * @param {string} endDate - YYYY-MM-DD
+   * @returns {Promise} Array of availability statuses
+   */
+  getByRange: async (userId, startDate, endDate) => {
+    const response = await fetch(`${API_BASE_URL}/api/availability?userId=${userId}&startDate=${startDate}&endDate=${endDate}`);
+    return response.json();
   }
 };
 

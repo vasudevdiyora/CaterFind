@@ -80,22 +80,33 @@ public class AuthService {
             return LoginResponse.failure("Email already registered");
         }
 
+        // Determine role (default to CATERER if not specified)
+        String roleStr = request.getRole() != null ? request.getRole().toUpperCase() : "CATERER";
+        User.UserRole role;
+        try {
+            role = User.UserRole.valueOf(roleStr);
+        } catch (IllegalArgumentException e) {
+            return LoginResponse.failure("Invalid role: " + roleStr);
+        }
+
         // Create new User
         User user = new User();
         user.setEmail(request.getEmail());
         user.setPassword(request.getPassword()); // Plain text for demo
-        user.setRole(User.UserRole.CATERER);
+        user.setRole(role);
 
         User savedUser = userRepository.save(user);
 
-        // Create initial CateringProfile
-        org.caterfind.entity.CateringProfile profile = new org.caterfind.entity.CateringProfile();
-        profile.setUser(savedUser);
-        profile.setBusinessName(request.getBusinessName());
-        // Set defaults
-        profile.setServiceRadius(50);
+        // Only create CateringProfile for CATERER role
+        if (role == User.UserRole.CATERER) {
+            org.caterfind.entity.CateringProfile profile = new org.caterfind.entity.CateringProfile();
+            profile.setUser(savedUser);
+            profile.setBusinessName(request.getBusinessName());
+            // Set defaults
+            profile.setServiceRadius(50);
 
-        cateringProfileRepository.save(profile);
+            cateringProfileRepository.save(profile);
+        }
 
         // Return success response (auto-login)
         return LoginResponse.success(

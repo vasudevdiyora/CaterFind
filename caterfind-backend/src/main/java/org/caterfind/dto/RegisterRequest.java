@@ -4,6 +4,7 @@ public class RegisterRequest {
     private String email;
     private String password;
     private String businessName;
+    private String role; // "CATERER" or "CLIENT"
 
     // Constructors
     public RegisterRequest() {
@@ -13,6 +14,14 @@ public class RegisterRequest {
         this.email = email;
         this.password = password;
         this.businessName = businessName;
+        this.role = "CATERER"; // Default to CATERER for backward compatibility
+    }
+
+    public RegisterRequest(String email, String password, String businessName, String role) {
+        this.email = email;
+        this.password = password;
+        this.businessName = businessName;
+        this.role = role;
     }
 
     // Getters and Setters
@@ -38,5 +47,13 @@ public class RegisterRequest {
 
     public void setBusinessName(String businessName) {
         this.businessName = businessName;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, MapPin, Phone, Mail } from 'lucide-react';
-import { profileAPI, fileAPI } from '../services/api';
+import { profileAPI, fileAPI, dishAPI } from '../services/api';
 import ClientAvailability from './ClientAvailability';
 
 /**
@@ -10,14 +11,25 @@ import ClientAvailability from './ClientAvailability';
  * - Hero image with business info
  * - Description and pricing
  * - Photo gallery
+ * - Trending dishes with View More
  * - Contact details
  */
-const CatererDetail = ({ catererId, onBack }) => {
+const CatererDetail = () => {
+    const { id } = useParams(); // Get caterer ID from URL
+    const navigate = useNavigate();
+    const catererId = id;
+    
     const [caterer, setCaterer] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [dishes, setDishes] = useState([]);
+    const [showAllDishes, setShowAllDishes] = useState(false);
+    const [loadingDishes, setLoadingDishes] = useState(true);
 
     useEffect(() => {
-        loadCaterer();
+        if (catererId) {
+            loadCaterer();
+            loadDishes();
+        }
     }, [catererId]);
 
     const loadCaterer = async () => {
@@ -28,6 +40,18 @@ const CatererDetail = ({ catererId, onBack }) => {
             // Error loading caterer
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadDishes = async () => {
+        try {
+            setLoadingDishes(true);
+            const data = await dishAPI.getAll(catererId);
+            setDishes(data);
+        } catch (error) {
+            console.error('Error loading dishes:', error);
+        } finally {
+            setLoadingDishes(false);
         }
     };
 
@@ -47,18 +71,23 @@ const CatererDetail = ({ catererId, onBack }) => {
         );
     }
 
-    // Mock gallery images for now (replace with actual caterer photos later)
-    const galleryImages = [
-        "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=800&q=80"
-    ];
+    // Parse business photos from caterer profile (comma-separated string)
+    console.log('Caterer businessPhotos:', caterer.businessPhotos);
+    const galleryImages = caterer.businessPhotos && caterer.businessPhotos.trim().length > 0
+        ? caterer.businessPhotos.split(',').filter(url => url.trim()).map(url => fileAPI.getImageUrl(url.trim()))
+        : [
+            // Fallback to mock images if no photos uploaded
+            "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=800&q=80"
+        ];
+    console.log('Gallery images:', galleryImages);
 
     return (
         <div className="min-h-screen bg-[#1a1a1a] text-white">
             {/* Back Button */}
             <button
-                onClick={onBack}
+                onClick={() => navigate(-1)}
                 className="flex items-center gap-2 px-6 py-4 text-gray-400 hover:text-white transition-colors"
             >
                 <ArrowLeft size={20} />
@@ -139,6 +168,105 @@ const CatererDetail = ({ catererId, onBack }) => {
                             </div>
                         ))}
                     </div>
+                </div>
+
+                {/* Trending Dishes Section */}
+                <div className="mb-8">
+                    <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                        <span className="text-orange-400">🍽️</span> Trending Dishes
+                    </h2>
+                    
+                    {loadingDishes ? (
+                        <div className="text-center text-gray-400 py-8">Loading dishes...</div>
+                    ) : dishes.length === 0 ? (
+                        <div className="bg-[#2a2a2a] rounded-2xl p-8 text-center text-gray-400 border border-gray-700/50">
+                            No dishes available yet
+                        </div>
+                    ) : (
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {(showAllDishes ? dishes : dishes.slice(0, 4)).map((dish, index) => (
+                                    <div
+                                        key={dish.id}
+                                        className="bg-[#2a2a2a] rounded-2xl overflow-hidden border border-gray-700/50 hover:border-orange-500/50 transition-all duration-300 hover:transform hover:scale-[1.02] shadow-xl"
+                                    >
+                                        <div className="relative">
+                                            {/* Dish Image */}
+                                            <div className="h-56 overflow-hidden">
+                                                <img
+                                                    src={fileAPI.getImageUrl(dish.imageUrl) || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80"}
+                                                    alt={dish.name}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                            
+                                            {/* Trending Badge */}
+                                            {(showAllDishes ? index < 4 : true) && (
+                                                <div className="absolute top-4 right-4">
+                                                    <span className="bg-orange-500 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg">
+                                                        Trending
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Dish Info */}
+                                        <div className="p-6">
+                                            <h3 className="text-2xl font-bold mb-2">{dish.name}</h3>
+                                            <p className="text-gray-400 text-sm mb-3">
+                                                {dish.category || 'Main Course'}
+                                            </p>
+                                            {dish.description && (
+                                                <p className="text-gray-300 text-sm leading-relaxed">
+                                                    {dish.description}
+                                                </p>
+                                            )}
+                                            {/* Labels/Tags */}
+                                            {dish.labels && (
+                                                <div className="flex flex-wrap gap-2 mt-4">
+                                                    {(Array.isArray(dish.labels) ? dish.labels : dish.labels.split(',')).map((label, idx) => (
+                                                        <span
+                                                            key={`${dish.id}-label-${idx}-${label.trim()}`}
+                                                            className="bg-gray-700/50 text-gray-300 px-3 py-1 rounded-full text-xs"
+                                                        >
+                                                            {label.trim()}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {/* Veg/Non-Veg Badge */}
+                                            {dish.type && (
+                                                <div className="mt-4">
+                                                    <span
+                                                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
+                                                            dish.type === 'VEG'
+                                                                ? 'bg-green-500/20 text-green-400 border border-green-500/50'
+                                                                : 'bg-red-500/20 text-red-400 border border-red-500/50'
+                                                        }`}
+                                                    >
+                                                        <span className="w-2 h-2 rounded-full bg-current"></span>
+                                                        {dish.type}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* View More Button */}
+                            {dishes.length > 4 && (
+                                <div className="flex justify-center mt-8">
+                                    <button
+                                        onClick={() => setShowAllDishes(!showAllDishes)}
+                                        className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg px-10 py-3 rounded-xl shadow-lg hover:shadow-orange-500/50 transition-all transform hover:scale-105"
+                                    >
+                                        {showAllDishes ? 'Show Less' : 'View More'}
+                                    </button>
+                                </div>
+                            )}
+                        </>
+                    )}
                 </div>
 
                 {/* Availability Section */}

@@ -1,5 +1,8 @@
 package org.caterfind.service;
 
+import java.time.LocalDateTime;
+import java.util.Optional;
+
 import org.caterfind.dto.CateringProfileDTO;
 import org.caterfind.entity.CateringProfile;
 import org.caterfind.entity.User;
@@ -8,9 +11,6 @@ import org.caterfind.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.Optional;
 
 /**
  * Service for managing catering business profiles.
@@ -87,6 +87,8 @@ public class CateringProfileService {
             profile.setRating(dto.getRating());
         if (dto.getImageUrl() != null)
             profile.setImageUrl(dto.getImageUrl());
+        if (dto.getBusinessPhotos() != null)
+            profile.setBusinessPhotos(dto.getBusinessPhotos());
 
         // Sync legacy fields for backward compatibility
         profile.setPhone(dto.getPrimaryPhone());
@@ -121,6 +123,7 @@ public class CateringProfileService {
         dto.setServiceRadius(entity.getServiceRadius());
         dto.setRating(entity.getRating());
         dto.setImageUrl(entity.getImageUrl());
+        dto.setBusinessPhotos(entity.getBusinessPhotos());
         return dto;
     }
 }

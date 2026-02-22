@@ -4,7 +4,7 @@
  * Matches Loveable's OwnerLayout structure
  */
 import { useState } from 'react';
-import { NavLink } from '@/components/NavLink';
+import { NavLink as RouterNavLink } from 'react-router-dom';
 import {
     LayoutDashboard, Building2, Users, MessageSquare,
     Package, Menu, X, LogOut, Contact, Calendar, UtensilsCrossed
@@ -12,7 +12,7 @@ import {
 
 import { cn } from '@/lib/utils';
 
-const CatererLayout = ({ children, user, onLogout, onNavigate, currentPage }) => {
+const CatererLayout = ({ children, user, onLogout }) => {
     // Mobile sidebar toggle state
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -21,24 +21,15 @@ const CatererLayout = ({ children, user, onLogout, onNavigate, currentPage }) =>
         if (onLogout) onLogout();
     };
 
-    // Handle navigation (for non-React Router setup)
-    const handleNavClick = (pageId) => {
-        if (onNavigate) {
-            onNavigate(pageId);
-        }
-        setSidebarOpen(false);
-    };
-
     // Navigation menu items
     const navItems = [
-        { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-        { id: 'business', icon: Building2, label: 'My Business' },
-        { id: 'availability', icon: Calendar, label: 'Availability' },
-        { id: 'dishes', icon: UtensilsCrossed, label: 'Dish Library' },
-        { id: 'contacts', icon: Contact, label: 'Contacts' },
-
-        { id: 'inventory', icon: Package, label: 'Inventory' },
-        { id: 'messages', icon: MessageSquare, label: 'Messages' },
+        { path: '/owner/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+        { path: '/owner/profile', icon: Building2, label: 'My Business' },
+        { path: '/owner/calendar', icon: Calendar, label: 'Availability' },
+        { path: '/owner/dish-library', icon: UtensilsCrossed, label: 'Dish Library' },
+        { path: '/owner/contacts', icon: Contact, label: 'Contacts' },
+        { path: '/owner/inventory', icon: Package, label: 'Inventory' },
+        { path: '/owner/messages', icon: MessageSquare, label: 'Messages' },
     ];
 
     return (
@@ -81,18 +72,19 @@ const CatererLayout = ({ children, user, onLogout, onNavigate, currentPage }) =>
 
                     {/* Navigation Links */}
                     <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-                        {navItems.map(({ id, icon: Icon, label }) => (
-                            <button
-                                key={id}
-                                onClick={() => handleNavClick(id)}
-                                className={cn(
+                        {navItems.map(({ path, icon: Icon, label }) => (
+                            <RouterNavLink
+                                key={path}
+                                to={path}
+                                onClick={() => setSidebarOpen(false)}
+                                className={({ isActive }) => cn(
                                     "flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors",
-                                    currentPage === id && "bg-sidebar-accent text-primary"
+                                    isActive && "bg-sidebar-accent text-primary"
                                 )}
                             >
                                 <Icon className="w-5 h-5" />
                                 <span className="font-medium">{label}</span>
-                            </button>
+                            </RouterNavLink>
                         ))}
                     </nav>
 

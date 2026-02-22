@@ -18,6 +18,7 @@ public class CateringProfileDTO {
     private Integer serviceRadius;
     private Double rating;
     private String imageUrl;
+    private String businessPhotos;
 
     // Getters and Setters
     public Long getId() {
@@ -130,6 +131,14 @@ public class CateringProfileDTO {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getBusinessPhotos() {
+        return businessPhotos;
+    }
+
+    public void setBusinessPhotos(String businessPhotos) {
+        this.businessPhotos = businessPhotos;
     }
 
     // Convinience generic getter for address if needed, though frontend uses

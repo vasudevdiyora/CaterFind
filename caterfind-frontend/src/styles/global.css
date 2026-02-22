@@ -3,6 +3,13 @@
 /* Catering Management Platform - Dark Theme Design System */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+/* Prevent vertical overscroll/pull-to-refresh bounce, but keep horizontal swipe navigation */
+html,
+body {
+  overscroll-behavior-y: none; /* Prevents vertical bounce/stretch only */
+  overscroll-behavior-x: auto; /* Allows horizontal swipe for browser back/forward */
+}
+
 @theme {
   /* Professional Dark Theme - Sophisticated Color Palette */
 

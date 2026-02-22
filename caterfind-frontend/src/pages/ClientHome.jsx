@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, MapPin, Star, Filter } from 'lucide-react';
 import { profileAPI, fileAPI } from '../services/api';
-import CatererDetail from './CatererDetail';
 
 const ClientHome = ({ user }) => {
     const [caterers, setCaterers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState('All'); // All, Veg, Non-Veg - Mock filter for now
-    const [selectedCatererId, setSelectedCatererId] = useState(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         loadCaterers();
@@ -30,15 +30,10 @@ const ClientHome = ({ user }) => {
         caterer.city?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // If a caterer is selected, show detail page (with availability embedded)
-    if (selectedCatererId) {
-        return (
-            <CatererDetail
-                catererId={selectedCatererId}
-                onBack={() => setSelectedCatererId(null)}
-            />
-        );
-    }
+    const handleCatererClick = (caterer) => {
+        const catererId = caterer.userId ?? caterer.id;
+        navigate(`/client/caterer/${catererId}`);
+    };
 
     return (
         <div className="p-6 bg-[#1a1a1a] min-h-screen text-white">
@@ -82,7 +77,7 @@ const ClientHome = ({ user }) => {
                     {filteredCaterers.map(caterer => (
                         <div
                             key={caterer.id}
-                            onClick={() => setSelectedCatererId(caterer.userId ?? caterer.id)}
+                            onClick={() => handleCatererClick(caterer)}
                             className="bg-[#2a2a2a] rounded-xl overflow-hidden hover:transform hover:scale-[1.02] transition-all duration-300 shadow-lg cursor-pointer"
                         >
                             <div className="h-48 bg-gray-700 relative">

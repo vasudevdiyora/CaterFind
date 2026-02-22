@@ -1,7 +1,17 @@
 package org.caterfind.entity;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToOne;
+import javax.persistence.PrePersist;
+import javax.persistence.Table;
 
 /**
  * CateringProfile entity storing business information for caterers.
@@ -60,6 +70,9 @@ public class CateringProfile {
 
     @Column(name = "image_url")
     private String imageUrl; // URL to profile image
+
+    @Column(name = "business_photos", columnDefinition = "TEXT")
+    private String businessPhotos; // Comma-separated URLs of business photos for gallery
 
     // Legacy address field - mapped to getFullAddress logic if needed or removed
     // For now replacing strict 'address' with granular fields.
@@ -202,6 +215,14 @@ public class CateringProfile {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getBusinessPhotos() {
+        return businessPhotos;
+    }
+
+    public void setBusinessPhotos(String businessPhotos) {
+        this.businessPhotos = businessPhotos;
     }
 
     public String getPhone() {

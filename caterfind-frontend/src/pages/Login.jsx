@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { authAPI } from '../services/api';
 import { UtensilsCrossed, Mail, Lock, ArrowRight, Info, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
@@ -7,12 +8,15 @@ import { cn } from '@/lib/utils';
 /**
  * Login Page Component (Tailwind v4 + Loveable Style)
  */
-function Login({ onLogin, onSwitchToRegister, onBack, selectedRole }) {
+function Login({ onLogin }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const navigate = useNavigate();
+    const { role } = useParams(); // Get role from URL (client or caterer)
+    const selectedRole = role?.toUpperCase();
 
 
     const handleSubmit = async (e) => {
@@ -26,6 +30,7 @@ function Login({ onLogin, onSwitchToRegister, onBack, selectedRole }) {
             if (response.success) {
                 if (response.role === 'CATERER' || response.role === 'CLIENT') {
                     onLogin(response);
+                    // Navigation is handled by App.jsx redirects
                 } else {
                     setError('Unknown role. Please contact support.');
                 }
@@ -42,15 +47,13 @@ function Login({ onLogin, onSwitchToRegister, onBack, selectedRole }) {
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
             {/* Back Button */}
-            {onBack && (
-                <button
-                    onClick={onBack}
-                    className="absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                    <ArrowLeft className="w-5 h-5" />
-                    <span className="text-sm font-medium">Back</span>
-                </button>
-            )}
+            <button
+                onClick={() => navigate('/')}
+                className="absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+                <ArrowLeft className="w-5 h-5" />
+                <span className="text-sm font-medium">Back</span>
+            </button>
 
             <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {/* Header */}
@@ -135,13 +138,12 @@ function Login({ onLogin, onSwitchToRegister, onBack, selectedRole }) {
                 <div className="text-center space-y-4">
                     <p className="text-sm text-muted-foreground">
                         Don't have an account?{' '}
-                        <button
-                            type="button"
-                            onClick={onSwitchToRegister}
+                        <Link
+                            to={`/register/${role || 'client'}`}
                             className="font-medium text-primary hover:underline transition-all"
                         >
                             Sign up here
-                        </button>
+                        </Link>
                     </p>
 
                     <p className="text-xs text-muted-foreground">

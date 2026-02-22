@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -12,43 +13,29 @@ import DishLibrary from './pages/DishLibrary';
 import CatererLayout from '@/components/layouts/CatererLayout';
 import ClientLayout from '@/components/layouts/ClientLayout';
 import ClientHome from './pages/ClientHome';
+import CatererDetail from './pages/CatererDetail';
 
 
 /**
- * Main App Component
+ * Main App Component with React Router
  * 
- * Handles:
- * - Authentication state (logged in/out)
- * - Page navigation (dashboard, contacts, inventory, messages, business)
- * - CatererLayout with responsive sidebar
- * 
- * Flow:
- * 1. Show Login page if not authenticated
- * 2. After successful caterer login, show dashboard with CatererLayout
- * 3. Navigate between pages using sidebar
- * 
- * REMINDER: Client login is rejected (no client dashboard).
+ * Routes:
+ * - / - Landing page
+ * - /login - Login page
+ * - /register - Register page
+ * - /owner/* - Caterer routes
+ * - /client/* - Client routes
  */
 function App() {
   // Authentication state
   const [user, setUser] = useState(null);
 
-  // Current page state
-  const [currentPage, setCurrentPage] = useState('dashboard');
-
-  // Authentication View State (login or register)
-  const [authView, setAuthView] = useState('login');
-
-  // Landing page - role selection state
-  const [selectedRole, setSelectedRole] = useState(null);
-
   /**
    * Handle successful login.
-   * Stores user info and redirects to dashboard.
+   * Stores user info for route protection.
    */
   const handleLogin = (loginResponse) => {
     setUser(loginResponse);
-    setCurrentPage('dashboard');
   };
 
   /**
@@ -58,91 +45,50 @@ function App() {
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
       setUser(null);
-      setAuthView('login');
-      setCurrentPage('dashboard');
-      setSelectedRole(null); // Reset to landing page
     }
   };
 
-  /**
-   * Handle role selection from landing page
-   */
-  const handleRoleSelect = (role) => {
-    setSelectedRole(role);
-    setAuthView('login'); // Show login page after role selection
-  };
-
-  /**
-   * Render current page based on navigation state.
-   */
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'dashboard':
-        return <Dashboard user={user} />;
-      case 'business':
-        return <MyBusiness user={user} />;
-      case 'availability':
-        return <Availability user={user} />;
-      case 'contacts':
-        return <Contacts user={user} />;
-      case 'messages':
-        return <Messages user={user} />;
-      case 'inventory':
-        return <Inventory user={user} />;
-      case 'dishes':
-        return <DishLibrary user={user} />;
-      default:
-        return <Dashboard user={user} />;
-    }
-  };
-
-  // If not logged in, show landing page first, then login/register
-  if (!user) {
-    // Show landing page if no role selected yet
-    if (!selectedRole) {
-      return <Landing onRoleSelect={handleRoleSelect} />;
-    }
-
-    // Show register/login page after role selection
-    if (authView === 'register') {
-      return (
-        <Register 
-          onLogin={handleLogin} 
-          onSwitchToLogin={() => setAuthView('login')}
-          onBack={() => setSelectedRole(null)}
-          selectedRole={selectedRole}
-        />
-      );
-    }
-    return (
-      <Login 
-        onLogin={handleLogin} 
-        onSwitchToRegister={() => setAuthView('register')}
-        onBack={() => setSelectedRole(null)}
-        selectedRole={selectedRole}
-      />
-    );
-  }
-
-  // If logged in as CLIENT, show ClientLayout with ClientHome
-  if (user.role === 'CLIENT') {
-    return (
-      <ClientLayout user={user} onLogout={handleLogout}>
-        <ClientHome user={user} />
-      </ClientLayout>
-    );
-  }
-
-  // If logged in as CATERER, show dashboard with CatererLayout
   return (
-    <CatererLayout
-      user={user}
-      currentPage={currentPage}
-      onNavigate={setCurrentPage}
-      onLogout={handleLogout}
-    >
-      {renderPage()}
-    </CatererLayout>
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/" element={user ? <Navigate to={user.role === 'CATERER' ? '/owner/dashboard' : '/client/home'} /> : <Landing />} />
+      <Route path="/login/:role" element={user ? <Navigate to={user.role === 'CATERER' ? '/owner/dashboard' : '/client/home'} /> : <Login onLogin={handleLogin} />} />
+      <Route path="/register/:role" element={user ? <Navigate to={user.role === 'CATERER' ? '/owner/dashboard' : '/client/home'} /> : <Register onLogin={handleLogin} />} />
+
+      {/* Caterer Routes */}
+      <Route path="/owner/*" element={
+        !user ? <Navigate to="/" /> :
+        user.role !== 'CATERER' ? <Navigate to="/client/home" /> :
+        <CatererLayout user={user} onLogout={handleLogout}>
+          <Routes>
+            <Route path="dashboard" element={<Dashboard user={user} />} />
+            <Route path="profile" element={<MyBusiness user={user} />} />
+            <Route path="calendar" element={<Availability user={user} />} />
+            <Route path="dish-library" element={<DishLibrary user={user} />} />
+            <Route path="inventory" element={<Inventory user={user} />} />
+            <Route path="contacts" element={<Contacts user={user} />} />
+            <Route path="messages" element={<Messages user={user} />} />
+            <Route path="*" element={<Navigate to="/owner/dashboard" />} />
+          </Routes>
+        </CatererLayout>
+      } />
+
+      {/* Client Routes */}
+      <Route path="/client/*" element={
+        !user ? <Navigate to="/" /> :
+        user.role !== 'CLIENT' ? <Navigate to="/owner/dashboard" /> :
+        <ClientLayout user={user} onLogout={handleLogout}>
+          <Routes>
+            <Route path="home" element={<ClientHome user={user} />} />
+            <Route path="caterer/:id" element={<CatererDetail />} />
+            <Route path="*" element={<Navigate to="/client/home" />} />
+          </Routes>
+        </ClientLayout>
+      } />
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
   );
 }
 

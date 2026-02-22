@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { authAPI } from '../services/api';
 import { UtensilsCrossed, Mail, Lock, Store, ArrowRight, Info, ArrowLeft, Eye, EyeOff, ChefHat } from 'lucide-react';
 
@@ -6,7 +7,7 @@ import { UtensilsCrossed, Mail, Lock, Store, ArrowRight, Info, ArrowLeft, Eye, E
 /**
  * Register Page Component (Tailwind v4 + Loveable Style)
  */
-function Register({ onLogin, onSwitchToLogin, onBack, selectedRole }) {
+function Register({ onLogin }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -15,6 +16,9 @@ function Register({ onLogin, onSwitchToLogin, onBack, selectedRole }) {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const navigate = useNavigate();
+    const { role } = useParams(); // Get role from URL
+    const selectedRole = role?.toUpperCase();
 
 
     const handleSubmit = async (e) => {
@@ -38,6 +42,7 @@ function Register({ onLogin, onSwitchToLogin, onBack, selectedRole }) {
 
             if (response.success) {
                 onLogin(response);
+                // Navigation handled by App.jsx redirects
             } else {
                 setError(response.message || 'Registration failed');
             }
@@ -52,15 +57,13 @@ function Register({ onLogin, onSwitchToLogin, onBack, selectedRole }) {
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
             {/* Back Button */}
-            {onBack && (
-                <button
-                    onClick={onBack}
-                    className="absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                    <ArrowLeft className="w-5 h-5" />
-                    <span className="text-sm font-medium">Back</span>
-                </button>
-            )}
+            <button
+                onClick={() => navigate('/')}
+                className="absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+                <ArrowLeft className="w-5 h-5" />
+                <span className="text-sm font-medium">Back</span>
+            </button>
 
             <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {/* Header */}
@@ -185,14 +188,13 @@ function Register({ onLogin, onSwitchToLogin, onBack, selectedRole }) {
                     </form>
 
                     <div className="mt-6 text-center">
-                        <button
-                            type="button"
-                            onClick={onSwitchToLogin}
+                        <Link
+                            to={`/login/${role || 'client'}`}
                             className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-2 mx-auto"
                         >
                             <ArrowLeft className="h-4 w-4" />
                             Back to Login
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </div>

@@ -65,6 +65,12 @@ function MyBusiness({ user }) {
                     serviceRadius: data.serviceRadius || 50,
                     imageUrl: data.imageUrl || ''
                 });
+                
+                // Load business photos from comma-separated string
+                if (data.businessPhotos) {
+                    const photoUrls = data.businessPhotos.split(',').filter(url => url.trim());
+                    setBusinessPhotos(photoUrls.map(url => ({ url: url.trim(), name: '' })));
+                }
             } else {
                 // Optional: set defaults if first time
             }
@@ -88,12 +94,20 @@ function MyBusiness({ user }) {
         const catererId = user?.userId || user?.id;
 
         try {
+            // Convert businessPhotos array to comma-separated string
+            const businessPhotosString = businessPhotos.map(photo => photo.url).join(',');
+            
+            const dataToSave = {
+                ...formData,
+                businessPhotos: businessPhotosString
+            };
+            
             const response = await fetch(`http://localhost:8080/api/profile?catererId=${catererId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(dataToSave),
             });
 
             if (response.ok) {

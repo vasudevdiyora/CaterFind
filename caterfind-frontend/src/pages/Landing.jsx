@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UtensilsCrossed, User, ChefHat, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -10,11 +11,12 @@ import { cn } from '@/lib/utils';
  * - Client: "I Need Catering"
  * - Caterer: "I'm a Caterer"
  */
-function Landing({ onRoleSelect }) {
+function Landing() {
     const [hoveredCard, setHoveredCard] = useState(null);
+    const navigate = useNavigate();
 
     const handleRoleClick = (role) => {
-        onRoleSelect(role);
+        navigate(`/login/${role.toLowerCase()}`);
     };
 
     return (

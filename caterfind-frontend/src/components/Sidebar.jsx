@@ -24,10 +24,11 @@ function Sidebar({ currentPage, onNavigate, onLogout }) {
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
         { id: 'business', label: 'My Business', icon: '🏢' },
         { id: 'availability', label: 'Availability', icon: '📅' },
+        { id: 'clients', label: 'Clients', icon: '👥' },
         { id: 'dishes', label: 'Dish Library', icon: '📖' },
-        { id: 'contacts', label: 'Contacts', icon: '👥' },
-
+        { id: 'menu-builder', label: 'Menu Builder', icon: '🍴' },
         { id: 'inventory', label: 'Inventory', icon: '📦' },
+        { id: 'contacts', label: 'Contacts', icon: '📇' },
         { id: 'messages', label: 'Messages', icon: '💬' },
     ];
 

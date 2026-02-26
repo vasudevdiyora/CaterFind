@@ -6,14 +6,18 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Contacts from './pages/Contacts';
 import Inventory from './pages/Inventory';
+import Chat from './pages/Chat';
 import Messages from './pages/Messages';
 import MyBusiness from './pages/MyBusiness';
 import Availability from './pages/Availability';
 import DishLibrary from './pages/DishLibrary';
+import ClientRequests from './pages/ClientRequests';
 import CatererLayout from '@/components/layouts/CatererLayout';
 import ClientLayout from '@/components/layouts/ClientLayout';
 import ClientHome from './pages/ClientHome';
 import CatererDetail from './pages/CatererDetail';
+import ClientTrials from './pages/ClientTrials';
+import ClientProfile from './pages/ClientProfile';
 
 
 /**
@@ -64,10 +68,12 @@ function App() {
             <Route path="dashboard" element={<Dashboard user={user} />} />
             <Route path="profile" element={<MyBusiness user={user} />} />
             <Route path="calendar" element={<Availability user={user} />} />
+            <Route path="clients" element={<ClientRequests user={user} />} />
             <Route path="dish-library" element={<DishLibrary user={user} />} />
             <Route path="inventory" element={<Inventory user={user} />} />
             <Route path="contacts" element={<Contacts user={user} />} />
-            <Route path="messages" element={<Messages user={user} />} />
+            <Route path="messages" element={<Chat user={user} />} />
+            <Route path="broadcast" element={<Messages user={user} />} />
             <Route path="*" element={<Navigate to="/owner/dashboard" />} />
           </Routes>
         </CatererLayout>
@@ -81,6 +87,9 @@ function App() {
           <Routes>
             <Route path="home" element={<ClientHome user={user} />} />
             <Route path="caterer/:id" element={<CatererDetail />} />
+            <Route path="trials" element={<ClientTrials user={user} />} />
+            <Route path="messages" element={<Chat user={user} />} />
+            <Route path="profile" element={<ClientProfile user={user} />} />
             <Route path="*" element={<Navigate to="/client/home" />} />
           </Routes>
         </ClientLayout>

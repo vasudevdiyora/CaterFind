@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, MapPin, Phone, Mail } from 'lucide-react';
+import { ArrowLeft, Star, MapPin, Phone, Mail, Calendar, Utensils, MessageCircle } from 'lucide-react';
 import { profileAPI, fileAPI, dishAPI } from '../services/api';
 import ClientAvailability from './ClientAvailability';
+import MeetingRequestModal from '../components/MeetingRequestModal';
 
 /**
  * Caterer Detail Page (Loveable Design)
@@ -24,6 +25,7 @@ const CatererDetail = () => {
     const [dishes, setDishes] = useState([]);
     const [showAllDishes, setShowAllDishes] = useState(false);
     const [loadingDishes, setLoadingDishes] = useState(true);
+    const [showMeetingModal, setShowMeetingModal] = useState(false);
 
     useEffect(() => {
         if (catererId) {
@@ -138,7 +140,7 @@ const CatererDetail = () => {
             </div>
 
             {/* Content Section */}
-            <div className="max-w-7xl mx-auto px-8 py-8">
+            <div className="max-w-7xl mx-auto px-8 py-8 pb-32">
                 {/* Description & Pricing */}
                 <div className="bg-[#2a2a2a] rounded-2xl p-8 mb-8 border border-gray-700/50">
                     <p className="text-gray-300 text-lg mb-6 leading-relaxed">
@@ -326,13 +328,45 @@ const CatererDetail = () => {
                     </div>
                 </div>
 
-                {/* Book Now Button */}
-                <div className="mt-8 flex justify-center">
-                    <button className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl px-12 py-4 rounded-xl shadow-2xl hover:shadow-orange-500/50 transition-all transform hover:scale-105">
-                        Book Now
+                {/* Action Buttons */}
+                <div className="mt-8 space-y-4 max-w-3xl mx-auto">
+                    {/* Fix 
+                        onClick={() => setShowMeetingModal(true)}
+                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg px-8 py-4 rounded-xl shadow-lg hover:shadow-primary/20 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3"
+                    >
+                        <Calendar size={22} />
+                        <span>Fix Meeting</span>
+                    </button>
+
+                    {/* Book Trial - Secondary Action */}
+                    <button className="w-full bg-card hover:bg-secondary border border-border text-foreground font-semibold text-lg px-8 py-4 rounded-xl transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3">
+                        <Utensils size={22} />
+                        <span>Book Trial</span>
+                    </button>
+
+                    {/* Message Caterer - Secondary Action */}
+                    <button 
+                        onClick={() => navigate('/client/messages', {
+                            state: {
+                                openConversationWith: catererId,
+                                catererName: caterer?.businessName
+                            }
+                        })}
+                        className="w-full bg-card hover:bg-secondary border border-border text-foreground font-semibold text-lg px-8 py-4 rounded-xl transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3"
+                    >
+                        <MessageCircle size={22} />
+                        <span>Message Caterer</span>
                     </button>
                 </div>
             </div>
+
+            {/* Meeting Request Modal */}
+            <MeetingRequestModal
+                isOpen={showMeetingModal}
+                onClose={() => setShowMeetingModal(false)}
+                catererName={caterer?.businessName}
+                catererId={catererId}
+            />
         </div>
     );
 };

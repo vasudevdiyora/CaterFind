@@ -26,10 +26,11 @@ const CatererLayout = ({ children, user, onLogout }) => {
         { path: '/owner/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { path: '/owner/profile', icon: Building2, label: 'My Business' },
         { path: '/owner/calendar', icon: Calendar, label: 'Availability' },
+        { path: '/owner/clients', icon: Users, label: 'Clients' },
         { path: '/owner/dish-library', icon: UtensilsCrossed, label: 'Dish Library' },
         { path: '/owner/contacts', icon: Contact, label: 'Contacts' },
         { path: '/owner/inventory', icon: Package, label: 'Inventory' },
-        { path: '/owner/messages', icon: MessageSquare, label: 'Messages' },
+        { path: '/owner/broadcast', icon: MessageSquare, label: 'Messages' },
     ];
 
     return (

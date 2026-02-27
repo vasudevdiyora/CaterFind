@@ -7,6 +7,9 @@
 -- ============================================================
 
 -- Drop existing tables if re-running (for development only)
+DROP TABLE IF EXISTS menu_dishes;
+DROP TABLE IF EXISTS menus;
+DROP TABLE IF EXISTS dishes;
 DROP TABLE IF EXISTS availability_status;
 DROP TABLE IF EXISTS calendar_events;
 DROP TABLE IF EXISTS messages;
@@ -173,6 +176,65 @@ CREATE TABLE availability_status (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
+-- DISHES TABLE
+-- ============================================================
+-- Stores dishes in the caterer's library
+-- Each dish belongs to a specific caterer
+CREATE TABLE dishes (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    category VARCHAR(100) NOT NULL,
+    image_url VARCHAR(500),
+    description TEXT,
+    type VARCHAR(50) NOT NULL, -- 'Veg' or 'Non-Veg'
+    labels TEXT, -- Comma-separated labels (e.g., 'Spicy,Luxury,Healthy')
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- MENUS TABLE
+-- ============================================================
+-- Stores menus created by caterers for client events
+-- A menu contains client details and associated dishes
+CREATE TABLE menus (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    caterer_id BIGINT NOT NULL,
+    client_name VARCHAR(255) NOT NULL,
+    event_location VARCHAR(500) NOT NULL,
+    event_date DATE NOT NULL,
+    number_of_guests INT NOT NULL,
+    contact_number VARCHAR(20) NOT NULL,
+    client_email VARCHAR(255),
+    status ENUM('DRAFT', 'SENT', 'ACCEPTED', 'REJECTED') NOT NULL DEFAULT 'DRAFT',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    sent_at TIMESTAMP NULL,
+    FOREIGN KEY (caterer_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_caterer (caterer_id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- MENU_DISHES TABLE
+-- ============================================================
+-- Many-to-many relationship between menus and dishes
+-- Stores which dishes are included in which menus
+-- menu_category assigns dishes to categories like 'Main Course', 'Starter', etc.
+CREATE TABLE menu_dishes (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    menu_id BIGINT NOT NULL,
+    dish_id BIGINT NOT NULL,
+    menu_category VARCHAR(100) NOT NULL, -- e.g., 'Main Course', 'Starter', 'Dessert', 'Beverage'
+    display_order INT,
+    FOREIGN KEY (menu_id) REFERENCES menus(id) ON DELETE CASCADE,
+    FOREIGN KEY (dish_id) REFERENCES dishes(id) ON DELETE CASCADE,
+    INDEX idx_menu (menu_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
 -- SCHEMA DESIGN NOTES
 -- ============================================================
 -- 1. Normalization: Contact labels are separate to avoid data duplication
@@ -181,4 +243,6 @@ CREATE TABLE availability_status (
 -- 4. Indexes: Added on frequently queried columns (caterer_id, email, low_stock)
 -- 5. Generated column: is_low_stock auto-updates when quantity changes
 -- 6. Calendar events: idx_event_date allows fast cleanup queries for old events
+-- 7. Menu Builder: Menus can be saved as drafts or sent to clients
+-- 8. Dishes Library: Each caterer maintains their own dish library
 -- ============================================================

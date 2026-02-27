@@ -567,3 +567,89 @@ export const availabilityAPI = {
   }
 };
 
+/**
+ * Menu API
+ */
+export const menuAPI = {
+  /**
+   * Get all menus for a caterer.
+   * 
+   * @param {number} catererId - Caterer user ID
+   * @returns {Promise} Array of menus
+   */
+  getAll: async (catererId) => {
+    const response = await fetch(`${API_BASE_URL}/menus?catererId=${catererId}`);
+    return response.json();
+  },
+
+  /**
+   * Get a single menu by ID.
+   * 
+   * @param {number} id - Menu ID
+   * @returns {Promise} Menu data
+   */
+  getById: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/menus/${id}`);
+    return response.json();
+  },
+
+  /**
+   * Create a new menu (draft).
+   * 
+   * @param {number} catererId - Caterer user ID
+   * @param {object} menuData - Menu data
+   * @returns {Promise} Created menu
+   */
+  create: async (catererId, menuData) => {
+    const response = await fetch(`${API_BASE_URL}/menus?catererId=${catererId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(menuData)
+    });
+    return response.json();
+  },
+
+  /**
+   * Update an existing menu.
+   * 
+   * @param {number} id - Menu ID
+   * @param {object} menuData - Menu data
+   * @returns {Promise} Updated menu
+   */
+  update: async (id, menuData) => {
+    const response = await fetch(`${API_BASE_URL}/menus/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(menuData)
+    });
+    return response.json();
+  },
+
+  /**
+   * Send menu to client.
+   * 
+   * @param {number} id - Menu ID
+   * @returns {Promise} Updated menu
+   */
+  sendToClient: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/menus/${id}/send`, {
+      method: 'POST'
+    });
+    return response.json();
+  },
+
+  /**
+   * Delete a menu.
+   * 
+   * @param {number} id - Menu ID
+   * @returns {Promise} Empty response
+   */
+  delete: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/menus/${id}`, {
+      method: 'DELETE'
+    });
+    return response;
+  }
+};
+
+export default API_BASE_URL;

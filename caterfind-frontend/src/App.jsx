@@ -12,6 +12,7 @@ import MyBusiness from './pages/MyBusiness';
 import Availability from './pages/Availability';
 import DishLibrary from './pages/DishLibrary';
 import ClientRequests from './pages/ClientRequests';
+import MenuBuilder from './pages/MenuBuilder';
 import CatererLayout from '@/components/layouts/CatererLayout';
 import ClientLayout from '@/components/layouts/ClientLayout';
 import AdminLayout from '@/components/layouts/AdminLayout';
@@ -91,6 +92,7 @@ function App() {
             <Route path="calendar" element={<Availability user={user} />} />
             <Route path="clients" element={<ClientRequests user={user} />} />
             <Route path="dish-library" element={<DishLibrary user={user} />} />
+            <Route path="menu-builder" element={<MenuBuilder user={user} />} />
             <Route path="inventory" element={<Inventory user={user} />} />
             <Route path="contacts" element={<Contacts user={user} />} />
             <Route path="messages" element={<Chat user={user} />} />

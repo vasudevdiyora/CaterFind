@@ -13,6 +13,11 @@
 -- NOTE: Passwords are stored in plain text for college project demo
 -- In production, use BCrypt hashing via Spring Security
 
+-- ADMIN account for platform management
+-- Login: superadmin@caterfind.com / admin@123
+INSERT INTO users (email, password, role, created_at) VALUES
+('superadmin@caterfind.com', 'admin@123', 'ADMIN', NOW());
+
 -- Default CATERER account
 -- Login: admin@caterfind.com / admin123
 INSERT INTO users (email, password, role, created_at) VALUES
@@ -26,9 +31,9 @@ INSERT INTO users (email, password, role, created_at) VALUES
 -- ============================================================
 -- INSERT CATERING PROFILE
 -- ============================================================
--- Business profile for the default caterer
+-- Business profile for the default caterer (User ID 2)
 INSERT INTO catering_profile (user_id, business_name, primary_phone, street_address, city, area, description, created_at) VALUES
-(1, 'Royal Caterers', '+91-9876543210', '123 Main Street', 'Mumbai', 'Maharashtra', 'Premium catering services for all occasions.', NOW());
+(2, 'Royal Caterers', '+91-9876543210', '123 Main Street', 'Mumbai', 'Maharashtra', 'Premium catering services for all occasions.', NOW());
 
 -- ============================================================
 -- INSERT PREDEFINED CONTACT LABELS
@@ -47,9 +52,9 @@ INSERT INTO contact_labels (label_name) VALUES
 -- OPTIONAL: Sample Contacts (uncomment if you want demo data)
 -- ============================================================
 -- INSERT INTO contacts (caterer_id, name, phone, email, preferred_contact_method) VALUES
--- (1, 'Rajesh Kumar', '+91-9876543211', 'rajesh@example.com', 'EMAIL'),
--- (1, 'Priya Sharma', '+91-9876543212', 'priya@example.com', 'SMS'),
--- (1, 'ABC Suppliers', '+91-9876543213', 'abc@suppliers.com', 'EMAIL');
+-- (2, 'Rajesh Kumar', '+91-9876543211', 'rajesh@example.com', 'EMAIL'),
+-- (2, 'Priya Sharma', '+91-9876543212', 'priya@example.com', 'SMS'),
+-- (2, 'ABC Suppliers', '+91-9876543213', 'abc@suppliers.com', 'EMAIL');
 
 -- ============================================================
 -- OPTIONAL: Sample Contact Label Mappings
@@ -64,15 +69,16 @@ INSERT INTO contact_labels (label_name) VALUES
 -- OPTIONAL: Sample Inventory Items
 -- ============================================================
 -- INSERT INTO inventory_items (caterer_id, item_name, category, quantity, unit, min_threshold) VALUES
--- (1, 'Basmati Rice', 'GRAIN', 50.00, 'kg', 20.00),
--- (1, 'Tomatoes', 'VEGETABLE', 5.00, 'kg', 10.00), -- This will be LOW STOCK
--- (1, 'Chicken', 'MEAT', 30.00, 'kg', 15.00);
+-- (2, 'Basmati Rice', 'GRAIN', 50.00, 'kg', 20.00),
+-- (2, 'Tomatoes', 'VEGETABLE', 5.00, 'kg', 10.00), -- This will be LOW STOCK
+-- (2, 'Chicken', 'MEAT', 30.00, 'kg', 15.00);
 
 -- ============================================================
 -- DATA NOTES
 -- ============================================================
--- 1. User ID 1 is the default caterer (admin@caterfind.com)
--- 2. User ID 2 is the test client (client@test.com)
--- 3. Contact labels are predefined but can be extended
--- 4. Sample data is commented out - uncomment for demo purposes
+-- 1. User ID 1 is the admin account (superadmin@caterfind.com)
+-- 2. User ID 2 is the default caterer (admin@caterfind.com)
+-- 3. User ID 3 is the default client (client@test.com)
+-- 4. Contact labels are predefined but can be extended
+-- 5. Sample data is commented out - uncomment for demo purposes
 -- ============================================================

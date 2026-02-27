@@ -14,6 +14,12 @@ import DishLibrary from './pages/DishLibrary';
 import ClientRequests from './pages/ClientRequests';
 import CatererLayout from '@/components/layouts/CatererLayout';
 import ClientLayout from '@/components/layouts/ClientLayout';
+import AdminLayout from '@/components/layouts/AdminLayout';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminCaterers from './pages/AdminCaterers';
+import AdminClients from './pages/AdminClients';
+import AdminModeration from './pages/AdminModeration';
+import AdminSettings from './pages/AdminSettings';
 import ClientHome from './pages/ClientHome';
 import CatererDetail from './pages/CatererDetail';
 import ClientTrials from './pages/ClientTrials';
@@ -55,9 +61,24 @@ function App() {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/" element={user ? <Navigate to={user.role === 'CATERER' ? '/owner/dashboard' : '/client/home'} /> : <Landing />} />
-      <Route path="/login/:role" element={user ? <Navigate to={user.role === 'CATERER' ? '/owner/dashboard' : '/client/home'} /> : <Login onLogin={handleLogin} />} />
-      <Route path="/register/:role" element={user ? <Navigate to={user.role === 'CATERER' ? '/owner/dashboard' : '/client/home'} /> : <Register onLogin={handleLogin} />} />
+      <Route path="/" element={
+        user ? <Navigate to={
+          user.role === 'ADMIN' ? '/admin/dashboard' :
+          user.role === 'CATERER' ? '/owner/dashboard' : '/client/home'
+        } /> : <Landing />
+      } />
+      <Route path="/login/:role" element={
+        user ? <Navigate to={
+          user.role === 'ADMIN' ? '/admin/dashboard' :
+          user.role === 'CATERER' ? '/owner/dashboard' : '/client/home'
+        } /> : <Login onLogin={handleLogin} />
+      } />
+      <Route path="/register/:role" element={
+        user ? <Navigate to={
+          user.role === 'ADMIN' ? '/admin/dashboard' :
+          user.role === 'CATERER' ? '/owner/dashboard' : '/client/home'
+        } /> : <Register onLogin={handleLogin} />
+      } />
 
       {/* Caterer Routes */}
       <Route path="/owner/*" element={
@@ -93,6 +114,23 @@ function App() {
             <Route path="*" element={<Navigate to="/client/home" />} />
           </Routes>
         </ClientLayout>
+      } />
+
+      {/* Admin Routes */}
+      <Route path="/admin/*" element={
+        !user ? <Navigate to="/" /> :
+        user.role !== 'ADMIN' ? <Navigate to="/" /> :
+        <AdminLayout user={user} onLogout={handleLogout}>
+          <Routes>
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="caterers" element={<AdminCaterers />} />
+            <Route path="clients" element={<AdminClients />} />
+            <Route path="moderation" element={<AdminModeration />} />
+            <Route path="messages" element={<Chat user={user} />} />
+            <Route path="settings" element={<AdminSettings />} />
+            <Route path="*" element={<Navigate to="/admin/dashboard" />} />
+          </Routes>
+        </AdminLayout>
       } />
 
       {/* Fallback */}

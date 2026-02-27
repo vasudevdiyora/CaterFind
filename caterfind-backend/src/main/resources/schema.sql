@@ -20,13 +20,15 @@ DROP TABLE IF EXISTS users;
 -- ============================================================
 -- USERS TABLE
 -- ============================================================
--- Stores authentication credentials for both CATERER and CLIENT roles
--- NOTE: Client role exists for login testing only - no client features implemented
+-- Stores authentication credentials for ADMIN, CATERER and CLIENT roles
+-- ADMIN: Platform administrators with access to admin panel
+-- CATERER: Business owners managing their catering services
+-- CLIENT: Customers looking for catering services
 CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL, -- In production, this should be hashed (BCrypt)
-    role ENUM('CATERER', 'CLIENT') NOT NULL,
+    role ENUM('ADMIN', 'CATERER', 'CLIENT') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

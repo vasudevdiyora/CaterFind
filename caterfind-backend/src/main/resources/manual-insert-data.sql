@@ -12,14 +12,15 @@
 
 USE caterfind;
 
--- Insert default users (caterer and client)
+-- Insert default users (admin, caterer and client)
 INSERT INTO users (email, password, role, created_at) VALUES
+('superadmin@caterfind.com', 'admin@123', 'ADMIN', NOW()),
 ('admin@caterfind.com', 'admin123', 'CATERER', NOW()),
 ('client@test.com', 'client123', 'CLIENT', NOW());
 
--- Insert caterer profile
+-- Insert caterer profile (for user ID 2)
 INSERT INTO catering_profile (user_id, business_name, primary_phone, street_address, city, area, description, created_at) VALUES
-(1, 'Royal Caterers', '+91-9876543210', '123 Main Street', 'Mumbai', 'Maharashtra', 'Premium catering services for all occasions.', NOW());
+(2, 'Royal Caterers', '+91-9876543210', '123 Main Street', 'Mumbai', 'Maharashtra', 'Premium catering services for all occasions.', NOW());
 
 -- Insert predefined contact labels
 INSERT INTO contact_labels (label_name) VALUES

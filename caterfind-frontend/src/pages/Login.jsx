@@ -28,7 +28,7 @@ function Login({ onLogin }) {
             const response = await authAPI.login(email, password);
 
             if (response.success) {
-                if (response.role === 'CATERER' || response.role === 'CLIENT') {
+                if (response.role === 'ADMIN' || response.role === 'CATERER' || response.role === 'CLIENT') {
                     onLogin(response);
                     // Navigation is handled by App.jsx redirects
                 } else {
@@ -63,7 +63,9 @@ function Login({ onLogin }) {
                     </div>
                     <h1 className="text-4xl font-extrabold tracking-tight mt-6">CaterFind</h1>
                     <p className="text-muted-foreground text-lg">
-                        {selectedRole === 'CATERER' 
+                        {selectedRole === 'ADMIN'
+                            ? 'Admin Panel'
+                            : selectedRole === 'CATERER' 
                             ? 'Catering Business Management'
                             : 'Find Perfect Caterers'}
                     </p>

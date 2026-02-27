@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UtensilsCrossed, User, ChefHat, ArrowRight } from 'lucide-react';
+import { UtensilsCrossed, User, ChefHat, ArrowRight, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -20,7 +20,16 @@ function Landing() {
     };
 
     return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
+            {/* Admin Login Button - Top Right */}
+            <button
+                onClick={() => navigate('/login/admin')}
+                className="absolute top-6 right-6 flex items-center gap-2 px-4 py-2 rounded-lg bg-card border border-border hover:border-primary hover:bg-primary/5 transition-all duration-300 group"
+            >
+                <ShieldCheck className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                <span className="text-sm font-medium text-foreground">Admin</span>
+            </button>
+
             <div className="max-w-2xl w-full space-y-8 animate-in fade-in duration-700">
                 {/* Logo & Header */}
                 <div className="text-center space-y-4">

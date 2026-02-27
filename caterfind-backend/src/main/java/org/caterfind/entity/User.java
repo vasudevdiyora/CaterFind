@@ -1,7 +1,19 @@
 package org.caterfind.entity;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.OneToOne;
+import javax.persistence.PrePersist;
+import javax.persistence.Table;
 
 /**
  * User entity representing both CATERER and CLIENT roles.
@@ -41,10 +53,12 @@ public class User {
 
     /**
      * Enum for user roles.
+     * ADMIN: Full access to admin panel for platform management
      * CATERER: Full access to dashboard and all features
      * CLIENT: Login only, no dashboard (not implemented in this phase)
      */
     public enum UserRole {
+        ADMIN,
         CATERER,
         CLIENT
     }

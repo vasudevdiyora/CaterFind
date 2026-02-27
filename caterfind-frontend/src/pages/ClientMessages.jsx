@@ -42,7 +42,7 @@ const ClientMessages = ({ user }) => {
     };
 
     return (
-        <div className="pb-20 -m-4 md:-m-6 h-[calc(100vh-8rem)]">
+        <div className="-m-4 md:-m-6 h-[calc(100vh-16rem)]">
             <div className="flex h-full bg-background">
                 {/* Conversations List */}
                 <div className={`${selectedChat ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 border-r border-border bg-card`}>
@@ -145,7 +145,7 @@ const ClientMessages = ({ user }) => {
                             </div>
 
                             {/* Message Input */}
-                            <div className="p-4 border-t border-border bg-card">
+                            <div className="pt-4 px-4 pb-20 border-t border-border bg-card">
                                 <div className="flex gap-2">
                                     <input
                                         type="text"

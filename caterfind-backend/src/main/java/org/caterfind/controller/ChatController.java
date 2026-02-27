@@ -1,18 +1,14 @@
 package org.caterfind.controller;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.caterfind.dto.ChatMessageDTO;
-import org.caterfind.entity.CateringProfile;
-import org.caterfind.entity.User;
-import org.caterfind.repository.CateringProfileRepository;
-import org.caterfind.repository.UserRepository;
+import org.caterfind.entity.ChatConversation;
+import org.caterfind.entity.ChatMessage;
+import org.caterfind.service.ChatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -32,75 +28,9 @@ public class ChatController {
     private SimpMessagingTemplate messagingTemplate;
     
     @Autowired
-    private UserRepository userRepository;
-    
-    @Autowired
-    private CateringProfileRepository cateringProfileRepository;
+    private ChatService chatService;
 
-    // TODO: Replace with actual service layer
-    // Mock storage for demonstration
-    private static final Map<Long, List<ChatMessageDTO>> conversationMessages = new HashMap<>();
-    private static final Map<Long, Set<Long>> userConversations = new HashMap<>();
-    private static final Map<Long, Map<String, Object>> conversations = new HashMap<>();
-    private static final Map<String, Long> userPairToConversation = new HashMap<>();
 
-    /**
-     * Get display name for a user
-     * For caterers: returns business name from CateringProfile
-     * For clients: returns email
-     */
-    private String getUserDisplayName(Long userId) {
-        try {
-            User user = userRepository.findById(userId).orElse(null);
-            if (user == null) {
-                return "User " + userId;
-            }
-            
-            // If user is a caterer, get business name
-            if (user.getRole() == User.UserRole.CATERER) {
-                CateringProfile profile = cateringProfileRepository.findByUserId(userId).orElse(null);
-                if (profile != null && profile.getBusinessName() != null) {
-                    return profile.getBusinessName();
-                }
-            }
-            
-            // For clients or if no profile found, use email
-            return user.getEmail();
-        } catch (Exception e) {
-            System.err.println("Error fetching user display name: " + e.getMessage());
-            return "User " + userId;
-        }
-    }
-
-    /**
-     * Get or create a conversation between two users
-     */
-    private Long getOrCreateConversation(Long userId1, Long userId2, String user1Name, String user2Name, String user1Role, String user2Role) {
-        String key = userId1 < userId2 ? userId1 + "_" + userId2 : userId2 + "_" + userId1;
-        
-        Long conversationId = userPairToConversation.get(key);
-        
-        if (conversationId == null) {
-            conversationId = System.currentTimeMillis();
-            userPairToConversation.put(key, conversationId);
-            
-            // Store conversation metadata
-            Map<String, Object> conversation = new HashMap<>();
-            conversation.put("id", conversationId);
-            conversation.put("user1Id", userId1);
-            conversation.put("user2Id", userId2);
-            conversation.put("user1Name", user1Name);
-            conversation.put("user2Name", user2Name);
-            conversation.put("user1Role", user1Role);
-            conversation.put("user2Role", user2Role);
-            conversation.put("createdAt", LocalDateTime.now());
-            conversations.put(conversationId, conversation);
-            
-            System.out.println("Created new conversation: " + conversationId + " between " + userId1 + " and " + userId2);
-        }
-        
-        return conversationId;
-    }
 
     /**
      * Handle incoming chat messages
@@ -109,44 +39,40 @@ public class ChatController {
     public void sendMessage(@Payload ChatMessageDTO message, SimpMessageHeaderAccessor headerAccessor) {
         System.out.println("Received message from " + message.getSenderId() + " to " + message.getRecipientId());
         
-        // Set timestamp
-        message.setTimestamp(LocalDateTime.now());
-        message.setStatus("sent");
-
         // Determine actual conversation ID
         Long actualConversationId = message.getConversationId();
         
         // If conversationId is the same as recipientId, this is likely a temp conversation
         // We need to get or create the real conversation
         if (actualConversationId != null && actualConversationId.equals(message.getRecipientId())) {
-            // This is a temporary conversation, create real one with actual names
-            String senderName = getUserDisplayName(message.getSenderId());
-            String recipientName = getUserDisplayName(message.getRecipientId());
-            
-            actualConversationId = getOrCreateConversation(
+            // Get or create conversation in database
+            ChatConversation conversation = chatService.getOrCreateConversation(
                 message.getSenderId(),
-                message.getRecipientId(),
-                senderName,
-                recipientName,
-                "ROLE",
-                "ROLE"
+                message.getRecipientId()
             );
+            actualConversationId = conversation.getId();
             
             // Send conversation object to both users with the message
-            sendConversationToBothUsers(actualConversationId, message.getSenderId(), message.getRecipientId(), message.getText(), message.getTimestamp());
+            sendConversationToBothUsers(actualConversationId, message.getSenderId(), message.getRecipientId(), message.getText(), LocalDateTime.now());
         }
 
-        // Store message with actual conversation ID
-        message.setConversationId(actualConversationId);
-        conversationMessages.computeIfAbsent(actualConversationId, k -> new ArrayList<>()).add(message);
+        // Save message to database
+        ChatMessage savedMessage = chatService.saveMessage(
+            actualConversationId, 
+            message.getSenderId(), 
+            message.getText(), 
+            "sent"
+        );
 
         // Send to recipient
         ChatMessageDTO newMessage = new ChatMessageDTO("NEW_MESSAGE");
+        newMessage.setId(savedMessage.getId());
         newMessage.setConversationId(actualConversationId);
-        newMessage.setText(message.getText());
-        newMessage.setSenderId(message.getSenderId());
-        newMessage.setTimestamp(message.getTimestamp());
-        newMessage.setStatus("sent");
+        newMessage.setText(savedMessage.getText());
+        newMessage.setSenderId(savedMessage.getSenderId());
+        newMessage.setSenderName(chatService.getUserDisplayName(savedMessage.getSenderId()));
+        newMessage.setTimestamp(savedMessage.getCreatedAt());
+        newMessage.setStatus(savedMessage.getStatus());
 
         System.out.println("Sending message to user: " + message.getRecipientId() + " with conversation: " + actualConversationId);
         
@@ -159,7 +85,7 @@ public class ChatController {
 
         // Send confirmation back to sender
         ChatMessageDTO confirmation = new ChatMessageDTO("MESSAGE_SENT");
-        confirmation.setId(message.getId());
+        confirmation.setId(savedMessage.getId());
         confirmation.setConversationId(actualConversationId);
         messagingTemplate.convertAndSendToUser(
             message.getSenderId().toString(),
@@ -167,25 +93,25 @@ public class ChatController {
             confirmation
         );
         
-        System.out.println("Message sent successfully");
+        System.out.println("Message sent and saved successfully");
     }
     
     /**
      * Send conversation object to both users
      */
     private void sendConversationToBothUsers(Long conversationId, Long userId1, Long userId2, String lastMessage, LocalDateTime lastMessageTime) {
-        Map<String, Object> convData = conversations.get(conversationId);
-        if (convData == null) return;
+        // Get conversation details from database
+        Map<String, Object> conv1 = chatService.getConversationDetails(conversationId, userId1);
+        Map<String, Object> conv2 = chatService.getConversationDetails(conversationId, userId2);
         
-        // Send to user1
-        Map<String, Object> conv1 = new HashMap<>();
-        conv1.put("id", conversationId);
-        conv1.put("participantId", userId2);
-        conv1.put("participantName", convData.get("user2Name"));
-        conv1.put("participantRole", convData.get("user2Role"));
+        if (conv1 == null || conv2 == null) return;
+        
+        // Update with current message
         conv1.put("lastMessage", lastMessage);
         conv1.put("lastMessageTime", lastMessageTime);
-        conv1.put("unreadCount", 0);
+        
+        conv2.put("lastMessage", lastMessage);
+        conv2.put("lastMessageTime", lastMessageTime);
         
         Map<String, Object> response1 = new HashMap<>();
         response1.put("type", "CONVERSATION_STARTED");
@@ -196,16 +122,6 @@ public class ChatController {
             "/queue/messages",
             response1
         );
-        
-        // Send to user2
-        Map<String, Object> conv2 = new HashMap<>();
-        conv2.put("id", conversationId);
-        conv2.put("participantId", userId1);
-        conv2.put("participantName", convData.get("user1Name"));
-        conv2.put("participantRole", convData.get("user1Role"));
-        conv2.put("lastMessage", lastMessage);
-        conv2.put("lastMessageTime", lastMessageTime);
-        conv2.put("unreadCount", 0);
         
         Map<String, Object> response2 = new HashMap<>();
         response2.put("type", "CONVERSATION_STARTED");
@@ -229,48 +145,8 @@ public class ChatController {
         
         System.out.println("Getting conversations for user: " + userId);
         
-        // Find all conversations involving this user
-        List<Map<String, Object>> userConversationsList = new ArrayList<>();
-        
-        for (Map.Entry<Long, Map<String, Object>> entry : conversations.entrySet()) {
-            Long convId = entry.getKey();
-            Map<String, Object> convData = entry.getValue();
-            
-            Long user1Id = (Long) convData.get("user1Id");
-            Long user2Id = (Long) convData.get("user2Id");
-            
-            // Check if this conversation involves the requesting user
-            if (userId.equals(user1Id) || userId.equals(user2Id)) {
-                // Determine the other participant
-                Long participantId = userId.equals(user1Id) ? user2Id : user1Id;
-                String participantName = userId.equals(user1Id) ? 
-                    (String) convData.get("user2Name") : (String) convData.get("user1Name");
-                String participantRole = userId.equals(user1Id) ? 
-                    (String) convData.get("user2Role") : (String) convData.get("user1Role");
-                
-                // Get last message for this conversation
-                List<ChatMessageDTO> messages = conversationMessages.get(convId);
-                String lastMessage = null;
-                LocalDateTime lastMessageTime = (LocalDateTime) convData.get("createdAt");
-                
-                if (messages != null && !messages.isEmpty()) {
-                    ChatMessageDTO lastMsg = messages.get(messages.size() - 1);
-                    lastMessage = lastMsg.getText();
-                    lastMessageTime = lastMsg.getTimestamp();
-                }
-                
-                Map<String, Object> conv = new HashMap<>();
-                conv.put("id", convId);
-                conv.put("participantId", participantId);
-                conv.put("participantName", participantName);
-                conv.put("participantRole", participantRole);
-                conv.put("lastMessage", lastMessage);
-                conv.put("lastMessageTime", lastMessageTime);
-                conv.put("unreadCount", 0);
-                
-                userConversationsList.add(conv);
-            }
-        }
+        // Get conversations from database
+        List<Map<String, Object>> userConversationsList = chatService.getUserConversations(userId);
         
         System.out.println("Found " + userConversationsList.size() + " conversations for user " + userId);
         
@@ -293,8 +169,10 @@ public class ChatController {
         Long conversationId = Long.parseLong(request.get("conversationId").toString());
         Long userId = Long.parseLong(request.get("userId").toString());
         
-        // TODO: Fetch from database
-        List<ChatMessageDTO> messages = conversationMessages.getOrDefault(conversationId, new ArrayList<>());
+        // Fetch message history from database
+        List<ChatMessageDTO> messages = chatService.getMessageHistory(conversationId);
+        
+        System.out.println("Found " + messages.size() + " messages for conversation " + conversationId);
         
         Map<String, Object> response = new HashMap<>();
         response.put("type", "MESSAGE_HISTORY");
@@ -315,28 +193,16 @@ public class ChatController {
     public void startConversation(@Payload Map<String, Object> request, SimpMessageHeaderAccessor headerAccessor) {
         Long userId = Long.parseLong(request.get("userId").toString());
         Long recipientId = Long.parseLong(request.get("recipientId").toString());
-        String recipientName = request.get("recipientName").toString();
-        String recipientRole = request.get("recipientRole").toString();
         
-        // TODO: Create conversation in database
-        // For now, generate a conversation ID
-        Long conversationId = System.currentTimeMillis();
+        // Get or create conversation in database
+        ChatConversation conversation = chatService.getOrCreateConversation(userId, recipientId);
         
-        userConversations.computeIfAbsent(userId, k -> new HashSet<>()).add(conversationId);
-        userConversations.computeIfAbsent(recipientId, k -> new HashSet<>()).add(conversationId);
-        
-        Map<String, Object> conversation = new HashMap<>();
-        conversation.put("id", conversationId);
-        conversation.put("participantId", recipientId);
-        conversation.put("participantName", recipientName);
-        conversation.put("participantRole", recipientRole);
-        conversation.put("lastMessage", null);
-        conversation.put("lastMessageTime", LocalDateTime.now());
-        conversation.put("unreadCount", 0);
+        // Get conversation details
+        Map<String, Object> conversationData = chatService.getConversationDetails(conversation.getId(), userId);
         
         Map<String, Object> response = new HashMap<>();
         response.put("type", "CONVERSATION_STARTED");
-        response.put("conversation", conversation);
+        response.put("conversation", conversationData);
 
         messagingTemplate.convertAndSendToUser(
             userId.toString(),

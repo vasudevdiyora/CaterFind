@@ -88,12 +88,6 @@ function MenuBuilder({ user }) {
 
   // Step 1: Validate and proceed to Step 2
   const handleStep1Next = () => {
-    if (!clientDetails.clientName || !clientDetails.eventLocation || 
-        !clientDetails.eventDate || !clientDetails.numberOfGuests || 
-        !clientDetails.contactNumber || !clientDetails.clientEmail) {
-      alert('Please fill all fields');
-      return;
-    }
     setCurrentStep(2);
   };
 
@@ -108,13 +102,35 @@ function MenuBuilder({ user }) {
     // Automatically assign to category based on dish category
     let menuCategory = 'Main Course';
     const category = dish.category.toLowerCase();
+    const name = dish.name.toLowerCase();
     
-    if (category.includes('starter') || category.includes('appetizer')) {
+    // Check for Juice/Beverages
+    if (category.includes('juice') || category.includes('shake') || category.includes('drink') || category.includes('beverage') ||
+        name.includes('juice') || name.includes('shake') || name.includes('smoothie')) {
+      menuCategory = 'Juice/Beverages';
+    }
+    // Check for Soup
+    else if (category.includes('soup') || name.includes('soup')) {
+      menuCategory = 'Soup';
+    }
+    // Check for Starter
+    else if (category.includes('starter') || category.includes('appetizer')) {
       menuCategory = 'Starter';
-    } else if (category.includes('dessert') || category.includes('sweet')) {
+    }
+    // Check for Italian
+    else if (category.includes('italian') || category.includes('pizza') || category.includes('pasta') ||
+             name.includes('pizza') || name.includes('pasta') || name.includes('lasagna') || name.includes('risotto')) {
+      menuCategory = 'Italian';
+    }
+    // Check for Mexican
+    else if (category.includes('mexican') || category.includes('taco') || category.includes('burrito') ||
+             name.includes('taco') || name.includes('burrito') || name.includes('quesadilla') || name.includes('nacho')) {
+      menuCategory = 'Mexican';
+    }
+    // Check for Dessert
+    else if (category.includes('dessert') || category.includes('sweet') || category.includes('cake') ||
+             name.includes('cake') || name.includes('ice cream') || name.includes('pudding')) {
       menuCategory = 'Dessert';
-    } else if (category.includes('drink') || category.includes('beverage')) {
-      menuCategory = 'Beverage';
     }
 
     setSelectedDishes(prev => [...prev, { ...dish, menuCategory }]);
@@ -130,12 +146,12 @@ function MenuBuilder({ user }) {
     try {
       setLoading(true);
       const menuData = {
-        clientName: clientDetails.clientName,
-        eventLocation: clientDetails.eventLocation,
-        eventDate: clientDetails.eventDate,
-        numberOfGuests: parseInt(clientDetails.numberOfGuests),
-        contactNumber: clientDetails.contactNumber,
-        clientEmail: clientDetails.clientEmail,
+        clientName: clientDetails.clientName || null,
+        eventLocation: clientDetails.eventLocation || null,
+        eventDate: clientDetails.eventDate || null,
+        numberOfGuests: clientDetails.numberOfGuests ? parseInt(clientDetails.numberOfGuests, 10) : null,
+        contactNumber: clientDetails.contactNumber || null,
+        clientEmail: clientDetails.clientEmail || null,
         dishes: selectedDishes.map((dish, index) => ({
           dishId: dish.id,
           menuCategory: dish.menuCategory,
@@ -164,12 +180,12 @@ function MenuBuilder({ user }) {
     try {
       setLoading(true);
       const menuData = {
-        clientName: clientDetails.clientName,
-        eventLocation: clientDetails.eventLocation,
-        eventDate: clientDetails.eventDate,
-        numberOfGuests: parseInt(clientDetails.numberOfGuests),
-        contactNumber: clientDetails.contactNumber,
-        clientEmail: clientDetails.clientEmail,
+        clientName: clientDetails.clientName || null,
+        eventLocation: clientDetails.eventLocation || null,
+        eventDate: clientDetails.eventDate || null,
+        numberOfGuests: clientDetails.numberOfGuests ? parseInt(clientDetails.numberOfGuests, 10) : null,
+        contactNumber: clientDetails.contactNumber || null,
+        clientEmail: clientDetails.clientEmail || null,
         dishes: selectedDishes.map((dish, index) => ({
           dishId: dish.id,
           menuCategory: dish.menuCategory,
@@ -203,6 +219,17 @@ function MenuBuilder({ user }) {
     setSelectedDishes([]);
   };
 
+  // Define category order
+  const categoryOrder = [
+    'Juice/Beverages',
+    'Soup',
+    'Starter',
+    'Italian',
+    'Mexican',
+    'Main Course',
+    'Dessert'
+  ];
+
   // Group dishes by menu category for review
   const dishesByCategory = selectedDishes.reduce((acc, dish) => {
     if (!acc[dish.menuCategory]) {
@@ -211,6 +238,9 @@ function MenuBuilder({ user }) {
     acc[dish.menuCategory].push(dish);
     return acc;
   }, {});
+
+  // Get ordered categories
+  const orderedCategories = categoryOrder.filter(cat => dishesByCategory[cat]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white p-6">
@@ -339,21 +369,30 @@ function MenuBuilder({ user }) {
                 />
               </div>
 
-              <button
-                onClick={handleStep1Next}
-                className="w-full bg-[#f59e0b] text-black font-semibold py-3 rounded-lg hover:bg-[#d97706] transition mt-6"
-              >
-                Next: Build Menu →
-              </button>
+              <div className="flex gap-4 mt-6">
+                <button
+                  onClick={resetForm}
+                  className="flex-1 bg-[#3a3a3a] text-white font-semibold py-3 rounded-lg hover:bg-[#2a2a2a] transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleStep1Next}
+                  className="flex-1 bg-[#f59e0b] text-black font-semibold py-3 rounded-lg hover:bg-[#d97706] transition"
+                >
+                  Next: Build Menu →
+                </button>
+              </div>
             </div>
           </div>
         )}
 
         {/* Step 2: Build Menu */}
         {currentStep === 2 && (
-          <div className="bg-[#1a1a1a] rounded-lg p-8">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Build Menu</h2>
+          <div className="bg-[#1a1a1a] rounded-lg w-[95vw] max-w-6xl mx-auto overflow-hidden flex flex-col" style={{ height: '85vh' }}>
+            {/* Header */}
+            <div className="flex justify-between items-center p-6 border-b border-gray-700">
+              <h2 className="text-2xl font-bold">Build Menu - Selected Dishes</h2>
               <button
                 onClick={() => setIsModalOpen(true)}
                 className="bg-[#f59e0b] text-black px-6 py-2 rounded-lg font-semibold hover:bg-[#d97706] transition"
@@ -362,61 +401,67 @@ function MenuBuilder({ user }) {
               </button>
             </div>
 
-            {/* Selected Dishes */}
+            {/* Selected Dishes List */}
             {selectedDishes.length === 0 ? (
-              <div className="text-center py-16 text-gray-400">
+              <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
                 <div className="text-6xl mb-4">🍴</div>
                 <p className="text-lg">No dishes added yet.</p>
                 <p className="text-sm">Click "Add from Library" to select dishes.</p>
               </div>
             ) : (
-              <div className="space-y-6">
-                {Object.entries(dishesByCategory).map(([category, dishes]) => (
-                  <div key={category}>
-                    <h3 className="text-xl font-semibold mb-3">{category}</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {dishes.map(dish => (
-                        <div key={dish.id} className="bg-[#2a2a2a] rounded-lg p-4 flex gap-4">
-                          {dish.imageUrl && (
-                            <img
-                              src={`http://localhost:8080${dish.imageUrl}`}
-                              alt={dish.name}
-                              className="w-20 h-20 rounded-lg object-cover"
-                            />
-                          )}
-                          <div className="flex-1">
-                            <h4 className="font-semibold">{dish.name}</h4>
-                            <p className="text-sm text-gray-400">{dish.category}</p>
-                            {dish.labels && (
-                              <div className="flex gap-1 mt-1">
-                                {dish.labels.split(',').map((label, i) => (
-                                  <span key={i} className="text-xs bg-gray-700 px-2 py-1 rounded">
-                                    {label.trim()}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          <button
-                            onClick={() => handleRemoveDish(dish.id)}
-                            className="text-red-500 hover:text-red-400"
-                          >
-                            ✕
-                          </button>
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="space-y-4">
+                  {selectedDishes.map(dish => (
+                    <div key={dish.id} className="bg-[#2a2a2a] rounded-lg p-4 flex gap-4 items-center hover:bg-[#323232] transition">
+                      {dish.imageUrl && (
+                        <img
+                          src={`http://localhost:8080${dish.imageUrl}`}
+                          alt={dish.name}
+                          className="w-16 h-16 rounded-lg object-cover"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-lg">{dish.name}</h4>
+                        <p className="text-sm text-gray-400">{dish.category}</p>
+                        <div className="mt-2 inline-block px-3 py-1 bg-blue-600/30 text-blue-300 rounded text-xs font-medium">
+                          {dish.menuCategory}
                         </div>
-                      ))}
+                        {dish.labels && (
+                          <div className="flex gap-1 mt-1">
+                            {dish.labels.split(',').map((label, i) => (
+                              <span key={i} className="text-xs bg-gray-700 px-2 py-1 rounded">
+                                {label.trim()}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleRemoveDish(dish.id)}
+                        className="px-3 py-1 rounded-lg font-semibold text-sm bg-green-600 text-white hover:bg-green-700 transition"
+                        title="Click to remove from menu"
+                      >
+                        ✓ Remove
+                      </button>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
 
-            <div className="flex gap-4 mt-8">
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-700 flex gap-4">
               <button
                 onClick={() => setCurrentStep(1)}
                 className="flex-1 bg-gray-700 text-white py-3 rounded-lg hover:bg-gray-600 transition"
               >
                 ← Back
+              </button>
+              <button
+                onClick={resetForm}
+                className="flex-1 bg-[#3a3a3a] text-white py-3 rounded-lg hover:bg-[#2a2a2a] transition"
+              >
+                Cancel
               </button>
               <button
                 onClick={() => setCurrentStep(3)}
@@ -443,11 +488,11 @@ function MenuBuilder({ user }) {
 
             {/* Dishes by Category */}
             <div className="space-y-6 mb-8">
-              {Object.entries(dishesByCategory).map(([category, dishes]) => (
+              {orderedCategories.map(category => (
                 <div key={category}>
                   <h3 className="text-xl font-semibold mb-3">{category}</h3>
                   <ul className="list-disc list-inside pl-4 space-y-1">
-                    {dishes.map(dish => (
+                    {dishesByCategory[category].map(dish => (
                       <li key={dish.id}>{dish.name}</li>
                     ))}
                   </ul>
@@ -478,14 +523,21 @@ function MenuBuilder({ user }) {
               >
                 📤 Send to Client
               </button>
+
+              <button
+                onClick={resetForm}
+                className="w-full bg-[#3a3a3a] text-white py-3 rounded-lg hover:bg-[#2a2a2a] transition flex items-center justify-center gap-2"
+              >
+                ✕ Cancel
+              </button>
             </div>
           </div>
         )}
 
         {/* Modal: Select Dishes from Library */}
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-6">
-            <div className="bg-[#1a1a1a] rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <div className="bg-[#1a1a1a] rounded-lg w-[96vw] h-[94vh] overflow-hidden flex flex-col">
               {/* Modal Header */}
               <div className="flex justify-between items-center p-6 border-b border-gray-700">
                 <h3 className="text-2xl font-bold">Select Dishes from Library</h3>
@@ -556,15 +608,22 @@ function MenuBuilder({ user }) {
                         )}
                       </div>
                       <button
-                        onClick={() => handleAddDish(dish)}
-                        disabled={selectedDishes.find(d => d.id === dish.id)}
-                        className={`px-4 py-2 rounded-lg font-semibold ${
+                        onClick={() => {
+                          const isAdded = selectedDishes.find(d => d.id === dish.id);
+                          if (isAdded) {
+                            handleRemoveDish(dish.id);
+                          } else {
+                            handleAddDish(dish);
+                          }
+                        }}
+                        className={`px-4 py-2 rounded-lg font-semibold transition ${
                           selectedDishes.find(d => d.id === dish.id)
-                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                            ? 'bg-green-600 text-white hover:bg-green-700'
                             : 'bg-[#f59e0b] text-black hover:bg-[#d97706]'
                         }`}
+                        title={selectedDishes.find(d => d.id === dish.id) ? 'Click to remove from menu' : 'Click to add to menu'}
                       >
-                        {selectedDishes.find(d => d.id === dish.id) ? 'Added' : '+ Add'}
+                        {selectedDishes.find(d => d.id === dish.id) ? '✓ Remove' : '+ Add'}
                       </button>
                     </div>
                   ))}

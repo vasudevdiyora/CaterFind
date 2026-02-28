@@ -57,6 +57,29 @@ const CatererDetail = () => {
         }
     };
 
+    // Get trending dishes - prioritize non-Main Course dishes for variety
+    const getTrendingDishes = () => {
+        if (!dishes || dishes.length === 0) return [];
+        
+        // Priority categories for trending (non-main course items)
+        const priorityCategories = ['Starter', 'Italian', 'Mexican', 'Dessert', 'Juice/Beverages', 'Soup'];
+        
+        // Separate dishes by priority
+        const priorityDishes = dishes.filter(dish => 
+            priorityCategories.some(cat => dish.category?.toLowerCase().includes(cat.toLowerCase()))
+        );
+        const mainCourseDishes = dishes.filter(dish => 
+            dish.category?.toLowerCase().includes('main course')
+        );
+        const otherDishes = dishes.filter(dish => 
+            !priorityCategories.some(cat => dish.category?.toLowerCase().includes(cat.toLowerCase())) &&
+            !dish.category?.toLowerCase().includes('main course')
+        );
+        
+        // Combine: priority dishes first, then others, then main course
+        return [...priorityDishes, ...otherDishes, ...mainCourseDishes];
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center">
@@ -151,6 +174,94 @@ const CatererDetail = () => {
                     </div>
                 </div>
 
+                {/* Contact Information */}
+                <div className="bg-[#2a2a2a] rounded-2xl p-8 mb-8 border border-gray-700/50">
+                    <h2 className="text-2xl font-bold mb-6">Contact Information</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-orange-500/10 rounded-full flex items-center justify-center">
+                                <Phone className="text-orange-400" size={20} />
+                            </div>
+                            <div>
+                                <div className="text-sm text-gray-400">Primary Phone</div>
+                                <div className="text-lg font-medium">{caterer.primaryPhone || '+91 98765 43210'}</div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-orange-500/10 rounded-full flex items-center justify-center">
+                                <Mail className="text-orange-400" size={20} />
+                            </div>
+                            <div>
+                                <div className="text-sm text-gray-400">Email</div>
+                                <div className="text-lg font-medium">{caterer.email || 'contact@example.com'}</div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-orange-500/10 rounded-full flex items-center justify-center">
+                                <MapPin className="text-orange-400" size={20} />
+                            </div>
+                            <div>
+                                <div className="text-sm text-gray-400">Address</div>
+                                <div className="text-lg font-medium">
+                                    {caterer.streetAddress || caterer.area}, {caterer.city}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-orange-500/10 rounded-full flex items-center justify-center">
+                                <span className="text-orange-400 text-xl">🎯</span>
+                            </div>
+                            <div>
+                                <div className="text-sm text-gray-400">Service Radius</div>
+                                <div className="text-lg font-medium">{caterer.serviceRadius || 50} km</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Availability & Actions Section - Two Column Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    {/* Left Column - Availability */}
+                    <div>
+                        <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                            <span className="text-orange-400">📅</span> Availability
+                        </h2>
+                        <ClientAvailability
+                            catererId={catererId}
+                            embedded={true}
+                            showBack={false}
+                        />
+                    </div>
+
+                    {/* Right Column - Action Buttons */}
+                    <div>
+                        <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                            <span className="text-orange-400">🎯</span> Actions
+                        </h2>
+                        <div className="space-y-4">
+                            {/* Book Trial */}
+                            <button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg px-8 py-4 rounded-xl shadow-lg hover:shadow-orange-500/20 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3">
+                                <Utensils size={22} />
+                                <span>Book Trial</span>
+                            </button>
+
+                            {/* Message Caterer */}
+                            <button 
+                                onClick={() => navigate('/client/messages', {
+                                    state: {
+                                        openConversationWith: catererId,
+                                        catererName: caterer?.businessName
+                                    }
+                                })}
+                                className="w-full bg-[#2a2a2a] hover:bg-[#333] border border-gray-700 text-white font-semibold text-lg px-8 py-4 rounded-xl transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3"
+                            >
+                                <MessageCircle size={22} />
+                                <span>Message Caterer</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Gallery Section */}
                 <div className="mb-8">
                     <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
@@ -187,7 +298,7 @@ const CatererDetail = () => {
                     ) : (
                         <>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {(showAllDishes ? dishes : dishes.slice(0, 4)).map((dish, index) => (
+                                {(showAllDishes ? getTrendingDishes() : getTrendingDishes().slice(0, 4)).map((dish, index) => (
                                     <div
                                         key={dish.id}
                                         className="bg-[#2a2a2a] rounded-2xl overflow-hidden border border-gray-700/50 hover:border-orange-500/50 transition-all duration-300 hover:transform hover:scale-[1.02] shadow-xl"
@@ -257,7 +368,7 @@ const CatererDetail = () => {
                             </div>
 
                             {/* View More Button */}
-                            {dishes.length > 4 && (
+                            {getTrendingDishes().length > 4 && (
                                 <div className="flex justify-center mt-8">
                                     <button
                                         onClick={() => setShowAllDishes(!showAllDishes)}
@@ -269,94 +380,6 @@ const CatererDetail = () => {
                             )}
                         </>
                     )}
-                </div>
-
-                {/* Availability Section */}
-                <div className="mb-8">
-                    <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
-                        <span className="text-orange-400">📅</span> Availability
-                    </h2>
-                    <ClientAvailability
-                        catererId={catererId}
-                        embedded={true}
-                        showBack={false}
-                    />
-                </div>
-
-                {/* Contact Information */}
-                <div className="bg-[#2a2a2a] rounded-2xl p-8 border border-gray-700/50">
-                    <h2 className="text-2xl font-bold mb-6">Contact Information</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-orange-500/10 rounded-full flex items-center justify-center">
-                                <Phone className="text-orange-400" size={20} />
-                            </div>
-                            <div>
-                                <div className="text-sm text-gray-400">Primary Phone</div>
-                                <div className="text-lg font-medium">{caterer.primaryPhone || '+91 98765 43210'}</div>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-orange-500/10 rounded-full flex items-center justify-center">
-                                <Mail className="text-orange-400" size={20} />
-                            </div>
-                            <div>
-                                <div className="text-sm text-gray-400">Email</div>
-                                <div className="text-lg font-medium">{caterer.email || 'contact@example.com'}</div>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-orange-500/10 rounded-full flex items-center justify-center">
-                                <MapPin className="text-orange-400" size={20} />
-                            </div>
-                            <div>
-                                <div className="text-sm text-gray-400">Address</div>
-                                <div className="text-lg font-medium">
-                                    {caterer.streetAddress || caterer.area}, {caterer.city}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-orange-500/10 rounded-full flex items-center justify-center">
-                                <span className="text-orange-400 text-xl">🎯</span>
-                            </div>
-                            <div>
-                                <div className="text-sm text-gray-400">Service Radius</div>
-                                <div className="text-lg font-medium">{caterer.serviceRadius || 50} km</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="mt-8 space-y-4 max-w-3xl mx-auto">
-                    {/* Fix 
-                        onClick={() => setShowMeetingModal(true)}
-                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg px-8 py-4 rounded-xl shadow-lg hover:shadow-primary/20 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3"
-                    >
-                        <Calendar size={22} />
-                        <span>Fix Meeting</span>
-                    </button>
-
-                    {/* Book Trial - Secondary Action */}
-                    <button className="w-full bg-card hover:bg-secondary border border-border text-foreground font-semibold text-lg px-8 py-4 rounded-xl transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3">
-                        <Utensils size={22} />
-                        <span>Book Trial</span>
-                    </button>
-
-                    {/* Message Caterer - Secondary Action */}
-                    <button 
-                        onClick={() => navigate('/client/messages', {
-                            state: {
-                                openConversationWith: catererId,
-                                catererName: caterer?.businessName
-                            }
-                        })}
-                        className="w-full bg-card hover:bg-secondary border border-border text-foreground font-semibold text-lg px-8 py-4 rounded-xl transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3"
-                    >
-                        <MessageCircle size={22} />
-                        <span>Message Caterer</span>
-                    </button>
                 </div>
             </div>
 

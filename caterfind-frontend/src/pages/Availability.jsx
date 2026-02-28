@@ -8,9 +8,10 @@ import { calendarAPI, availabilityAPI } from '../services/api';
  * 
  * Allows caterers to manage their availability on a calendar.
  * - Displays a monthly calendar view.
- * - Allows toggling dates between Available, Busy, and Neutral.
- * - Side panel for adding calendar events.
- * - Prevents modifications to past dates.
+ * - Allows toggling dates between Available, Busy, and Neutral (future dates only).
+ * - Side panel for viewing/adding calendar events.
+ * - Can view events from past 30 days (read-only).
+ * - Can add/modify events for future dates only.
  * - Events older than 30 days are automatically cleaned up.
  */
 const Availability = ({ user }) => {
@@ -142,51 +143,76 @@ const Availability = ({ user }) => {
         return date < today;
     };
 
+    const isViewableDate = (day) => {
+        if (!day) return false;
+        const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        date.setHours(0, 0, 0, 0);
+        
+        // Allow viewing dates from last 30 days
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        thirtyDaysAgo.setHours(0, 0, 0, 0);
+        
+        return date >= thirtyDaysAgo;
+    };
+
+    const canAddEvent = (day) => {
+        // Only allow adding events to future dates
+        return !isPastDate(day);
+    };
+
     const handleDateClick = (day) => {
         if (!day) return;
         
-        // Prevent clicking on past dates
-        if (isPastDate(day)) {
-            setError('Cannot add events to past dates');
+        // Only allow viewing dates from last 30 days, or future dates
+        if (!isViewableDate(day)) {
+            setError('Only past 30 days and future dates are available for viewing');
             setTimeout(() => setError(''), 3000);
             return;
         }
 
         const key = formatDateKey(day);
         const currentStatus = availabilityMap[key];
-        const nextStatus = !currentStatus ? 'available' : (currentStatus === 'available' ? 'busy' : null);
+        const isEditable = canAddEvent(day);
 
         // Update selected date
         const clickedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
         setSelectedDate(clickedDate);
 
-        // Toggle availability status: Neutral -> Available -> Busy -> Neutral
-        setAvailabilityMap(prev => {
-            const newMap = { ...prev };
-            if (!nextStatus) {
-                delete newMap[key];
-            } else {
-                newMap[key] = nextStatus;
-            }
-            return newMap;
-        });
+        // Only toggle availability for future dates
+        if (isEditable) {
+            const nextStatus = !currentStatus ? 'available' : (currentStatus === 'available' ? 'busy' : null);
 
-        // Persist availability to backend
-        availabilityAPI.setStatus(catererId, { date: key, status: nextStatus })
-            .catch((error) => {
-                // Revert on error
-                setAvailabilityMap(prev => {
-                    const newMap = { ...prev };
-                    if (!currentStatus) {
-                        delete newMap[key];
-                    } else {
-                        newMap[key] = currentStatus;
-                    }
-                    return newMap;
-                });
-                setError(error.message || 'Failed to update availability');
-                setTimeout(() => setError(''), 3000);
+            // Update availability status: Neutral -> Available -> Busy -> Neutral
+            setAvailabilityMap(prev => {
+                const newMap = { ...prev };
+                if (!nextStatus) {
+                    delete newMap[key];
+                } else {
+                    newMap[key] = nextStatus;
+                }
+                return newMap;
             });
+
+            // Persist availability to backend
+            availabilityAPI.setStatus(catererId, { date: key, status: nextStatus })
+                .catch((error) => {
+                    // Revert on error
+                    setAvailabilityMap(prev => {
+                        const newMap = { ...prev };
+                        if (!currentStatus) {
+                            delete newMap[key];
+                        } else {
+                            newMap[key] = currentStatus;
+                        }
+                        return newMap;
+                    });
+                    setError(error.message || 'Failed to update availability');
+                    setTimeout(() => setError(''), 3000);
+                });
+        }
 
         // Reset form
         setFormData({
@@ -207,13 +233,20 @@ const Availability = ({ user }) => {
             selectedDate.getMonth() === currentDate.getMonth() &&
             selectedDate.getFullYear() === currentDate.getFullYear();
         const past = isPastDate(day);
+        const viewable = isViewableDate(day);
+        const editable = canAddEvent(day);
         const hasEvent = events.some(e => e.eventDate === key);
 
         let baseClass = "h-10 w-10 flex items-center justify-center rounded-lg text-sm transition-colors relative";
 
-        if (past) {
-            baseClass += " bg-slate-900/30 text-slate-600 cursor-not-allowed opacity-50";
+        if (!viewable) {
+            // Dates outside the last 30 days (and past)
+            baseClass += " bg-slate-900/30 text-slate-600 cursor-not-allowed opacity-30";
+        } else if (past && !editable) {
+            // Past dates within last 30 days - viewable but not editable
+            baseClass += " cursor-pointer bg-slate-800 text-slate-300 hover:bg-slate-700 opacity-60";
         } else {
+            // Future dates or today
             baseClass += " cursor-pointer";
             if (status === 'available') {
                 baseClass += " bg-emerald-800 text-emerald-100 hover:bg-emerald-700";
@@ -224,7 +257,7 @@ const Availability = ({ user }) => {
             }
         }
 
-        if (isSelected && !past) {
+        if (isSelected && viewable) {
             baseClass += " ring-2 ring-amber-400";
         }
 
@@ -358,7 +391,7 @@ const Availability = ({ user }) => {
                                     <button
                                         onClick={() => handleDateClick(day)}
                                         className={getDayClass(day)}
-                                        disabled={isPastDate(day)}
+                                        disabled={!isViewableDate(day)}
                                     >
                                         {day}
                                         {hasEventIndicator(day) && (
@@ -373,18 +406,23 @@ const Availability = ({ user }) => {
                     </div>
 
                     {/* Legend */}
-                    <div className="flex items-center justify-center gap-6 mt-8">
-                        <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                            <span className="text-sm text-slate-300">Available</span>
+                    <div className="flex flex-col gap-4 mt-8">
+                        <div className="flex items-center justify-center gap-6">
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                                <span className="text-sm text-slate-300">Available</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                <span className="text-sm text-slate-300">Busy</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-blue-400"></div>
+                                <span className="text-sm text-slate-300">Has Event</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                            <span className="text-sm text-slate-300">Busy</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full bg-blue-400"></div>
-                            <span className="text-sm text-slate-300">Has Event</span>
+                        <div className="text-center">
+                            <p className="text-xs text-slate-500">📅 View past 30 days • ✏️ Edit future dates</p>
                         </div>
                     </div>
                 </div>
@@ -395,7 +433,9 @@ const Availability = ({ user }) => {
                         <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-xl backdrop-blur-sm">
                             {/* Header */}
                             <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-amber-400">Add Event to Calendar</h2>
+                                <h2 className="text-xl font-bold text-amber-400">
+                                    {canAddEvent(selectedDate.getDate()) ? 'Add Event to Calendar' : 'Event Details'}
+                                </h2>
                                 <button
                                     onClick={closePanel}
                                     className="p-2 hover:bg-slate-800 rounded-full transition-colors"
@@ -411,6 +451,9 @@ const Availability = ({ user }) => {
                                 <p className="text-lg font-semibold">
                                     {selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                 </p>
+                                {isPastDate(selectedDate.getDate()) && (
+                                    <p className="text-sm text-slate-500 mt-2">📋 Viewing past event details</p>
+                                )}
                             </div>
 
                             {/* Error/Success Messages */}
@@ -427,63 +470,78 @@ const Availability = ({ user }) => {
                             )}
 
                             {/* Form */}
-                            <div className="space-y-4 mb-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">
-                                        Event Host Name <span className="text-red-400">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.eventHostName}
-                                        onChange={(e) => handleFormChange('eventHostName', e.target.value)}
-                                        placeholder="e.g., John's Wedding"
-                                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                                    />
-                                </div>
+                            {canAddEvent(selectedDate.getDate()) && (
+                                <div className="space-y-4 mb-6">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                                            Event Host Name <span className="text-red-400">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.eventHostName}
+                                            onChange={(e) => handleFormChange('eventHostName', e.target.value)}
+                                            placeholder="e.g., John's Wedding"
+                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                        />
+                                    </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">
-                                        Managed By <span className="text-slate-500 text-xs">(Optional)</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.managedBy}
-                                        onChange={(e) => handleFormChange('managedBy', e.target.value)}
-                                        placeholder="e.g., Sarah Johnson"
-                                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                                    />
-                                </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                                            Managed By <span className="text-slate-500 text-xs">(Optional)</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.managedBy}
+                                            onChange={(e) => handleFormChange('managedBy', e.target.value)}
+                                            placeholder="e.g., Sarah Johnson"
+                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                        />
+                                    </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">
-                                        Location <span className="text-slate-500 text-xs">(Optional)</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.location}
-                                        onChange={(e) => handleFormChange('location', e.target.value)}
-                                        placeholder="e.g., Grand Hotel, Mumbai"
-                                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                                    />
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                                            Location <span className="text-slate-500 text-xs">(Optional)</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.location}
+                                            onChange={(e) => handleFormChange('location', e.target.value)}
+                                            placeholder="e.g., Grand Hotel, Mumbai"
+                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                        />
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Action Buttons */}
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={handleSaveEvent}
-                                    disabled={loading}
-                                    className="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {loading ? 'Saving...' : 'Save Event'}
-                                </button>
-                                <button
-                                    onClick={closePanel}
-                                    className="px-6 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2.5 rounded-lg transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
+                            {canAddEvent(selectedDate.getDate()) && (
+                                <div className="flex gap-3 mb-6">
+                                    <button
+                                        onClick={handleSaveEvent}
+                                        disabled={loading}
+                                        className="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {loading ? 'Saving...' : 'Save Event'}
+                                    </button>
+                                    <button
+                                        onClick={closePanel}
+                                        className="px-6 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2.5 rounded-lg transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            )}
+
+                            {!canAddEvent(selectedDate.getDate()) && (
+                                <div className="mb-6">
+                                    <button
+                                        onClick={closePanel}
+                                        className="w-full px-6 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2.5 rounded-lg transition-colors"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            )}
 
                             {/* Existing Events for Selected Date */}
                             {eventsForSelectedDate.length > 0 && (
@@ -512,8 +570,8 @@ const Availability = ({ user }) => {
                     ) : (
                         <div className="bg-slate-900/30 p-12 rounded-2xl border border-slate-800 border-dashed flex flex-col items-center justify-center text-center min-h-[400px]">
                             <CalendarIcon className="h-16 w-16 text-slate-600 mb-4" />
-                            <p className="text-slate-500 text-lg">Select a date to add an event</p>
-                            <p className="text-slate-600 text-sm mt-2">Click on any future date in the calendar</p>
+                            <p className="text-slate-500 text-lg">Select a date to view or add an event</p>
+                            <p className="text-slate-600 text-sm mt-2">Click on any date from the past 30 days or future dates to view event details</p>
                         </div>
                     )}
                 </div>

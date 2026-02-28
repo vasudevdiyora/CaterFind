@@ -13,6 +13,10 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
     const [contactEmail, setContactEmail] = useState('');
     const [contactPhone, setContactPhone] = useState('');
     const [contactName, setContactName] = useState('');
+    
+    // New: All contacts and selected contact
+    const [allContacts, setAllContacts] = useState([]);
+    const [selectedContactId, setSelectedContactId] = useState(null);
 
     // Initial item details
     const dealerContactId = item.dealerContactId || null;
@@ -21,6 +25,14 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
 
     useEffect(() => {
         const init = async () => {
+            // Load all contacts
+            try {
+                const contacts = await contactAPI.getAll(catererId);
+                setAllContacts(contacts || []);
+            } catch (err) {
+                console.error('Failed to load contacts:', err);
+            }
+
             // 1. Calculate quantity
             const currentQty = parseInt(item.quantity) || 0;
             const minQty = parseInt(item.minThreshold) || 0;
@@ -31,6 +43,7 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
             let name = manualDealerName;
             let phone = manualDealerPhone;
             let email = '';
+            let contactId = dealerContactId;
 
             // 2. If linked contact, fetch details to get preference
             if (dealerContactId) {
@@ -41,6 +54,7 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
                         name = contact.name;
                         phone = contact.phone;
                         email = contact.email;
+                        contactId = contact.id;
                     }
                 } catch (err) {
                     // Error fetching contact details
@@ -51,21 +65,49 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
             setContactName(name);
             setContactPhone(phone);
             setContactEmail(email);
+            setSelectedContactId(contactId);
 
             // 3. Pre-fill message
-            // Template differs slightly for Email vs SMS? 
-            // For now, keep it simple. Email usually has subject line in backend.
             const template = `Hi ${name}, please send ${suggestQty} ${item.unit} of ${item.itemName} to CaterFind Kitchen.`;
             setMessage(template);
         };
 
         init();
-    }, [item, dealerContactId, manualDealerName, manualDealerPhone]);
+    }, [item, catererId, dealerContactId, manualDealerName, manualDealerPhone]);
 
     const handleQuantityChange = (e) => {
         const newQty = e.target.value;
         setQuantity(newQty);
         setMessage(`Hi ${contactName}, please send ${newQty} ${item.unit} of ${item.itemName} to CaterFind Kitchen.`);
+    };
+
+    const handleContactChange = async (e) => {
+        const contactId = e.target.value;
+        
+        if (!contactId) {
+            // Reset to manual/default
+            setSelectedContactId(null);
+            setContactName(manualDealerName);
+            setContactPhone(manualDealerPhone);
+            setContactEmail('');
+            setContactMethod('SMS');
+            return;
+        }
+
+        setSelectedContactId(contactId);
+        
+        try {
+            const contact = await contactAPI.getById(contactId);
+            if (contact) {
+                setContactName(contact.name);
+                setContactPhone(contact.phone || '');
+                setContactEmail(contact.email || '');
+                setContactMethod(contact.preferredContactMethod || 'SMS');
+                setMessage(`Hi ${contact.name}, please send ${quantity} ${item.unit} of ${item.itemName} to CaterFind Kitchen.`);
+            }
+        } catch (err) {
+            console.error('Error loading contact:', err);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -148,14 +190,27 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
                     </div>
 
                     <div className="form-group">
-                        <label>To {contactMethod === 'EMAIL' ? 'Email' : 'Dealer'}</label>
-                        <div className="input-with-icon" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#222', padding: '10px', borderRadius: '6px', border: '1px solid #444' }}>
-                            {contactMethod === 'EMAIL' ? <Mail size={16} color="#aaa" /> : <Phone size={16} color="#aaa" />}
-                            <span style={{ color: '#fff' }}>
-                                {contactName} ({contactMethod === 'EMAIL' ? (contactEmail || 'No Email') : (contactPhone || 'No Phone')})
-                            </span>
-                        </div>
-                        {dealerContactId && (
+                        <label>Select Contact {contactMethod === 'EMAIL' ? '(Email)' : '(Phone/SMS)'}</label>
+                        <select 
+                            value={selectedContactId || ''}
+                            onChange={handleContactChange}
+                            className="form-input"
+                            style={{ 
+                                background: '#222', 
+                                color: '#fff', 
+                                border: '1px solid #444',
+                                padding: '10px',
+                                borderRadius: '6px',
+                                fontSize: '14px'
+                            }}
+                        >
+                            {allContacts.map(contact => (
+                                <option key={contact.id} value={contact.id}>
+                                    {contact.name} ({contact.phone || contact.email || 'No contact info'})
+                                </option>
+                            ))}
+                        </select>
+                        {dealerContactId && selectedContactId === dealerContactId && (
                             <div style={{ fontSize: '11px', color: '#f49d25', marginTop: '4px' }}>
                                 * Using preferred method: {contactMethod}
                             </div>

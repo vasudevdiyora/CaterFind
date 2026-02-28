@@ -12,6 +12,19 @@ const ClientProfile = ({ user }) => {
     });
 
     const handleSave = () => {
+        // Validate required fields
+        if (!profile.name.trim()) {
+            alert('Full Name is required');
+            return;
+        }
+        if (!profile.phone.trim()) {
+            alert('Phone Number is required');
+            return;
+        }
+        if (!profile.location.trim()) {
+            alert('Location is required');
+            return;
+        }
         // TODO: Save profile to API
         setIsEditing(false);
     };
@@ -59,6 +72,7 @@ const ClientProfile = ({ user }) => {
                             value={profile.name}
                             isEditing={isEditing}
                             onChange={(value) => handleChange('name', value)}
+                            required
                         />
                         
                         <ProfileField
@@ -76,6 +90,7 @@ const ClientProfile = ({ user }) => {
                             isEditing={isEditing}
                             onChange={(value) => handleChange('phone', value)}
                             placeholder="Enter phone number"
+                            required
                         />
                         
                         <ProfileField
@@ -84,6 +99,7 @@ const ClientProfile = ({ user }) => {
                             value={profile.location}
                             isEditing={isEditing}
                             onChange={(value) => handleChange('location', value)}
+                            required
                         />
                         
                         <ProfileField
@@ -138,7 +154,7 @@ const ClientProfile = ({ user }) => {
     );
 };
 
-const ProfileField = ({ icon: Icon, label, value, isEditing, onChange, placeholder, readOnly }) => {
+const ProfileField = ({ icon: Icon, label, value, isEditing, onChange, placeholder, readOnly, optional, required }) => {
     return (
         <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
@@ -146,7 +162,9 @@ const ProfileField = ({ icon: Icon, label, value, isEditing, onChange, placehold
             </div>
             <div className="flex-1">
                 <label className="text-xs text-muted-foreground mb-1 block">
-                    {label}
+                    {label} 
+                    {required && <span className="text-red-500">*</span>}
+                    {optional && <span className="text-muted-foreground/70">(optional)</span>}
                 </label>
                 {isEditing && !readOnly ? (
                     <input

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Users, Calendar, Package, ChevronRight,
     ArrowUpRight, Clock
@@ -16,6 +17,7 @@ import { dashboardAPI } from '../services/api';
  * - Quick Actions
  */
 function Dashboard({ user }) {
+    const navigate = useNavigate();
     const [stats, setStats] = useState({
         pendingRequests: 0,
         upcomingEvents: 0,
@@ -165,18 +167,24 @@ function Dashboard({ user }) {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="rounded-xl border bg-card p-4 hover:border-primary/30 transition-colors cursor-pointer group">
+                        <button 
+                            onClick={() => navigate('/owner/calendar')}
+                            className="rounded-xl border bg-card p-4 hover:border-primary/30 transition-colors cursor-pointer group"
+                        >
                             <p className="text-sm font-medium flex items-center text-muted-foreground group-hover:text-primary transition-colors">
                                 <Calendar className="h-4 w-4 mr-2" />
                                 View Calendar
                             </p>
-                        </div>
-                        <div className="rounded-xl border bg-card p-4 hover:border-primary/30 transition-colors cursor-pointer group">
+                        </button>
+                        <button 
+                            onClick={() => navigate('/owner/inventory')}
+                            className="rounded-xl border bg-card p-4 hover:border-primary/30 transition-colors cursor-pointer group"
+                        >
                             <p className="text-sm font-medium flex items-center text-muted-foreground group-hover:text-primary transition-colors">
                                 <Package className="h-4 w-4 mr-2" />
                                 Check Inventory
                             </p>
-                        </div>
+                        </button>
                     </div>
                 </div>
             </div>

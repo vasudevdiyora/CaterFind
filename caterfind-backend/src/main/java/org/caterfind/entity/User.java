@@ -127,4 +127,16 @@ public class User {
     public void setCateringProfile(CateringProfile cateringProfile) {
         this.cateringProfile = cateringProfile;
     }
+
+    /**
+     * Get display name for user.
+     * For CATERER: returns business name from profile (or email if no profile)
+     * For CLIENT: returns email
+     */
+    public String getDisplayName() {
+        if (this.role == UserRole.CATERER && this.cateringProfile != null) {
+            return this.cateringProfile.getBusinessName();
+        }
+        return this.email; // Fallback to email
+    }
 }

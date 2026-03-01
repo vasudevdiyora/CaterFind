@@ -15,7 +15,7 @@ import MeetingRequestModal from '../components/MeetingRequestModal';
  * - Trending dishes with View More
  * - Contact details
  */
-const CatererDetail = () => {
+const CatererDetail = ({ user }) => {
     const { id } = useParams(); // Get caterer ID from URL
     const navigate = useNavigate();
     const catererId = id;
@@ -245,6 +245,15 @@ const CatererDetail = () => {
                                 <span>Book Trial</span>
                             </button>
 
+                            {/* Fix Meeting */}
+                            <button 
+                                onClick={() => setShowMeetingModal(true)}
+                                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg px-8 py-4 rounded-xl shadow-lg hover:shadow-orange-500/20 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3"
+                            >
+                                <Calendar size={22} />
+                                <span>Fix Meeting</span>
+                            </button>
+
                             {/* Message Caterer */}
                             <button 
                                 onClick={() => navigate('/client/messages', {
@@ -389,6 +398,7 @@ const CatererDetail = () => {
                 onClose={() => setShowMeetingModal(false)}
                 catererName={caterer?.businessName}
                 catererId={catererId}
+                clientId={user?.userId}
             />
         </div>
     );

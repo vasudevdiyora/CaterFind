@@ -10,6 +10,7 @@
 DROP TABLE IF EXISTS menu_dishes;
 DROP TABLE IF EXISTS menus;
 DROP TABLE IF EXISTS dishes;
+DROP TABLE IF EXISTS meeting_requests;
 DROP TABLE IF EXISTS availability_status;
 DROP TABLE IF EXISTS calendar_events;
 DROP TABLE IF EXISTS messages;
@@ -232,6 +233,32 @@ CREATE TABLE menu_dishes (
     FOREIGN KEY (menu_id) REFERENCES menus(id) ON DELETE CASCADE,
     FOREIGN KEY (dish_id) REFERENCES dishes(id) ON DELETE CASCADE,
     INDEX idx_menu (menu_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- MEETING_REQUESTS TABLE
+-- ============================================================
+-- Stores meeting/event requests from clients to caterers
+-- Allows clients to request meetings for their events
+CREATE TABLE meeting_requests (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    client_id BIGINT NOT NULL,
+    caterer_id BIGINT NOT NULL,
+    event_date DATE NOT NULL,
+    number_of_guests INT NOT NULL,
+    event_location VARCHAR(500) NOT NULL,
+    event_type VARCHAR(100) NOT NULL, -- Wedding, Birthday Party, Corporate Event, etc.
+    message TEXT,
+    status ENUM('PENDING', 'ACCEPTED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    responded_at TIMESTAMP NULL,
+    FOREIGN KEY (client_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (caterer_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_caterer (caterer_id),
+    INDEX idx_client (client_id),
+    INDEX idx_status (status),
+    INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================

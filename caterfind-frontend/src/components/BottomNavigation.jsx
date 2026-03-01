@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Calendar, MessageCircle, User } from 'lucide-react';
+import { Home, Calendar, MessageCircle, User, ClipboardList } from 'lucide-react';
 
 const BottomNavigation = () => {
     const navigate = useNavigate();
@@ -14,10 +14,10 @@ const BottomNavigation = () => {
             path: '/client/home' 
         },
         { 
-            id: 'trials',
-            label: 'Trials', 
-            icon: Calendar, 
-            path: '/client/trials' 
+            id: 'requests',
+            label: 'Requests', 
+            icon: ClipboardList, 
+            path: '/client/requests' 
         },
         { 
             id: 'messages',

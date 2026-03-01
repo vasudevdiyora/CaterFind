@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, MapPin, Users, MessageCircle, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { meetingRequestAPI } from '../services/api';
 
 /**
  * Client Requests Page - Caterer Side
@@ -11,85 +12,91 @@ const ClientRequests = ({ user }) => {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all'); // all, pending, accepted, rejected
+    const [error, setError] = useState('');
 
     useEffect(() => {
         loadRequests();
-    }, [user]);
+    }, [user, filter]);
 
-    const loadRequests = async () => {
-        // TODO: Fetch from API
-        // Mock data for now
-        setTimeout(() => {
-            setRequests([
-                {
-                    id: 1,
-                    clientId: 'client_001',
-                    clientName: 'Rajesh Kumar',
-                    status: 'pending',
-                    date: '2024-03-15',
-                    location: 'Janakpuri, Delhi',
-                    guests: 500,
-                    eventType: 'Wedding',
-                    message: 'Looking for traditional North Indian cuisine',
-                    createdAt: '2024-02-20',
-                },
-                {
-                    id: 2,
-                    clientId: 'client_002',
-                    clientName: 'Priya Sharma',
-                    status: 'pending',
-                    date: '2024-04-20',
-                    location: 'Gurgaon',
-                    guests: 100,
-                    eventType: 'Birthday Party',
-                    message: 'Need vegetarian menu options',
-                    createdAt: '2024-02-22',
-                },
-                {
-                    id: 3,
-                    clientId: 'client_003',
-                    clientName: 'Amit Verma',
-                    status: 'accepted',
-                    date: '2024-03-28',
-                    location: 'Noida',
-                    guests: 200,
-                    eventType: 'Corporate Event',
-                    message: 'Require both veg and non-veg options',
-                    createdAt: '2024-02-15',
-                },
-                {
-                    id: 4,
-                    clientId: 'client_004',
-                    clientName: 'Sunita Devi',
-                    status: 'pending',
-                    date: '2024-05-10',
-                    location: 'Dwarka',
-                    guests: 150,
-                    eventType: 'Engagement',
-                    message: 'Premium catering needed',
-                    createdAt: '2024-02-25',
-                },
-            ]);
+    const loadRequests =async () => {
+        try {
+            setLoading(true);
+            setError('');
+            
+            // Fetch requests from API (pass user ID)
+            if (!user || !user.userId) {
+                throw new Error('User not authenticated');
+            }
+            
+            const data = await meetingRequestAPI.getCatererRequests(user.userId, filter);
+            
+            // Transform API response to match UI format
+            const transformedRequests = data.map(req => ({
+                id: req.id,
+                clientId: req.clientId,
+                clientName: req.clientName,
+                status: req.status,
+                date: req.eventDate,
+                location: req.eventLocation,
+                guests: req.numberOfGuests,
+                eventType: req.eventType,
+                message: req.message,
+                createdAt: req.createdAt,
+            }));
+            
+            setRequests(transformedRequests);
+        } catch (error) {
+            console.error('Error loading requests:', error);
+            setError('Failed to load requests. Please try again.');
+        } finally {
             setLoading(false);
-        }, 500);
+        }
     };
 
     const handleAccept = async (requestId) => {
-        // TODO: API call to accept request
-        setRequests(prev =>
-            prev.map(req =>
-                req.id === requestId ? { ...req, status: 'accepted' } : req
-            )
-        );
+        try {
+            if (!user || !user.userId) {
+                throw new Error('User not authenticated');
+            }
+            
+            await meetingRequestAPI.accept(requestId, user.userId);
+            
+            // Update local state
+            setRequests(prev =>
+                prev.map(req =>
+                    req.id === requestId ? { ...req, status: 'accepted' } : req
+                )
+            );
+            
+            // Show success message
+            alert('Request accepted successfully!');
+        } catch (error) {
+            console.error('Error accepting request:', error);
+            alert(error.message || 'Failed to accept request. Please try again.');
+        }
     };
 
     const handleReject = async (requestId) => {
-        // TODO: API call to reject request
-        setRequests(prev =>
-            prev.map(req =>
-                req.id === requestId ? { ...req, status: 'rejected' } : req
-            )
-        );
+        try {
+            if (!user || !user.userId) {
+                throw new Error('User not authenticated');
+            }
+            
+            await meetingRequestAPI.reject(requestId, user.userId);
+            
+            // Update local state
+            setRequests(prev =>
+                prev.map(req =>
+                    req.id === requestId ? { ...req, status: 'rejected' } : req
+                )
+            );
+            
+            // Show success message
+            alert('Request rejected.');
+        } catch (error) {
+            console.error('Error rejecting request:', error);
+            alert(error.message || 'Failed to reject request. Please try again.');
+        }
     };
 
     const handleMessage = (request) => {
@@ -152,6 +159,19 @@ const ClientRequests = ({ user }) => {
                     <span>All Messages</span>
                 </button>
             </div>
+
+            {/* Error Message */}
+            {error && (
+                <div className="bg-red-500/10 border border-red-500 rounded-lg p-4">
+                    <p className="text-red-500">{error}</p>
+                    <button
+                        onClick={loadRequests}
+                        className="mt-2 text-sm text-red-500 underline hover:text-red-600"
+                    >
+                        Try again
+                    </button>
+                </div>
+            )}
 
             {/* Filters */}
             <div className="flex gap-3">

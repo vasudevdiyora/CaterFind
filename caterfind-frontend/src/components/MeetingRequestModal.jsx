@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { X, Calendar, Users, MapPin, MessageCircle } from 'lucide-react';
+import { meetingRequestAPI } from '../services/api';
 
 /**
  * Meeting Request Modal - Client Side
  * Allows clients to send meeting/event requests to caterers
  */
-const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId }) => {
+const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId, clientId }) => {
     const [formData, setFormData] = useState({
         date: '',
         guests: '',
@@ -14,6 +15,7 @@ const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId }) => {
         message: '',
     });
     const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState('');
 
     const eventTypes = [
         'Wedding',
@@ -28,24 +30,32 @@ const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId }) => {
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+        setError(''); // Clear error on input change
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSubmitting(true);
+        setError('');
 
         try {
-            // TODO: API call to submit meeting request
-            console.log('Meeting request:', { ...formData, catererId });
-            
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Prepare request data
+            const requestData = {
+                catererId: catererId,
+                eventDate: formData.date,
+                numberOfGuests: parseInt(formData.guests),
+                eventLocation: formData.location,
+                eventType: formData.eventType,
+                message: formData.message || null
+            };
+
+            // Call API to create meeting request (pass clientId)
+            await meetingRequestAPI.create(clientId, requestData);
             
             // Show success message
-            alert('Meeting request sent successfully!');
-            onClose();
+            alert(`Meeting request sent successfully to ${catererName}!`);
             
-            // Reset form
+            // Reset form and close modal
             setFormData({
                 date: '',
                 guests: '',
@@ -53,9 +63,10 @@ const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId }) => {
                 eventType: '',
                 message: '',
             });
+            onClose();
         } catch (error) {
             console.error('Error submitting request:', error);
-            alert('Failed to send request. Please try again.');
+            setError(error.message || 'Failed to send request. Please try again.');
         } finally {
             setSubmitting(false);
         }
@@ -84,6 +95,13 @@ const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId }) => {
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                    {/* Error Message */}
+                    {error && (
+                        <div className="bg-red-500/10 border border-red-500 rounded-lg p-3">
+                            <p className="text-sm text-red-500">{error}</p>
+                        </div>
+                    )}
+
                     {/* Event Date */}
                     <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">

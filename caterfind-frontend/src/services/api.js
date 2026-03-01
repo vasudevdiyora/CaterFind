@@ -652,4 +652,146 @@ export const menuAPI = {
   }
 };
 
+/**
+ * Meeting Request API
+ */
+export const meetingRequestAPI = {
+  /**
+   * Create a new meeting request (client sends to caterer).
+   * 
+   * @param {number} clientId - Client user ID
+   * @param {object} requestData - Meeting request data
+   * @param {number} requestData.catererId - Caterer ID
+   * @param {string} requestData.eventDate - Event date (YYYY-MM-DD)
+   * @param {number} requestData.numberOfGuests - Number of guests
+   * @param {string} requestData.eventLocation - Event location
+   * @param {string} requestData.eventType - Event type (Wedding, Birthday, etc.)
+   * @param {string} requestData.message - Optional message
+   * @returns {Promise} Created meeting request
+   */
+  create: async (clientId, requestData) => {
+    const response = await fetch(`${API_BASE_URL}/api/meeting-requests?clientId=${clientId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestData)
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to create meeting request');
+    }
+    
+    return response.json();
+  },
+
+  /**
+   * Get all meeting requests for a caterer.
+   * 
+   * @param {number} catererId - Caterer user ID
+   * @param {string} status - Filter by status (all, pending, accepted, rejected)
+   * @returns {Promise} Array of meeting requests
+   */
+  getCatererRequests: async (catererId, status = 'all') => {
+    const response = await fetch(`${API_BASE_URL}/api/meeting-requests/caterer?catererId=${catererId}&status=${status}`);
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch requests');
+    }
+    
+    return response.json();
+  },
+
+  /**
+   * Get all meeting requests sent by a client.
+   * 
+   * @param {number} clientId - Client user ID
+   * @param {string} status - Filter by status (all, pending, accepted, rejected)
+   * @returns {Promise} Array of meeting requests
+   */
+  getClientRequests: async (clientId, status = 'all') => {
+    const response = await fetch(`${API_BASE_URL}/api/meeting-requests/client?clientId=${clientId}&status=${status}`);
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch requests');
+    }
+    
+    return response.json();
+  },
+
+  /**
+   * Get a specific meeting request by ID.
+   * 
+   * @param {number} id - Meeting request ID
+   * @returns {Promise} Meeting request details
+   */
+  getById: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/api/meeting-requests/${id}`);
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch request');
+    }
+    
+    return response.json();
+  },
+
+  /**
+   * Accept a meeting request (caterer only).
+   * 
+   * @param {number} id - Meeting request ID
+   * @param {number} catererId - Caterer user ID
+   * @returns {Promise} Updated meeting request
+   */
+  accept: async (id, catererId) => {
+    const response = await fetch(`${API_BASE_URL}/api/meeting-requests/${id}/accept?catererId=${catererId}`, {
+      method: 'PUT'
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to accept request');
+    }
+    
+    return response.json();
+  },
+
+  /**
+   * Reject a meeting request (caterer only).
+   * 
+   * @param {number} id - Meeting request ID
+   * @param {number} catererId - Caterer user ID
+   * @returns {Promise} Updated meeting request
+   */
+  reject: async (id, catererId) => {
+    const response = await fetch(`${API_BASE_URL}/api/meeting-requests/${id}/reject?catererId=${catererId}`, {
+      method: 'PUT'
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to reject request');
+    }
+    
+    return response.json();
+  },
+
+  /**
+   * Get count of pending requests for caterer.
+   * 
+   * @param {number} catererId - Caterer user ID
+   * @returns {Promise} Object with count
+   */
+  getPendingCount: async (catererId) => {
+    const response = await fetch(`${API_BASE_URL}/api/meeting-requests/pending-count?catererId=${catererId}`);
+    
+    if (!response.ok) {
+      return { count: 0 };
+    }
+    
+    return response.json();
+  }
+};
+
 export default API_BASE_URL;

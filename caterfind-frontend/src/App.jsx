@@ -25,6 +25,7 @@ import ClientHome from './pages/ClientHome';
 import CatererDetail from './pages/CatererDetail';
 import ClientTrials from './pages/ClientTrials';
 import ClientProfile from './pages/ClientProfile';
+import ClientMeetingRequests from './pages/ClientMeetingRequests';
 
 
 /**
@@ -109,7 +110,8 @@ function App() {
         <ClientLayout user={user} onLogout={handleLogout}>
           <Routes>
             <Route path="home" element={<ClientHome user={user} />} />
-            <Route path="caterer/:id" element={<CatererDetail />} />
+            <Route path="caterer/:id" element={<CatererDetail user={user} />} />
+            <Route path="requests" element={<ClientMeetingRequests user={user} />} />
             <Route path="trials" element={<ClientTrials user={user} />} />
             <Route path="messages" element={<Chat user={user} />} />
             <Route path="profile" element={<ClientProfile user={user} />} />

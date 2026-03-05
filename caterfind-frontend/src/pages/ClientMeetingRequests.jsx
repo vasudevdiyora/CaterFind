@@ -36,7 +36,8 @@ const ClientMeetingRequests = ({ user }) => {
     };
 
     const getStatusIcon = (status) => {
-        switch (status) {
+        const upperStatus = status.toUpperCase();
+        switch (upperStatus) {
             case 'PENDING':
                 return <AlertCircle className="text-yellow-500" size={24} />;
             case 'ACCEPTED':
@@ -49,7 +50,8 @@ const ClientMeetingRequests = ({ user }) => {
     };
 
     const getStatusBadge = (status) => {
-        switch (status) {
+        const upperStatus = status.toUpperCase();
+        switch (upperStatus) {
             case 'PENDING':
                 return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50';
             case 'ACCEPTED':
@@ -63,7 +65,7 @@ const ClientMeetingRequests = ({ user }) => {
 
     const filteredRequests = requests.filter(req => {
         if (filter === 'all') return true;
-        return req.status === filter.toUpperCase();
+        return req.status.toUpperCase() === filter.toUpperCase();
     });
 
     const formatDate = (dateString) => {
@@ -101,9 +103,9 @@ const ClientMeetingRequests = ({ user }) => {
                 <div className="flex gap-3 mb-8 overflow-x-auto pb-2">
                     {[
                         { key: 'all', label: 'All Requests', count: requests.length },
-                        { key: 'pending', label: 'Pending', count: requests.filter(r => r.status === 'PENDING').length },
-                        { key: 'accepted', label: 'Accepted', count: requests.filter(r => r.status === 'ACCEPTED').length },
-                        { key: 'rejected', label: 'Rejected', count: requests.filter(r => r.status === 'REJECTED').length },
+                        { key: 'pending', label: 'Pending', count: requests.filter(r => r.status.toUpperCase() === 'PENDING').length },
+                        { key: 'accepted', label: 'Accepted', count: requests.filter(r => r.status.toUpperCase() === 'ACCEPTED').length },
+                        { key: 'rejected', label: 'Rejected', count: requests.filter(r => r.status.toUpperCase() === 'REJECTED').length },
                     ].map((tab) => (
                         <button
                             key={tab.key}
@@ -165,7 +167,7 @@ const ClientMeetingRequests = ({ user }) => {
                                         </div>
                                     </div>
                                     <span className={`px-4 py-2 rounded-full text-sm font-bold ${getStatusBadge(request.status)}`}>
-                                        {request.status}
+                                        {request.status.toLowerCase()}
                                     </span>
                                 </div>
 

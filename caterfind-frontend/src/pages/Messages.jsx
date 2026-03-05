@@ -12,6 +12,7 @@ function Messages({ user }) {
     const [contacts, setContacts] = useState([]);
     const [selectedContacts, setSelectedContacts] = useState([]);
     const [messageText, setMessageText] = useState('');
+    const [sourceLanguage, setSourceLanguage] = useState('ENGLISH');
     const [messageLogs, setMessageLogs] = useState([]);
     const [sending, setSending] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
@@ -59,7 +60,7 @@ function Messages({ user }) {
 
         setSending(true);
         try {
-            const response = await messageAPI.send(user.userId, selectedContacts, messageText);
+            const response = await messageAPI.send(user.userId, selectedContacts, messageText, sourceLanguage);
             alert(response.message);
             setSelectedContacts([]);
             setMessageText('');
@@ -144,9 +145,27 @@ function Messages({ user }) {
                 {/* Message Template Section */}
                 <div className="template-section">
                     <h2 className="section-title">✉️ Message Template</h2>
+                    
+                    {/* Language Selection */}
+                    <div className="language-selector">
+                        <label className="language-label">📝 Message Language:</label>
+                        <select 
+                            className="language-dropdown"
+                            value={sourceLanguage}
+                            onChange={e => setSourceLanguage(e.target.value)}
+                        >
+                            <option value="ENGLISH">🇬🇧 English</option>
+                            <option value="HINDI">🇮🇳 Hindi (हिंदी)</option>
+                            <option value="GUJARATI">🇮🇳 Gujarati (ગુજરાતી)</option>
+                        </select>
+                        <span className="language-hint">
+                            Recipients will receive in their preferred language
+                        </span>
+                    </div>
+
                     <textarea
                         className="message-textarea"
-                        placeholder="Type your message here..."
+                        placeholder="Type your message..."
                         value={messageText}
                         onChange={e => setMessageText(e.target.value)}
                         rows={6}

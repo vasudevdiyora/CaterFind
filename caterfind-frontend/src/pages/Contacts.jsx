@@ -18,6 +18,7 @@ function Contacts({ user }) {
         phone: '',
         email: '',
         preferredContactMethod: 'EMAIL',
+        preferredLanguage: 'ENGLISH',
         labels: []
     });
 
@@ -73,6 +74,7 @@ function Contacts({ user }) {
             phone: contact.phone,
             email: contact.email,
             preferredContactMethod: contact.preferredContactMethod,
+            preferredLanguage: contact.preferredLanguage || 'ENGLISH',
             labels: contact.labels || []
         });
         setShowModal(true);
@@ -93,6 +95,7 @@ function Contacts({ user }) {
                 phone: '',
                 email: '',
                 preferredContactMethod: 'EMAIL',
+                preferredLanguage: 'ENGLISH',
                 labels: []
             });
             fetchContacts();
@@ -159,6 +162,7 @@ function Contacts({ user }) {
                             <th>EMAIL</th>
                             <th>LABELS</th>
                             <th>PREFERRED METHOD</th>
+                            <th>LANGUAGE</th>
                             <th>ACTIONS</th>
                         </tr>
                     </thead>
@@ -202,6 +206,12 @@ function Contacts({ user }) {
                                     <span className="preferred-method">
                                         {contact.preferredContactMethod === 'EMAIL' ? '📧 Email' :
                                             contact.preferredContactMethod === 'CALL' ? '📞 Call' : '📱 SMS'}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span className="preferred-language">
+                                        {contact.preferredLanguage === 'HINDI' ? '🇮🇳 Hindi' :
+                                            contact.preferredLanguage === 'GUJARATI' ? '🇮🇳 Gujarati' : '🇬🇧 English'}
                                     </span>
                                 </td>
                                 <td>
@@ -274,6 +284,18 @@ function Contacts({ user }) {
                                     <option value="EMAIL">📧 Email</option>
                                     <option value="SMS">📱 SMS</option>
                                     <option value="CALL">📞 Call</option>
+                                </select>
+                            </div>
+                            <div className="form-row">
+                                <label className="form-label">Preferred Language</label>
+                                <select
+                                    className="form-input"
+                                    value={formData.preferredLanguage}
+                                    onChange={e => setFormData({ ...formData, preferredLanguage: e.target.value })}
+                                >
+                                    <option value="ENGLISH">🇬🇧 English</option>
+                                    <option value="HINDI">🇮🇳 Hindi (हिंदी)</option>
+                                    <option value="GUJARATI">🇮🇳 Gujarati (ગુજરાતી)</option>
                                 </select>
                             </div>
                             <div className="form-row">

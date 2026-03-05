@@ -1,9 +1,23 @@
 package org.caterfind.entity;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
+import javax.persistence.PrePersist;
+import javax.persistence.Table;
 
 /**
  * Contact entity for managing caterer's contacts.
@@ -40,6 +54,10 @@ public class Contact {
     @Column(name = "preferred_contact_method")
     private ContactMethod preferredContactMethod = ContactMethod.EMAIL;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "preferred_language")
+    private Language preferredLanguage = Language.ENGLISH;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -56,6 +74,16 @@ public class Contact {
         EMAIL,
         SMS,
         CALL
+    }
+
+    /**
+     * Enum for preferred language.
+     * Determines the language for broadcast messages.
+     */
+    public enum Language {
+        ENGLISH,
+        HINDI,
+        GUJARATI
     }
 
     // Automatically set createdAt timestamp before persisting
@@ -123,6 +151,14 @@ public class Contact {
 
     public void setPreferredContactMethod(ContactMethod preferredContactMethod) {
         this.preferredContactMethod = preferredContactMethod;
+    }
+
+    public Language getPreferredLanguage() {
+        return preferredLanguage;
+    }
+
+    public void setPreferredLanguage(Language preferredLanguage) {
+        this.preferredLanguage = preferredLanguage;
     }
 
     public LocalDateTime getCreatedAt() {

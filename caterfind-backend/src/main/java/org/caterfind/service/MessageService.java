@@ -49,13 +49,17 @@ public class MessageService {
     @Autowired
     private VoiceCallService callService;
 
+    @Autowired
+    private TranslationService translationService;
+
     /**
      * Send broadcast message to multiple contacts.
      * 
      * For each contact:
-     * 1. Check preferred contact method (EMAIL, SMS, or CALL)
-     * 2. Call appropriate service
-     * 3. Log message in database
+     * 1. Auto-detect message language and translate to contact's preferred language
+     * 2. Check preferred contact method (EMAIL, SMS, or CALL)
+     * 3. Call appropriate service
+     * 4. Log message in database
      * 
      * @param catererId User ID of the caterer
      * @param request   Message request with contact IDs and message text
@@ -76,28 +80,79 @@ public class MessageService {
                 continue;
             }
 
-            boolean sent = false;
-            Message.ContactMethod method = Message.ContactMethod.EMAIL;
+            // Translate message to contact's preferred language
+            Contact.Language sourceLanguage = request.getSourceLanguage() != null 
+                ? request.getSourceLanguage() 
+                : Contact.Language.ENGLISH;
+            
+            Contact.Language targetLanguage = contact.getPreferredLanguage() != null 
+                ? contact.getPreferredLanguage() 
+                : Contact.Language.ENGLISH;
+            
+            System.out.println("🔔 Broadcasting to: " + contact.getName());
+            System.out.println("   Source Language: " + sourceLanguage);
+            System.out.println("   Target Language: " + targetLanguage);
+            System.out.println("   Original Message: " + request.getMessageText());
+            
+            String translatedMessage = translationService.translate(
+                request.getMessageText(), 
+                sourceLanguage,
+                targetLanguage
+            );
+            
+            System.out.println("   Translated Message: " + translatedMessage);
+            System.out.println("   Contact Method: " + contact.getPreferredContactMethod());
 
-            // Send via preferred contact method
+            // ========================================
+            // ✅ ACTUAL SENDING ENABLED
+            // ========================================
+            boolean sent = false;
+            Message.ContactMethod method = contact.getPreferredContactMethod() != null 
+                ? Message.ContactMethod.valueOf(contact.getPreferredContactMethod().name())
+                : Message.ContactMethod.SMS;
+            
+            // Send via preferred contact method with fallback
             try {
                 if (contact.getPreferredContactMethod() == Contact.ContactMethod.EMAIL) {
                     sent = emailService.sendEmail(
                             contact.getEmail(),
                             "Message from Caterer",
-                            request.getMessageText());
+                            translatedMessage);
                     method = Message.ContactMethod.EMAIL;
                 } else if (contact.getPreferredContactMethod() == Contact.ContactMethod.SMS) {
                     sent = smsService.sendSms(
                             contact.getPhone(),
-                            request.getMessageText());
+                            translatedMessage);
                     method = Message.ContactMethod.SMS;
                 } else if (contact.getPreferredContactMethod() == Contact.ContactMethod.CALL) {
-                    callService.makeCall(
-                            contact.getPhone(),
-                            request.getMessageText());
-                    sent = true; // Assuming no exception means success for now
-                    method = Message.ContactMethod.CALL;
+                    try {
+                        callService.makeCall(
+                                contact.getPhone(),
+                                translatedMessage);
+                        sent = true;
+                        method = Message.ContactMethod.CALL;
+                    } catch (Exception callException) {
+                        // CALL failed, fallback to SMS
+                        System.err.println("⚠️ CALL failed for " + contact.getName() + ", falling back to SMS: " + callException.getMessage());
+                        try {
+                            sent = smsService.sendSms(
+                                    contact.getPhone(),
+                                    translatedMessage);
+                            method = Message.ContactMethod.SMS;
+                            System.out.println("✅ Fallback SMS sent successfully to " + contact.getName());
+                        } catch (Exception smsException) {
+                            // SMS also failed, try EMAIL as last resort
+                            System.err.println("⚠️ SMS also failed, trying EMAIL as last resort");
+                            if (contact.getEmail() != null && !contact.getEmail().isEmpty()) {
+                                sent = emailService.sendEmail(
+                                        contact.getEmail(),
+                                        "Message from Caterer",
+                                        translatedMessage);
+                                method = Message.ContactMethod.EMAIL;
+                                System.out.println("✅ Fallback EMAIL sent successfully to " + contact.getName());
+                            }
+                        }
+                    }
                 }
             } catch (Exception e) {
                 System.err.println(
@@ -105,12 +160,12 @@ public class MessageService {
                 sent = false;
             }
 
-            // Log message in database
+            // Log message in database (store translated version)
             if (sent) {
                 Message message = new Message();
                 message.setCatererId(catererId);
                 message.setContactId(contactId);
-                message.setMessageText(request.getMessageText());
+                message.setMessageText(translatedMessage);
                 message.setContactMethod(method);
                 message.setStatus(Message.MessageStatus.SENT);
 

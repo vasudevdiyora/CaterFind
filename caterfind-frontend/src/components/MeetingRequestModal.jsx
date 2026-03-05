@@ -122,7 +122,7 @@ const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId, clientId
                     <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
                             <Users size={16} />
-                            Number of Guests *
+                            Approx Number of Guest *
                         </label>
                         <input
                             type="number"

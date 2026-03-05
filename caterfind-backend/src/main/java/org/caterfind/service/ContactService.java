@@ -76,6 +76,12 @@ public class ContactService {
         contact.setEmail(contactDTO.getEmail());
         contact.setPreferredContactMethod(
                 Contact.ContactMethod.valueOf(contactDTO.getPreferredContactMethod()));
+        
+        // Set preferred language (default to ENGLISH if not provided)
+        if (contactDTO.getPreferredLanguage() != null) {
+            contact.setPreferredLanguage(
+                Contact.Language.valueOf(contactDTO.getPreferredLanguage()));
+        }
 
         // Assign labels
         if (contactDTO.getLabels() != null && !contactDTO.getLabels().isEmpty()) {
@@ -106,6 +112,12 @@ public class ContactService {
                     contact.setEmail(contactDTO.getEmail());
                     contact.setPreferredContactMethod(
                             Contact.ContactMethod.valueOf(contactDTO.getPreferredContactMethod()));
+                    
+                    // Update preferred language
+                    if (contactDTO.getPreferredLanguage() != null) {
+                        contact.setPreferredLanguage(
+                            Contact.Language.valueOf(contactDTO.getPreferredLanguage()));
+                    }
 
                     // Update labels
                     if (contactDTO.getLabels() != null) {
@@ -155,6 +167,7 @@ public class ContactService {
                 contact.getPhone(),
                 contact.getEmail(),
                 contact.getPreferredContactMethod().name(),
+                contact.getPreferredLanguage() != null ? contact.getPreferredLanguage().name() : "ENGLISH",
                 labelNames);
     }
 }

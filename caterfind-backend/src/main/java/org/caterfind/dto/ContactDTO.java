@@ -15,6 +15,7 @@ public class ContactDTO {
     private String phone;
     private String email;
     private String preferredContactMethod; // "EMAIL" or "SMS"
+    private String preferredLanguage; // "ENGLISH", "HINDI", or "GUJARATI"
     private List<String> labels; // e.g., ["Staff", "Chef"]
 
     // Constructors
@@ -22,12 +23,13 @@ public class ContactDTO {
     }
 
     public ContactDTO(Long id, String name, String phone, String email,
-            String preferredContactMethod, List<String> labels) {
+            String preferredContactMethod, String preferredLanguage, List<String> labels) {
         this.id = id;
         this.name = name;
         this.phone = phone;
         this.email = email;
         this.preferredContactMethod = preferredContactMethod;
+        this.preferredLanguage = preferredLanguage;
         this.labels = labels;
     }
 
@@ -70,6 +72,14 @@ public class ContactDTO {
 
     public void setPreferredContactMethod(String preferredContactMethod) {
         this.preferredContactMethod = preferredContactMethod;
+    }
+
+    public String getPreferredLanguage() {
+        return preferredLanguage;
+    }
+
+    public void setPreferredLanguage(String preferredLanguage) {
+        this.preferredLanguage = preferredLanguage;
     }
 
     public List<String> getLabels() {

@@ -183,6 +183,26 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
+/* Language Selector (Auto-detection Info) */
+.language-selector {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(168, 85, 247, 0.1));
+    border: 2px solid var(--primary-color);
+    border-radius: var(--border-radius-sm);
+    flex-wrap: wrap;
+}
+
+.language-hint {
+    font-size: 13px;
+    color: var(--text-primary);
+    line-height: 1.6;
+    width: 100%;
+}
+
 .message-textarea {
     width: 100%;
     padding: 16px;

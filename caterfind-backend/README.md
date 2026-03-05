@@ -24,25 +24,38 @@ Spring Boot backend for the CaterFind catering management system.
 
 3. **Configure Credentials (IMPORTANT!)**
 
-   Create a file named `application-local.properties` in `src/main/resources/`:
-
+   **Option 1: Using .env file (Recommended)**
+   
+   Copy the example file and fill in your credentials:
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Then edit `.env` with your actual credentials:
    ```properties
    # Database
-   spring.datasource.url=jdbc:mysql://localhost:3306/caterfind?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-   spring.datasource.username=root
-   spring.datasource.password=YOUR_MYSQL_PASSWORD
+   DB_URL=jdbc:mysql://localhost:3306/caterfind?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+   DB_USERNAME=root
+   DB_PASSWORD=YOUR_MYSQL_PASSWORD
 
    # Twilio (Get from https://console.twilio.com/)
-   twilio.accountSid=YOUR_TWILIO_ACCOUNT_SID
-   twilio.authToken=YOUR_TWILIO_AUTH_TOKEN
-   twilio.phoneNumber=YOUR_TWILIO_PHONE_NUMBER
+   TWILIO_ACCOUNT_SID=YOUR_TWILIO_ACCOUNT_SID
+   TWILIO_AUTH_TOKEN=YOUR_TWILIO_AUTH_TOKEN
+   TWILIO_PHONE_NUMBER=YOUR_TWILIO_PHONE_NUMBER
 
    # Gmail SMTP (Generate App Password at https://myaccount.google.com/apppasswords)
-   spring.mail.username=your-email@gmail.com
-   spring.mail.password=your-gmail-app-password
+   MAIL_USERNAME=your-email@gmail.com
+   MAIL_PASSWORD=your-gmail-app-password
+
+   # OpenAI (Get from https://platform.openai.com/api-keys)
+   OPENAI_API_KEY=your-openai-api-key
    ```
 
-   **Note:** The `application-local.properties` file is automatically ignored by Git and will never be committed.
+   **Option 2: Using application-local.properties (Legacy)**
+   
+   Create a file named `application-local.properties` in `src/main/resources/` with your credentials.
+
+   **Note:** Both `.env` and `application-local.properties` files are automatically ignored by Git and will never be committed.
 
 4. **Run the application**
    ```bash

@@ -248,17 +248,19 @@ export const messageAPI = {
    * 
    * REMINDER: This is NOT a chat system.
    * This is for broadcast messaging only.
+   * Message will be translated to each recipient's preferred language.
    * 
    * @param {number} catererId - Caterer user ID
    * @param {array} contactIds - Array of contact IDs
    * @param {string} messageText - Message content
+   * @param {string} sourceLanguage - Language caterer is typing in (ENGLISH, HINDI, GUJARATI)
    * @returns {Promise} Send response
    */
-  send: async (catererId, contactIds, messageText) => {
+  send: async (catererId, contactIds, messageText, sourceLanguage) => {
     const response = await fetch(`${API_BASE_URL}/messages/send?catererId=${catererId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contactIds, messageText })
+      body: JSON.stringify({ contactIds, messageText, sourceLanguage })
     });
     return response.json();
   },

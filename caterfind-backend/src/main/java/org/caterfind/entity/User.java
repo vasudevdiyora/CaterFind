@@ -47,6 +47,22 @@ public class User {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    // Optional client profile fields (stored on User for simplicity)
+    @Column(length = 100)
+    private String name;
+
+    @Column(length = 50)
+    private String city;
+
+    @Column(length = 50)
+    private String state;
+
+    @Column(length = 100)
+    private String area;
+
+    @Column(length = 20)
+    private String phone;
+
     // One-to-one relationship with CateringProfile (only for CATERER role)
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private CateringProfile cateringProfile;
@@ -126,6 +142,46 @@ public class User {
 
     public void setCateringProfile(CateringProfile cateringProfile) {
         this.cateringProfile = cateringProfile;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public String getArea() {
+        return area;
+    }
+
+    public void setArea(String area) {
+        this.area = area;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 
     /**

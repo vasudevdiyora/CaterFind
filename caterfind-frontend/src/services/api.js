@@ -52,11 +52,12 @@ export const authAPI = {
    * @param {string} role - User role (CATERER or CLIENT)
    * @returns {Promise} Login response with role
    */
-  register: async (email, password, businessName, role = 'CATERER') => {
+  // Accept a payload object so frontend can send role-specific fields
+  register: async (payload) => {
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, businessName, role })
+      body: JSON.stringify(payload)
     });
     const data = await response.json();
     if (!response.ok) {
@@ -65,6 +66,21 @@ export const authAPI = {
     return data;
   }
 
+};
+
+/**
+ * Location helper API
+ * - lookupPincode: returns { success, state, district, postOffices[] }
+ */
+export const locationAPI = {
+  lookupPincode: async (pincode) => {
+    const response = await fetch(`${API_BASE_URL}/utils/pincode/${pincode}`);
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Pincode lookup failed');
+    }
+    return data;
+  }
 };
 
 /**

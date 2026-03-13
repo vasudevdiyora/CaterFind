@@ -57,6 +57,9 @@ public class CateringProfile {
     private String area;
 
     @Column(length = 50)
+    private String state;
+
+    @Column(length = 50)
     private String city;
 
     @Column(length = 100)
@@ -70,6 +73,12 @@ public class CateringProfile {
 
     @Column(name = "image_url")
     private String imageUrl; // URL to profile image
+
+    @Column(name = "owner_name", length = 100)
+    private String ownerName;
+
+    @Column(name = "aadhar_number", length = 50)
+    private String aadharNumber;
 
     @Column(name = "business_photos", columnDefinition = "TEXT")
     private String businessPhotos; // Comma-separated URLs of business photos for gallery
@@ -177,6 +186,14 @@ public class CateringProfile {
         this.area = area;
     }
 
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
     public String getCity() {
         return city;
     }
@@ -235,6 +252,22 @@ public class CateringProfile {
 
     public String getAddress() {
         return address;
+    }
+
+    public String getOwnerName() {
+        return ownerName;
+    }
+
+    public void setOwnerName(String ownerName) {
+        this.ownerName = ownerName;
+    }
+
+    public String getAadharNumber() {
+        return aadharNumber;
+    }
+
+    public void setAadharNumber(String aadharNumber) {
+        this.aadharNumber = aadharNumber;
     }
 
     public void setAddress(String address) {

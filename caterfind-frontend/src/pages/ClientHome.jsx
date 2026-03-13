@@ -8,10 +8,21 @@ const ClientHome = ({ user }) => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState('All'); // All, Veg, Non-Veg - Mock filter for now
+    const [currentLocation, setCurrentLocation] = useState('Delhi NCR');
     const navigate = useNavigate();
 
     useEffect(() => {
         loadCaterers();
+    }, []);
+
+    // restore saved client location (if any)
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem('clientLocation');
+            if (saved) setCurrentLocation(saved);
+        } catch (e) {
+            // ignore localStorage errors
+        }
     }, []);
 
     const loadCaterers = async () => {
@@ -25,10 +36,32 @@ const ClientHome = ({ user }) => {
         }
     };
 
-    const filteredCaterers = caterers.filter(caterer =>
-        caterer.businessName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        caterer.city?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredCaterers = caterers
+        .filter(caterer =>
+            caterer.businessName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (caterer.city || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (caterer.area || '').toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .sort((a, b) => {
+            const target = (currentLocation || '').toLowerCase();
+            const aMatch = ((a.city || '').toLowerCase().includes(target)) || ((a.area || '').toLowerCase().includes(target));
+            const bMatch = ((b.city || '').toLowerCase().includes(target)) || ((b.area || '').toLowerCase().includes(target));
+            if (aMatch && !bMatch) return -1; // a first
+            if (!aMatch && bMatch) return 1;  // b first
+            // fallback: sort by rating (desc) if available
+            const aRating = Number(a.rating) || 0;
+            const bRating = Number(b.rating) || 0;
+            return bRating - aRating;
+        });
+
+    const handleChangeLocation = () => {
+        const newLoc = window.prompt('Enter location (e.g. Delhi NCR)', currentLocation || '');
+        if (newLoc && newLoc.trim()) {
+            const loc = newLoc.trim();
+            setCurrentLocation(loc);
+            try { localStorage.setItem('clientLocation', loc); } catch (e) { /* ignore */ }
+        }
+    };
 
     const handleCatererClick = (caterer) => {
         const catererId = caterer.userId ?? caterer.id;
@@ -41,7 +74,7 @@ const ClientHome = ({ user }) => {
             <div className="mb-8">
                 <div className="flex items-center gap-2 text-yellow-500 mb-4">
                     <MapPin size={18} />
-                    <span>Delhi NCR <span className="text-orange-400 cursor-pointer">Change</span></span>
+                    <span>{currentLocation} <span className="text-orange-400 cursor-pointer" onClick={handleChangeLocation}>Change</span></span>
                 </div>
 
                 <div className="relative mb-6">

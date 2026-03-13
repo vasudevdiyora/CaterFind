@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Send, User, Circle } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import useWebSocket from '../hooks/useWebSocket';
 
 /**
@@ -9,6 +9,7 @@ import useWebSocket from '../hooks/useWebSocket';
  */
 const Chat = ({ user }) => {
     const location = useLocation();
+    const navigate = useNavigate();
     const [selectedConversation, setSelectedConversation] = useState(null);
     const [messageText, setMessageText] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -28,6 +29,8 @@ const Chat = ({ user }) => {
         if (location.state?.openConversationWith) {
             const targetId = location.state.openConversationWith;
             const targetName = location.state.catererName || location.state.clientName;
+            const eventName = location.state.eventName;
+            const eventPlace = location.state.eventPlace;
             
             // Clear location state immediately to prevent re-triggering
             window.history.replaceState({}, document.title);
@@ -47,6 +50,8 @@ const Chat = ({ user }) => {
                     participantId: targetId,
                     participantName: targetName,
                     participantRole: participantRole,
+                    eventName,
+                    eventPlace,
                     lastMessage: null,
                     lastMessageTime: new Date().toISOString(),
                     unreadCount: 0
@@ -67,7 +72,11 @@ const Chat = ({ user }) => {
                 conv => conv.participantId === selectedConversation.participantId
             );
             if (realConv && !String(realConv.id).startsWith('temp-')) {
-                setSelectedConversation(realConv);
+                setSelectedConversation({
+                    ...realConv,
+                    eventName: selectedConversation.eventName,
+                    eventPlace: selectedConversation.eventPlace
+                });
             }
         }
     }, [conversations, selectedConversation]);
@@ -233,6 +242,13 @@ const Chat = ({ user }) => {
                             >
                                 ←
                             </button>
+                            <button
+                                onClick={() => navigate(-1)}
+                                className="px-3 py-1.5 text-sm rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                                aria-label="Go back"
+                            >
+                                Back
+                            </button>
                             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
                                 {selectedConversation.participantName?.charAt(0).toUpperCase() || 'U'}
                             </div>
@@ -241,7 +257,10 @@ const Chat = ({ user }) => {
                                     {selectedConversation.participantName}
                                 </h2>
                                 <p className="text-xs text-muted-foreground">
-                                    {selectedConversation.participantRole === 'CATERER' ? 'Caterer' : 'Client'}
+                                    {selectedConversation.eventName && selectedConversation.eventPlace
+                                        ? `${selectedConversation.eventName} • ${selectedConversation.eventPlace}`
+                                        : selectedConversation.eventName || selectedConversation.eventPlace ||
+                                          (selectedConversation.participantRole === 'CATERER' ? 'Caterer' : 'Client')}
                                 </p>
                             </div>
                         </div>

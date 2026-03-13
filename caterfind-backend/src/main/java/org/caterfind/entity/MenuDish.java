@@ -27,15 +27,19 @@ public class MenuDish {
     @Column(name = "display_order")
     private Integer displayOrder;
 
+    @Column(name = "note", length = 300)
+    private String note;
+
     // Constructors
     public MenuDish() {
     }
 
-    public MenuDish(Menu menu, Dish dish, String menuCategory, Integer displayOrder) {
+    public MenuDish(Menu menu, Dish dish, String menuCategory, Integer displayOrder, String note) {
         this.menu = menu;
         this.dish = dish;
         this.menuCategory = menuCategory;
         this.displayOrder = displayOrder;
+        this.note = note;
     }
 
     // Getters and Setters
@@ -77,5 +81,13 @@ public class MenuDish {
 
     public void setDisplayOrder(Integer displayOrder) {
         this.displayOrder = displayOrder;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
     }
 }

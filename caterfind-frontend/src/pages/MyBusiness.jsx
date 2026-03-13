@@ -23,6 +23,8 @@ function MyBusiness({ user }) {
         area: '',
         city: '',
         landmark: '',
+        meetingAddress: '',
+        meetingSameAsBusinessAddress: false,
         serviceRadius: 50,
         imageUrl: '' // Profile image URL - saved to database
     });
@@ -62,6 +64,8 @@ function MyBusiness({ user }) {
                     area: data.area || '',
                     city: data.city || '',
                     landmark: data.landmark || '',
+                    meetingAddress: data.meetingAddress || '',
+                    meetingSameAsBusinessAddress: Boolean(data.meetingSameAsBusinessAddress),
                     serviceRadius: data.serviceRadius || 50,
                     imageUrl: data.imageUrl || ''
                 });
@@ -85,6 +89,21 @@ function MyBusiness({ user }) {
         setFormData(prev => ({
             ...prev,
             [field]: value
+        }));
+    };
+
+    const buildBusinessAddress = (data) => {
+        return [data.streetAddress, data.area, data.city, data.landmark]
+            .map(value => (value || '').trim())
+            .filter(Boolean)
+            .join(', ');
+    };
+
+    const handleMeetingSameAsBusinessChange = (checked) => {
+        setFormData(prev => ({
+            ...prev,
+            meetingSameAsBusinessAddress: checked,
+            meetingAddress: checked ? buildBusinessAddress(prev) : prev.meetingAddress
         }));
     };
 
@@ -337,6 +356,26 @@ function MyBusiness({ user }) {
                             value={formData.landmark}
                             onChange={(e) => handleChange('landmark', e.target.value)}
                             placeholder="e.g., Near Central Market"
+                        />
+                    </div>
+
+                    <div className="form-field">
+                        <label className="field-label">Meeting Address</label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', color: 'var(--text-secondary, #94a3b8)' }}>
+                            <input
+                                type="checkbox"
+                                checked={Boolean(formData.meetingSameAsBusinessAddress)}
+                                onChange={(e) => handleMeetingSameAsBusinessChange(e.target.checked)}
+                            />
+                            Same as business address
+                        </label>
+                        <textarea
+                            className="field-textarea"
+                            value={formData.meetingSameAsBusinessAddress ? buildBusinessAddress(formData) : formData.meetingAddress}
+                            onChange={(e) => handleChange('meetingAddress', e.target.value)}
+                            rows={3}
+                            placeholder="Enter preferred meeting address"
+                            disabled={Boolean(formData.meetingSameAsBusinessAddress)}
                         />
                     </div>
                 </div>

@@ -2,6 +2,7 @@ package org.caterfind.service;
 
 import org.caterfind.dto.CalendarEventDTO;
 import org.caterfind.entity.CalendarEvent;
+import org.caterfind.entity.Menu;
 import org.caterfind.repository.CalendarEventRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +54,33 @@ public class CalendarEventService {
 
         CalendarEvent saved = repository.save(event);
         return toDTO(saved);
+    }
+
+    /**
+     * Create or update the calendar entry associated with a menu.
+     */
+    @Transactional
+    public void syncMenuEvent(Menu menu) {
+        if (menu.getEventDate() == null || menu.getCaterer() == null) {
+            return;
+        }
+
+        CalendarEvent event = repository.findByUserIdAndMenuId(menu.getCaterer().getId(), menu.getId())
+                .orElseGet(CalendarEvent::new);
+
+        event.setUserId(menu.getCaterer().getId());
+        event.setMenuId(menu.getId());
+        event.setEventDate(menu.getEventDate());
+        event.setEventHostName(buildMenuEventHostName(menu));
+        event.setManagedBy(buildMenuManagedBy(menu));
+        event.setLocation(menu.getEventLocation());
+
+        repository.save(event);
+    }
+
+    @Transactional
+    public void deleteMenuEvent(Long menuId) {
+        repository.deleteByMenuId(menuId);
     }
 
     /**
@@ -127,5 +155,26 @@ public class CalendarEventService {
                 event.getManagedBy(),
                 event.getLocation()
         );
+    }
+
+    private String buildMenuEventHostName(Menu menu) {
+        if (menu.getClientName() != null && menu.getEventType() != null) {
+            return menu.getClientName() + " - " + menu.getEventType();
+        }
+        if (menu.getClientName() != null) {
+            return menu.getClientName();
+        }
+        return "Menu Builder Event";
+    }
+
+    private String buildMenuManagedBy(Menu menu) {
+        StringBuilder details = new StringBuilder("Menu Builder");
+        if (menu.getNumberOfGuests() != null) {
+            details.append(" • ").append(menu.getNumberOfGuests()).append(" guests");
+        }
+        if (menu.getStatus() != null) {
+            details.append(" • ").append(menu.getStatus().name());
+        }
+        return details.toString();
     }
 }

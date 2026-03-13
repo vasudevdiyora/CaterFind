@@ -5,21 +5,6 @@ public class RegisterRequest {
     private String password;
     private String businessName;
     private String role; // "CATERER" or "CLIENT"
-    // Caterer-specific fields
-    private String ownerName;
-    private String aadharNumber;
-    private String primaryPhone;
-    private String alternatePhone;
-    private String streetAddress;
-    private String area;
-    private String state;
-    private String city;
-    private String address;
-    private String pincode;
-
-    // Client-specific fields
-    private String name;
-    private String phone;
 
     // Constructors
     public RegisterRequest() {
@@ -38,43 +23,6 @@ public class RegisterRequest {
         this.businessName = businessName;
         this.role = role;
     }
-
-    // Getters and setters for new fields
-    public String getOwnerName() { return ownerName; }
-    public void setOwnerName(String ownerName) { this.ownerName = ownerName; }
-
-    public String getAadharNumber() { return aadharNumber; }
-    public void setAadharNumber(String aadharNumber) { this.aadharNumber = aadharNumber; }
-
-    public String getPrimaryPhone() { return primaryPhone; }
-    public void setPrimaryPhone(String primaryPhone) { this.primaryPhone = primaryPhone; }
-
-    public String getAlternatePhone() { return alternatePhone; }
-    public void setAlternatePhone(String alternatePhone) { this.alternatePhone = alternatePhone; }
-
-    public String getStreetAddress() { return streetAddress; }
-    public void setStreetAddress(String streetAddress) { this.streetAddress = streetAddress; }
-
-    public String getArea() { return area; }
-    public void setArea(String area) { this.area = area; }
-
-    public String getState() { return state; }
-    public void setState(String state) { this.state = state; }
-
-    public String getPincode() { return pincode; }
-    public void setPincode(String pincode) { this.pincode = pincode; }
-
-    public String getCity() { return city; }
-    public void setCity(String city) { this.city = city; }
-
-    public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public String getPhone() { return phone; }
-    public void setPhone(String phone) { this.phone = phone; }
 
     // Getters and Setters
     public String getEmail() {

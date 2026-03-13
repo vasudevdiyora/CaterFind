@@ -1,6 +1,7 @@
 package org.caterfind.service;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -13,7 +14,9 @@ import org.caterfind.entity.User;
 import org.caterfind.repository.DishRepository;
 import org.caterfind.repository.MenuRepository;
 import org.caterfind.repository.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,11 +38,44 @@ public class MenuService {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private CalendarEventService calendarEventService;
+
     /**
      * Get all menus for a caterer.
      */
     public List<MenuDTO> getMenusByCatererId(Long catererId) {
-        return menuRepository.findByCatererId(catererId).stream()
+        return menuRepository.findByCatererIdOrderByEventDateDescCreatedAtDesc(catererId).stream()
+                .map(MenuDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get upcoming menus from today onward for a caterer.
+     */
+    public List<MenuDTO> getUpcomingMenusByCatererId(Long catererId) {
+        LocalDate today = LocalDate.now();
+        LocalDate farFuture = LocalDate.of(2100, 12, 31);
+
+        return menuRepository
+                .findByCatererIdAndEventDateBetweenOrderByEventDateDescCreatedAtDesc(catererId, today, farFuture)
+                .stream()
+                .map(MenuDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get past menus for a caterer within the last N days.
+     */
+    public List<MenuDTO> getPastMenusByCatererId(Long catererId, int days) {
+        int safeDays = Math.max(1, days);
+        LocalDate today = LocalDate.now();
+        LocalDate fromDate = today.minusDays(safeDays);
+        LocalDate toDate = today.minusDays(1);
+
+        return menuRepository
+                .findByCatererIdAndEventDateBetweenOrderByEventDateDescCreatedAtDesc(catererId, fromDate, toDate)
+                .stream()
                 .map(MenuDTO::new)
                 .collect(Collectors.toList());
     }
@@ -64,10 +100,11 @@ public class MenuService {
         Menu menu = new Menu();
         menu.setCaterer(caterer);
         menu.setClientName(request.getClientName());
+        menu.setEventType(request.getEventType());
         menu.setEventLocation(request.getEventLocation());
         menu.setEventDate(request.getEventDate());
         menu.setNumberOfGuests(request.getNumberOfGuests());
-        menu.setContactNumber(request.getContactNumber());
+        menu.setContactNumber(normalizeIndianMobile(request.getContactNumber()));
         menu.setClientEmail(request.getClientEmail());
         menu.setStatus(Menu.MenuStatus.DRAFT);
 
@@ -81,13 +118,15 @@ public class MenuService {
                         menu,
                         dish,
                         dishRequest.getMenuCategory(),
-                        dishRequest.getDisplayOrder()
+                    dishRequest.getDisplayOrder(),
+                    dishRequest.getNote()
                 );
                 menu.getDishes().add(menuDish);
             }
         }
 
         Menu savedMenu = menuRepository.save(menu);
+        calendarEventService.syncMenuEvent(savedMenu);
         return new MenuDTO(savedMenu);
     }
 
@@ -100,10 +139,11 @@ public class MenuService {
                 .orElseThrow(() -> new RuntimeException("Menu not found with id: " + id));
 
         menu.setClientName(request.getClientName());
+        menu.setEventType(request.getEventType());
         menu.setEventLocation(request.getEventLocation());
         menu.setEventDate(request.getEventDate());
         menu.setNumberOfGuests(request.getNumberOfGuests());
-        menu.setContactNumber(request.getContactNumber());
+        menu.setContactNumber(normalizeIndianMobile(request.getContactNumber()));
         menu.setClientEmail(request.getClientEmail());
 
         // Clear existing dishes and add new ones
@@ -118,13 +158,15 @@ public class MenuService {
                         menu,
                         dish,
                         dishRequest.getMenuCategory(),
-                        dishRequest.getDisplayOrder()
+                    dishRequest.getDisplayOrder(),
+                    dishRequest.getNote()
                 );
                 menu.getDishes().add(menuDish);
             }
         }
 
         Menu updatedMenu = menuRepository.save(menu);
+        calendarEventService.syncMenuEvent(updatedMenu);
         return new MenuDTO(updatedMenu);
     }
 
@@ -140,6 +182,7 @@ public class MenuService {
         menu.setSentAt(LocalDateTime.now());
 
         Menu updatedMenu = menuRepository.save(menu);
+        calendarEventService.syncMenuEvent(updatedMenu);
 
         // Send email if client email is provided
         if (menu.getClientEmail() != null && !menu.getClientEmail().isEmpty()) {
@@ -165,6 +208,7 @@ public class MenuService {
         body.append("Dear ").append(menu.getClientName()).append(",\n\n");
         body.append("Thank you for considering our catering services for your event.\n\n");
         body.append("EVENT DETAILS:\n");
+        body.append("Type: ").append(menu.getEventType()).append("\n");
         body.append("Date: ").append(menu.getEventDate()).append("\n");
         body.append("Location: ").append(menu.getEventLocation()).append("\n");
         body.append("Number of Guests: ").append(menu.getNumberOfGuests()).append("\n\n");
@@ -177,6 +221,9 @@ public class MenuService {
                     body.append(category.toUpperCase()).append(":\n");
                     dishes.forEach(menuDish -> {
                         body.append("  • ").append(menuDish.getDish().getName()).append("\n");
+                        if (menuDish.getNote() != null && !menuDish.getNote().trim().isEmpty()) {
+                            body.append("      Note: ").append(menuDish.getNote().trim()).append("\n");
+                        }
                     });
                     body.append("\n");
                 });
@@ -189,6 +236,19 @@ public class MenuService {
         return body.toString();
     }
 
+    private String normalizeIndianMobile(String contactNumber) {
+        if (contactNumber == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Contact number is required");
+        }
+
+        String digitsOnly = contactNumber.replaceAll("\\D", "");
+        if (!digitsOnly.matches("^[6-9]\\d{9}$")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Contact number must be a valid 10-digit Indian mobile number");
+        }
+
+        return "+91" + digitsOnly;
+    }
+
     /**
      * Delete a menu.
      */
@@ -197,6 +257,7 @@ public class MenuService {
         if (!menuRepository.existsById(id)) {
             throw new RuntimeException("Menu not found with id: " + id);
         }
+        calendarEventService.deleteMenuEvent(id);
         menuRepository.deleteById(id);
     }
 }

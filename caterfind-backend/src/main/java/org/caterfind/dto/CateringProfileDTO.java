@@ -15,6 +15,8 @@ public class CateringProfileDTO {
     private String area;
     private String city;
     private String landmark;
+    private String meetingAddress;
+    private Boolean meetingSameAsBusinessAddress;
     private Integer serviceRadius;
     private Double rating;
     private String imageUrl;
@@ -107,6 +109,22 @@ public class CateringProfileDTO {
 
     public void setLandmark(String landmark) {
         this.landmark = landmark;
+    }
+
+    public String getMeetingAddress() {
+        return meetingAddress;
+    }
+
+    public void setMeetingAddress(String meetingAddress) {
+        this.meetingAddress = meetingAddress;
+    }
+
+    public Boolean getMeetingSameAsBusinessAddress() {
+        return meetingSameAsBusinessAddress;
+    }
+
+    public void setMeetingSameAsBusinessAddress(Boolean meetingSameAsBusinessAddress) {
+        this.meetingSameAsBusinessAddress = meetingSameAsBusinessAddress;
     }
 
     public Integer getServiceRadius() {

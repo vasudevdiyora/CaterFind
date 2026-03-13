@@ -148,19 +148,59 @@ function Messages({ user }) {
                     
                     {/* Language Selection */}
                     <div className="language-selector">
-                        <label className="language-label">📝 Message Language:</label>
-                        <select 
-                            className="language-dropdown"
-                            value={sourceLanguage}
-                            onChange={e => setSourceLanguage(e.target.value)}
-                        >
-                            <option value="ENGLISH">🇬🇧 English</option>
-                            <option value="HINDI">🇮🇳 Hindi (हिंदी)</option>
-                            <option value="GUJARATI">🇮🇳 Gujarati (ગુજરાતી)</option>
-                        </select>
-                        <span className="language-hint">
-                            Recipients will receive in their preferred language
-                        </span>
+                        <div className="language-header">
+                            <label className="language-label">
+                                <span className="language-icon">🌐</span>
+                                Message Language
+                            </label>
+                            <span className="language-hint">
+                                Recipients will receive in their preferred language
+                            </span>
+                        </div>
+                        
+                        <div className="language-options">
+                            <div 
+                                className={`language-card ${sourceLanguage === 'ENGLISH' ? 'selected' : ''}`}
+                                onClick={() => setSourceLanguage('ENGLISH')}
+                            >
+                                <div className="language-flag">🇬🇧</div>
+                                <div className="language-details">
+                                    <div className="language-name">English</div>
+                                    <div className="language-native">English</div>
+                                </div>
+                                <div className="language-check">
+                                    {sourceLanguage === 'ENGLISH' && '✓'}
+                                </div>
+                            </div>
+
+                            <div 
+                                className={`language-card ${sourceLanguage === 'HINDI' ? 'selected' : ''}`}
+                                onClick={() => setSourceLanguage('HINDI')}
+                            >
+                                <div className="language-flag">🇮🇳</div>
+                                <div className="language-details">
+                                    <div className="language-name">Hindi</div>
+                                    <div className="language-native">हिंदी</div>
+                                </div>
+                                <div className="language-check">
+                                    {sourceLanguage === 'HINDI' && '✓'}
+                                </div>
+                            </div>
+
+                            <div 
+                                className={`language-card ${sourceLanguage === 'GUJARATI' ? 'selected' : ''}`}
+                                onClick={() => setSourceLanguage('GUJARATI')}
+                            >
+                                <div className="language-flag">🇮🇳</div>
+                                <div className="language-details">
+                                    <div className="language-name">Gujarati</div>
+                                    <div className="language-native">ગુજરાતી</div>
+                                </div>
+                                <div className="language-check">
+                                    {sourceLanguage === 'GUJARATI' && '✓'}
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <textarea

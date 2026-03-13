@@ -5,6 +5,7 @@ import org.caterfind.entity.AvailabilityStatus;
 import org.caterfind.repository.AvailabilityStatusRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,6 +25,7 @@ public class AvailabilityStatusService {
      * Set availability status for a date (available/busy)
      * If status is null or "neutral", the record is deleted.
      */
+    @Transactional
     public AvailabilityStatusDTO setStatus(Long userId, AvailabilityStatusDTO dto) {
         if (dto.getDate() == null) {
             throw new IllegalArgumentException("Date is required");

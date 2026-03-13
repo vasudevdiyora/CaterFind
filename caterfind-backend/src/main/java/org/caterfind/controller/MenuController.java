@@ -29,6 +29,24 @@ public class MenuController {
     }
 
     /**
+     * Get upcoming menus for a caterer from today onward.
+     */
+    @GetMapping("/upcoming")
+    public ResponseEntity<List<MenuDTO>> getUpcomingMenus(@RequestParam Long catererId) {
+        return ResponseEntity.ok(menuService.getUpcomingMenusByCatererId(catererId));
+    }
+
+    /**
+     * Get past menus for a caterer for the previous N days (default 30).
+     */
+    @GetMapping("/past")
+    public ResponseEntity<List<MenuDTO>> getPastMenus(
+            @RequestParam Long catererId,
+            @RequestParam(defaultValue = "30") Integer days) {
+        return ResponseEntity.ok(menuService.getPastMenusByCatererId(catererId, days));
+    }
+
+    /**
      * Get menu by ID.
      */
     @GetMapping("/{id}")

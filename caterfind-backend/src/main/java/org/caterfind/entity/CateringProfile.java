@@ -65,6 +65,12 @@ public class CateringProfile {
     @Column(length = 100)
     private String landmark;
 
+    @Column(name = "meeting_address", length = 500)
+    private String meetingAddress;
+
+    @Column(name = "meeting_same_as_business_address")
+    private Boolean meetingSameAsBusinessAddress;
+
     @Column(name = "service_radius")
     private Integer serviceRadius;
 
@@ -208,6 +214,22 @@ public class CateringProfile {
 
     public void setLandmark(String landmark) {
         this.landmark = landmark;
+    }
+
+    public String getMeetingAddress() {
+        return meetingAddress;
+    }
+
+    public void setMeetingAddress(String meetingAddress) {
+        this.meetingAddress = meetingAddress;
+    }
+
+    public Boolean getMeetingSameAsBusinessAddress() {
+        return meetingSameAsBusinessAddress;
+    }
+
+    public void setMeetingSameAsBusinessAddress(Boolean meetingSameAsBusinessAddress) {
+        this.meetingSameAsBusinessAddress = meetingSameAsBusinessAddress;
     }
 
     public Integer getServiceRadius() {

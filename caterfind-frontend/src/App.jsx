@@ -26,6 +26,7 @@ import CatererDetail from './pages/CatererDetail';
 import ClientTrials from './pages/ClientTrials';
 import ClientProfile from './pages/ClientProfile';
 import ClientMeetingRequests from './pages/ClientMeetingRequests';
+import MenuHistory from './pages/MenuHistory';
 
 
 /**
@@ -94,6 +95,7 @@ function App() {
             <Route path="clients" element={<ClientRequests user={user} />} />
             <Route path="dish-library" element={<DishLibrary user={user} />} />
             <Route path="menu-builder" element={<MenuBuilder user={user} />} />
+            <Route path="menu-history" element={<MenuHistory user={user} />} />
             <Route path="inventory" element={<Inventory user={user} />} />
             <Route path="contacts" element={<Contacts user={user} />} />
             <Route path="messages" element={<Chat user={user} />} />

@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.caterfind.dto.MeetingRequestDTO;
 import org.caterfind.dto.MeetingRequestResponse;
+import org.caterfind.dto.MeetingScheduleDTO;
 import org.caterfind.entity.User;
 import org.caterfind.repository.UserRepository;
 import org.caterfind.service.MeetingRequestService;
@@ -157,7 +158,8 @@ public class MeetingRequestController {
     @PutMapping("/{id}/accept")
     public ResponseEntity<?> acceptRequest(
             @PathVariable Long id,
-            @RequestParam Long catererId) {
+            @RequestParam Long catererId,
+            @RequestBody(required = false) MeetingScheduleDTO meetingSchedule) {
         try {
             // Verify user is a caterer
             User user = userRepository.findById(catererId)
@@ -168,7 +170,7 @@ public class MeetingRequestController {
                     .body(Map.of("error", "Only caterers can accept requests"));
             }
 
-            MeetingRequestResponse response = requestService.acceptRequest(id, catererId);
+            MeetingRequestResponse response = requestService.acceptRequest(id, catererId, meetingSchedule);
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {

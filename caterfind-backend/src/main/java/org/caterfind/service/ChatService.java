@@ -38,7 +38,7 @@ public class ChatService {
     /**
      * Get display name for a user.
      * For caterers: returns business name from CateringProfile.
-     * For clients: returns email.
+        * For clients: returns profile name when available, otherwise email.
      */
     public String getUserDisplayName(Long userId) {
         try {
@@ -53,6 +53,12 @@ public class ChatService {
                 if (profile != null && profile.getBusinessName() != null) {
                     return profile.getBusinessName();
                 }
+            }
+
+            if (user.getRole() == User.UserRole.CLIENT
+                    && user.getName() != null
+                    && !user.getName().trim().isEmpty()) {
+                return user.getName();
             }
 
             // For clients or if no profile found, use email

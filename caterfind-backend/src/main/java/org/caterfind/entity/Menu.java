@@ -42,6 +42,9 @@ public class Menu {
     @Column(name = "event_location", nullable = false)
     private String eventLocation;
 
+    @Column(name = "event_type", length = 100)
+    private String eventType;
+
     @Column(name = "event_date", nullable = false)
     private LocalDate eventDate;
 
@@ -126,6 +129,14 @@ public class Menu {
 
     public void setEventLocation(String eventLocation) {
         this.eventLocation = eventLocation;
+    }
+
+    public String getEventType() {
+        return eventType;
+    }
+
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
     }
 
     public LocalDate getEventDate() {

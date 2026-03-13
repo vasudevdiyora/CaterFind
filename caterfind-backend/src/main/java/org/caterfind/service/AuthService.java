@@ -1,13 +1,13 @@
 package org.caterfind.service;
 
-import java.util.Optional;
-
 import org.caterfind.dto.LoginRequest;
 import org.caterfind.dto.LoginResponse;
 import org.caterfind.entity.User;
 import org.caterfind.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 /**
  * Authentication service for user login.
@@ -58,6 +58,7 @@ public class AuthService {
         return LoginResponse.success(
                 user.getId(),
                 user.getEmail(),
+            user.getDisplayName(),
                 user.getRole().name() // "CATERER" or "CLIENT"
         );
     }
@@ -89,40 +90,6 @@ public class AuthService {
             return LoginResponse.failure("Invalid role: " + roleStr);
         }
 
-        // Validate numeric-only constraints and exact lengths for Aadhaar/phone
-        if (role == User.UserRole.CATERER) {
-            String aadhar = request.getAadharNumber();
-            String primaryPhone = request.getPrimaryPhone();
-            String alternatePhone = request.getAlternatePhone();
-            if (aadhar != null && !aadhar.isBlank() && !aadhar.matches("^\\d+$")) {
-                return LoginResponse.failure("Aadhar number must contain digits only");
-            }
-            if (aadhar != null && !aadhar.isBlank() && aadhar.length() != 12) {
-                return LoginResponse.failure("Aadhar number must be exactly 12 digits");
-            }
-            if (primaryPhone != null && !primaryPhone.isBlank() && !primaryPhone.matches("^\\d+$")) {
-                return LoginResponse.failure("Primary phone must contain digits only");
-            }
-            if (primaryPhone != null && !primaryPhone.isBlank() && primaryPhone.length() != 10) {
-                return LoginResponse.failure("Primary phone must be exactly 10 digits");
-            }
-            if (alternatePhone != null && !alternatePhone.isBlank() && !alternatePhone.matches("^\\d+$")) {
-                return LoginResponse.failure("Alternate phone must contain digits only");
-            }
-            if (alternatePhone != null && !alternatePhone.isBlank() && alternatePhone.length() != 10) {
-                return LoginResponse.failure("Alternate phone must be exactly 10 digits");
-            }
-        }
-        if (role == User.UserRole.CLIENT) {
-            String clientPhone = request.getPhone();
-            if (clientPhone != null && !clientPhone.isBlank() && !clientPhone.matches("^\\d+$")) {
-                return LoginResponse.failure("Phone must contain digits only");
-            }
-            if (clientPhone != null && !clientPhone.isBlank() && clientPhone.length() != 10) {
-                return LoginResponse.failure("Phone must be exactly 10 digits");
-            }
-        }
-
         // Create new User
         User user = new User();
         user.setEmail(request.getEmail());
@@ -136,36 +103,17 @@ public class AuthService {
             org.caterfind.entity.CateringProfile profile = new org.caterfind.entity.CateringProfile();
             profile.setUser(savedUser);
             profile.setBusinessName(request.getBusinessName());
-            profile.setOwnerName(request.getOwnerName());
-            profile.setAadharNumber(request.getAadharNumber());
-            profile.setPrimaryPhone(request.getPrimaryPhone());
-            profile.setAlternatePhone(request.getAlternatePhone());
-            profile.setEmail(request.getEmail());
-            profile.setStreetAddress(request.getStreetAddress());
-            profile.setState(request.getState());
-            profile.setArea(request.getArea());
-            profile.setCity(request.getCity());
-            profile.setAddress(request.getAddress());
             // Set defaults
             profile.setServiceRadius(50);
 
             cateringProfileRepository.save(profile);
         }
 
-        // Save client-specific profile data onto User (simple storage)
-        if (role == User.UserRole.CLIENT) {
-            if (request.getName() != null) savedUser.setName(request.getName());
-            if (request.getPhone() != null) savedUser.setPhone(request.getPhone());
-            if (request.getCity() != null) savedUser.setCity(request.getCity());
-            if (request.getState() != null) savedUser.setState(request.getState());
-            if (request.getArea() != null) savedUser.setArea(request.getArea());
-            userRepository.save(savedUser);
-        }
-
         // Return success response (auto-login)
         return LoginResponse.success(
                 savedUser.getId(),
                 savedUser.getEmail(),
+            savedUser.getDisplayName(),
                 savedUser.getRole().name());
     }
 }

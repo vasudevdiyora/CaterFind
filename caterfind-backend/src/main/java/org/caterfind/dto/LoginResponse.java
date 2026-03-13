@@ -13,6 +13,7 @@ public class LoginResponse {
 
     private Long userId;
     private String email;
+    private String displayName;
     private String role; // "CATERER" or "CLIENT"
     private String message; // Success or error message
     private boolean success;
@@ -21,21 +22,22 @@ public class LoginResponse {
     public LoginResponse() {
     }
 
-    public LoginResponse(Long userId, String email, String role, String message, boolean success) {
+    public LoginResponse(Long userId, String email, String displayName, String role, String message, boolean success) {
         this.userId = userId;
         this.email = email;
+        this.displayName = displayName;
         this.role = role;
         this.message = message;
         this.success = success;
     }
 
     // Static factory methods for convenience
-    public static LoginResponse success(Long userId, String email, String role) {
-        return new LoginResponse(userId, email, role, "Login successful", true);
+    public static LoginResponse success(Long userId, String email, String displayName, String role) {
+        return new LoginResponse(userId, email, displayName, role, "Login successful", true);
     }
 
     public static LoginResponse failure(String message) {
-        return new LoginResponse(null, null, null, message, false);
+        return new LoginResponse(null, null, null, null, message, false);
     }
 
     // Getters and Setters
@@ -53,6 +55,14 @@ public class LoginResponse {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 
     public String getRole() {

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Calendar Event Repository
@@ -36,4 +37,8 @@ public interface CalendarEventRepository extends JpaRepository<CalendarEvent, Lo
      * Find events in a date range for a user
      */
     List<CalendarEvent> findByUserIdAndEventDateBetweenOrderByEventDateAsc(Long userId, LocalDate startDate, LocalDate endDate);
+
+    Optional<CalendarEvent> findByUserIdAndMenuId(Long userId, Long menuId);
+
+    void deleteByMenuId(Long menuId);
 }

@@ -601,6 +601,29 @@ export const menuAPI = {
   },
 
   /**
+   * Get upcoming menus for a caterer.
+   *
+   * @param {number} catererId - Caterer user ID
+   * @returns {Promise} Array of menus
+   */
+  getUpcoming: async (catererId) => {
+    const response = await fetch(`${API_BASE_URL}/menus/upcoming?catererId=${catererId}`);
+    return response.json();
+  },
+
+  /**
+   * Get past menus for the last N days.
+   *
+   * @param {number} catererId - Caterer user ID
+   * @param {number} days - Number of days to look back
+   * @returns {Promise} Array of menus
+   */
+  getPast: async (catererId, days = 30) => {
+    const response = await fetch(`${API_BASE_URL}/menus/past?catererId=${catererId}&days=${days}`);
+    return response.json();
+  },
+
+  /**
    * Get a single menu by ID.
    * 
    * @param {number} id - Menu ID
@@ -762,9 +785,11 @@ export const meetingRequestAPI = {
    * @param {number} catererId - Caterer user ID
    * @returns {Promise} Updated meeting request
    */
-  accept: async (id, catererId) => {
+  accept: async (id, catererId, meetingData) => {
     const response = await fetch(`${API_BASE_URL}/api/meeting-requests/${id}/accept?catererId=${catererId}`, {
-      method: 'PUT'
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(meetingData || {})
     });
     
     if (!response.ok) {

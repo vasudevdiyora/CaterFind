@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Save, Bell, Mail, DollarSign, Shield, Globe, ToggleLeft, ToggleRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Save, Bell, DollarSign, Shield, Globe } from 'lucide-react';
+import { adminAPI } from '../services/api';
 
 const AdminSettings = () => {
     const [settings, setSettings] = useState({
@@ -26,6 +27,35 @@ const AdminSettings = () => {
     });
 
     const [saved, setSaved] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadSettings = async () => {
+            setLoading(true);
+            setError('');
+            try {
+                const data = await adminAPI.getSettings();
+                if (!isMounted) return;
+                setSettings(prev => ({ ...prev, ...(data || {}) }));
+            } catch (err) {
+                if (!isMounted) return;
+                setError(err.message || 'Failed to load admin settings');
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadSettings();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const handleToggle = (key) => {
         setSettings(prev => ({ ...prev, [key]: !prev[key] }));
@@ -35,10 +65,16 @@ const AdminSettings = () => {
         setSettings(prev => ({ ...prev, [key]: value }));
     };
 
-    const handleSave = () => {
-        // TODO: Save to API
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
+    const handleSave = async () => {
+        setError('');
+        try {
+            const data = await adminAPI.saveSettings(settings);
+            setSettings(prev => ({ ...prev, ...(data || {}) }));
+            setSaved(true);
+            setTimeout(() => setSaved(false), 3000);
+        } catch (err) {
+            setError(err.message || 'Failed to save settings');
+        }
     };
 
     const Toggle = ({ enabled, onToggle }) => (
@@ -66,6 +102,7 @@ const AdminSettings = () => {
                 </div>
                 <button
                     onClick={handleSave}
+                    disabled={loading}
                     className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
                 >
                     <Save size={18} />
@@ -76,6 +113,18 @@ const AdminSettings = () => {
             {saved && (
                 <div className="bg-green-500/10 border border-green-500/20 text-green-500 rounded-lg p-4">
                     Settings saved successfully!
+                </div>
+            )}
+
+            {error && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg p-4">
+                    {error}
+                </div>
+            )}
+
+            {loading && (
+                <div className="bg-card border border-border rounded-lg p-4 text-sm text-muted-foreground">
+                    Loading settings...
                 </div>
             )}
 
@@ -194,7 +243,7 @@ const AdminSettings = () => {
                             <input
                                 type="number"
                                 value={settings.commissionPercentage}
-                                onChange={(e) => handleChange('commissionPercentage', e.target.value)}
+                                onChange={(e) => handleChange('commissionPercentage', Number(e.target.value))}
                                 className="w-32 px-4 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                                 min="0"
                                 max="100"
@@ -214,7 +263,7 @@ const AdminSettings = () => {
                             <input
                                 type="number"
                                 value={settings.minimumCommission}
-                                onChange={(e) => handleChange('minimumCommission', e.target.value)}
+                                onChange={(e) => handleChange('minimumCommission', Number(e.target.value))}
                                 className="w-32 px-4 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                                 min="0"
                             />
@@ -260,7 +309,7 @@ const AdminSettings = () => {
                         <input
                             type="number"
                             value={settings.sessionTimeout}
-                            onChange={(e) => handleChange('sessionTimeout', e.target.value)}
+                            onChange={(e) => handleChange('sessionTimeout', Number(e.target.value))}
                             className="w-32 px-4 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                             min="5"
                             max="120"

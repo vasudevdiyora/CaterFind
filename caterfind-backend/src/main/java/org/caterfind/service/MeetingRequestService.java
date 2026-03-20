@@ -1,27 +1,17 @@
 package org.caterfind.service;
 
 import java.time.LocalDateTime;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.caterfind.dto.ChatMessageDTO;
 import org.caterfind.dto.MeetingRequestDTO;
 import org.caterfind.dto.MeetingRequestResponse;
-import org.caterfind.dto.MeetingScheduleDTO;
-import org.caterfind.entity.ChatConversation;
-import org.caterfind.entity.ChatMessage;
 import org.caterfind.entity.MeetingRequest;
 import org.caterfind.entity.MeetingRequest.RequestStatus;
 import org.caterfind.entity.User;
 import org.caterfind.repository.MeetingRequestRepository;
 import org.caterfind.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,13 +28,7 @@ public class MeetingRequestService {
     private UserRepository userRepository;
 
     @Autowired
-    private MessageService messageService;
-
-    @Autowired
-    private ChatService chatService;
-
-    @Autowired(required = false)
-    private SimpMessagingTemplate messagingTemplate;
+    private MeetingRequestNotificationService meetingRequestNotificationService;
 
     /**
      * Create a new meeting request.
@@ -81,7 +65,7 @@ public class MeetingRequestService {
 
         request = requestRepository.save(request);
 
-        // TODO: Send notification to caterer (email/push/websocket)
+        meetingRequestNotificationService.notifyRequestCreated(request);
 
         return new MeetingRequestResponse(request);
     }
@@ -95,7 +79,7 @@ public class MeetingRequestService {
         List<MeetingRequest> requests;
         
         if (status != null && !status.equalsIgnoreCase("all")) {
-            RequestStatus requestStatus = RequestStatus.valueOf(status.toUpperCase());
+            RequestStatus requestStatus = parseStatus(status);
             requests = requestRepository.findByCatererIdAndStatus(catererId, requestStatus);
         } else {
             requests = requestRepository.findByCatererId(catererId);
@@ -115,7 +99,7 @@ public class MeetingRequestService {
         List<MeetingRequest> requests;
         
         if (status != null && !status.equalsIgnoreCase("all")) {
-            RequestStatus requestStatus = RequestStatus.valueOf(status.toUpperCase());
+            RequestStatus requestStatus = parseStatus(status);
             requests = requestRepository.findByClientIdAndStatus(clientId, requestStatus);
         } else {
             requests = requestRepository.findByClientId(clientId);
@@ -137,18 +121,38 @@ public class MeetingRequestService {
         return new MeetingRequestResponse(request);
     }
 
+    @Transactional(readOnly = true)
+    public MeetingRequestResponse getRequestByIdForUser(Long requestId, Long userId, User.UserRole role) {
+        MeetingRequest request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Meeting request not found"));
+
+        if (role == User.UserRole.ADMIN) {
+            return new MeetingRequestResponse(request);
+        }
+
+        if (role == User.UserRole.CLIENT && request.getClient().getId().equals(userId)) {
+            return new MeetingRequestResponse(request);
+        }
+
+        if (role == User.UserRole.CATERER && request.getCaterer().getId().equals(userId)) {
+            return new MeetingRequestResponse(request);
+        }
+
+        throw new SecurityException("You are not allowed to view this meeting request");
+    }
+
     /**
      * Accept a meeting request.
      * Only the caterer can accept their received requests.
      */
     @Transactional
-    public MeetingRequestResponse acceptRequest(Long requestId, Long catererId, MeetingScheduleDTO meetingSchedule) {
+    public MeetingRequestResponse acceptRequest(Long requestId, Long catererId) {
         MeetingRequest request = requestRepository.findById(requestId)
             .orElseThrow(() -> new RuntimeException("Meeting request not found"));
 
         // Verify the caterer owns this request
         if (!request.getCaterer().getId().equals(catererId)) {
-            throw new RuntimeException("You can only respond to your own requests");
+            throw new SecurityException("You can only respond to your own requests");
         }
 
         // Check if already responded
@@ -156,40 +160,14 @@ public class MeetingRequestService {
             throw new RuntimeException("Request has already been responded to");
         }
 
-        if (meetingSchedule == null) {
-            throw new RuntimeException("Meeting schedule is required to accept request");
-        }
-
-        if (meetingSchedule.getMeetingDate() == null || meetingSchedule.getMeetingDate().trim().isEmpty()) {
-            throw new RuntimeException("Meeting date is required");
-        }
-
-        if (meetingSchedule.getMeetingTime() == null || meetingSchedule.getMeetingTime().trim().isEmpty()) {
-            throw new RuntimeException("Meeting time is required");
-        }
-
-        if (meetingSchedule.getMeetingPlace() == null || meetingSchedule.getMeetingPlace().trim().isEmpty()) {
-            throw new RuntimeException("Meeting place is required");
-        }
-
         request.setStatus(RequestStatus.ACCEPTED);
         request.setRespondedAt(LocalDateTime.now());
-        request.setMeetingDate(LocalDate.parse(meetingSchedule.getMeetingDate()));
-        request.setMeetingTime(LocalTime.parse(meetingSchedule.getMeetingTime()));
-        request.setMeetingPlace(meetingSchedule.getMeetingPlace().trim());
-        request.setMeetingNotes(meetingSchedule.getMeetingNotes());
         
         request = requestRepository.save(request);
 
-        boolean emailSent = sendMeetingConfirmationEmail(request);
-        boolean chatMessageSent = sendMeetingConfirmationChat(request);
+        meetingRequestNotificationService.notifyRequestAccepted(request);
 
-        MeetingRequestResponse response = new MeetingRequestResponse(request);
-        response.setEmailSent(emailSent);
-        response.setChatMessageSent(chatMessageSent);
-        response.setNotificationMessage(buildCatererAcknowledgement(emailSent, chatMessageSent));
-
-        return response;
+        return new MeetingRequestResponse(request);
     }
 
     /**
@@ -203,7 +181,7 @@ public class MeetingRequestService {
 
         // Verify the caterer owns this request
         if (!request.getCaterer().getId().equals(catererId)) {
-            throw new RuntimeException("You can only respond to your own requests");
+            throw new SecurityException("You can only respond to your own requests");
         }
 
         // Check if already responded
@@ -216,7 +194,7 @@ public class MeetingRequestService {
         
         request = requestRepository.save(request);
 
-        // TODO: Send notification to client (email/push/websocket)
+        meetingRequestNotificationService.notifyRequestRejected(request);
 
         return new MeetingRequestResponse(request);
     }
@@ -230,138 +208,11 @@ public class MeetingRequestService {
         return requestRepository.countPendingByCatererId(catererId);
     }
 
-    private boolean sendMeetingConfirmationEmail(MeetingRequest request) {
-        String clientEmail = request.getClient().getEmail();
-        if (clientEmail == null || clientEmail.trim().isEmpty()) {
-            return false;
-        }
-
-        String subject = "Meeting confirmed for your " + request.getEventType() + " request";
-        String body = buildMeetingConfirmationEmailBody(request);
-        return messageService.sendDirectEmail(
-            request.getCaterer().getId(),
-            request.getClient().getDisplayName(),
-            clientEmail,
-            subject,
-            body
-        );
-    }
-
-    private boolean sendMeetingConfirmationChat(MeetingRequest request) {
+    private RequestStatus parseStatus(String status) {
         try {
-            Long catererId = request.getCaterer().getId();
-            Long clientId = request.getClient().getId();
-
-            ChatConversation conversation = chatService.getOrCreateConversation(catererId, clientId);
-            ChatMessage savedMessage = chatService.saveMessage(
-                conversation.getId(),
-                catererId,
-                buildMeetingConfirmationChatText(request),
-                "sent"
-            );
-
-            if (messagingTemplate != null) {
-                sendConversationStartedEvent(conversation.getId(), catererId, clientId);
-
-                ChatMessageDTO realtimeMessage = new ChatMessageDTO("NEW_MESSAGE");
-                realtimeMessage.setId(savedMessage.getId());
-                realtimeMessage.setConversationId(conversation.getId());
-                realtimeMessage.setSenderId(catererId);
-                realtimeMessage.setSenderName(chatService.getUserDisplayName(catererId));
-                realtimeMessage.setText(savedMessage.getText());
-                realtimeMessage.setTimestamp(savedMessage.getCreatedAt());
-                realtimeMessage.setStatus(savedMessage.getStatus());
-
-                messagingTemplate.convertAndSendToUser(clientId.toString(), "/queue/messages", realtimeMessage);
-            }
-
-            return true;
-        } catch (RuntimeException ex) {
-            System.err.println("Failed to send meeting details in chat: " + ex.getMessage());
-            return false;
-        }
-    }
-
-    private String buildMeetingConfirmationEmailBody(MeetingRequest request) {
-        String clientName = request.getClient().getDisplayName();
-        String catererName = request.getCaterer().getDisplayName();
-        String meetingDate = request.getMeetingDate().format(DateTimeFormatter.ofPattern("dd MMM yyyy"));
-        String meetingTime = request.getMeetingTime().format(DateTimeFormatter.ofPattern("hh:mm a"));
-
-        StringBuilder body = new StringBuilder();
-        body.append("Dear ").append(clientName).append(",\n\n");
-        body.append("Your meeting request has been accepted.\n\n");
-        body.append("Meeting Confirmation\n");
-        body.append("--------------------------------\n");
-        body.append("Caterer: ").append(catererName).append("\n");
-        body.append("Event Type: ").append(request.getEventType()).append("\n");
-        body.append("Meeting Date: ").append(meetingDate).append("\n");
-        body.append("Meeting Time: ").append(meetingTime).append("\n");
-        body.append("Meeting Location: ").append(request.getMeetingPlace()).append("\n");
-
-        if (request.getMeetingNotes() != null && !request.getMeetingNotes().trim().isEmpty()) {
-            body.append("Notes: ").append(request.getMeetingNotes().trim()).append("\n");
-        }
-
-        body.append("\nPlease keep this confirmation for your reference.\n");
-        body.append("We look forward to meeting you.\n\n");
-        body.append("Regards,\n");
-        body.append(catererName).append("\n");
-        body.append("CaterFind");
-
-        return body.toString();
-    }
-
-    private String buildMeetingConfirmationChatText(MeetingRequest request) {
-        String meetingDate = request.getMeetingDate().format(DateTimeFormatter.ofPattern("dd MMM yyyy"));
-        String meetingTime = request.getMeetingTime().format(DateTimeFormatter.ofPattern("hh:mm a"));
-
-        StringBuilder message = new StringBuilder();
-        message.append("Meeting confirmed\n\n");
-        message.append("Your request for ").append(request.getEventType()).append(" has been accepted.\n\n");
-        message.append("Meeting details:\n");
-        message.append("- Date: ").append(meetingDate).append("\n");
-        message.append("- Time: ").append(meetingTime).append("\n");
-        message.append("- Location: ").append(request.getMeetingPlace()).append("\n");
-        if (request.getMeetingNotes() != null && !request.getMeetingNotes().trim().isEmpty()) {
-            message.append("- Notes: ").append(request.getMeetingNotes().trim()).append("\n");
-        }
-        message.append("\nPlease let me know if you need any updates.");
-
-        return message.toString();
-    }
-
-    private String buildCatererAcknowledgement(boolean emailSent, boolean chatMessageSent) {
-        if (emailSent && chatMessageSent) {
-            return "Meeting fixed successfully. Details were sent to the client via email and chat.";
-        }
-
-        if (emailSent) {
-            return "Meeting fixed successfully. Details were sent to the client via email. Chat delivery is pending.";
-        }
-
-        if (chatMessageSent) {
-            return "Meeting fixed successfully. Details were sent to the client in chat. Email delivery is pending.";
-        }
-
-        return "Meeting fixed successfully, but automatic delivery failed. Please share details with the client manually.";
-    }
-
-    private void sendConversationStartedEvent(Long conversationId, Long catererId, Long clientId) {
-        Map<String, Object> clientConversation = chatService.getConversationDetails(conversationId, clientId);
-        if (clientConversation != null) {
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("type", "CONVERSATION_STARTED");
-            payload.put("conversation", clientConversation);
-            messagingTemplate.convertAndSendToUser(clientId.toString(), "/queue/messages", payload);
-        }
-
-        Map<String, Object> catererConversation = chatService.getConversationDetails(conversationId, catererId);
-        if (catererConversation != null) {
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("type", "CONVERSATION_STARTED");
-            payload.put("conversation", catererConversation);
-            messagingTemplate.convertAndSendToUser(catererId.toString(), "/queue/messages", payload);
+            return RequestStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid status: " + status);
         }
     }
 }

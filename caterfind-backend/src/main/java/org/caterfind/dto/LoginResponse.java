@@ -13,31 +13,35 @@ public class LoginResponse {
 
     private Long userId;
     private String email;
-    private String displayName;
     private String role; // "CATERER" or "CLIENT"
     private String message; // Success or error message
     private boolean success;
+    private String token;
+    private String tokenType;
+    private Long expiresIn;
 
     // Constructors
     public LoginResponse() {
     }
 
-    public LoginResponse(Long userId, String email, String displayName, String role, String message, boolean success) {
+    public LoginResponse(Long userId, String email, String role, String message, boolean success, String token, String tokenType, Long expiresIn) {
         this.userId = userId;
         this.email = email;
-        this.displayName = displayName;
         this.role = role;
         this.message = message;
         this.success = success;
+        this.token = token;
+        this.tokenType = tokenType;
+        this.expiresIn = expiresIn;
     }
 
     // Static factory methods for convenience
-    public static LoginResponse success(Long userId, String email, String displayName, String role) {
-        return new LoginResponse(userId, email, displayName, role, "Login successful", true);
+    public static LoginResponse success(Long userId, String email, String role, String token, long expiresIn) {
+        return new LoginResponse(userId, email, role, "Login successful", true, token, "Bearer", expiresIn);
     }
 
     public static LoginResponse failure(String message) {
-        return new LoginResponse(null, null, null, null, message, false);
+        return new LoginResponse(null, null, null, message, false, null, null, null);
     }
 
     // Getters and Setters
@@ -55,14 +59,6 @@ public class LoginResponse {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
     }
 
     public String getRole() {
@@ -87,5 +83,29 @@ public class LoginResponse {
 
     public void setSuccess(boolean success) {
         this.success = success;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public String getTokenType() {
+        return tokenType;
+    }
+
+    public void setTokenType(String tokenType) {
+        this.tokenType = tokenType;
+    }
+
+    public Long getExpiresIn() {
+        return expiresIn;
+    }
+
+    public void setExpiresIn(Long expiresIn) {
+        this.expiresIn = expiresIn;
     }
 }

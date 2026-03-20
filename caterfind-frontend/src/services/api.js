@@ -2,7 +2,7 @@
  * API Service for communicating with the Spring Boot backend.
  * 
  * Base URL points to the backend server (default: http://localhost:8080).
- * All API calls use fetch() for HTTP requests.
+ * All API calls use authFetch() for HTTP requests.
  * 
  * This service handles:
  * - Authentication (login)
@@ -11,11 +11,52 @@
  * - Inventory management (CRUD)
  * - Messaging (broadcast)
  * 
- * NOTE: No authentication tokens for simplicity (college project).
- * In production, use JWT tokens and include in headers.
+ * Uses JWT auth token stored in localStorage.
  */
 
-const API_BASE_URL = 'http://localhost:8080';
+const normalizeBaseUrl = (value, fallback) => {
+  const raw = (value || fallback || '').trim();
+  return raw.endsWith('/') ? raw.slice(0, -1) : raw;
+};
+
+export const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL, 'http://localhost:8080');
+export const WS_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_WS_BASE_URL, API_BASE_URL);
+export const WS_ENDPOINT = `${WS_BASE_URL}/ws/chat`;
+const AUTH_SESSION_KEY = 'caterfind_auth_session';
+
+const readStoredSession = () => {
+  try {
+    const raw = localStorage.getItem(AUTH_SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const getAuthToken = () => {
+  const session = readStoredSession();
+  return session?.token || null;
+};
+
+const authFetch = (url, options = {}) => {
+  const headers = new Headers(options.headers || {});
+  const token = getAuthToken();
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  return window.fetch(url, {
+    ...options,
+    headers
+  });
+};
+
+export const authSession = {
+  storageKey: AUTH_SESSION_KEY,
+  get: () => readStoredSession(),
+  save: (session) => localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session)),
+  clear: () => localStorage.removeItem(AUTH_SESSION_KEY)
+};
 
 /**
  * Authentication API
@@ -30,7 +71,7 @@ export const authAPI = {
    * @returns {Promise} Login response with role
    */
   login: async (email, password) => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await authFetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
@@ -54,7 +95,7 @@ export const authAPI = {
    */
   // Accept a payload object so frontend can send role-specific fields
   register: async (payload) => {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    const response = await authFetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -62,6 +103,45 @@ export const authAPI = {
     const data = await response.json();
     if (!response.ok) {
       throw new Error(data.message || 'Registration failed');
+    }
+    return data;
+  },
+
+  requestForgotPasswordOtp: async (email) => {
+    const response = await authFetch(`${API_BASE_URL}/auth/forgot-password/request-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to send OTP');
+    }
+    return data;
+  },
+
+  verifyForgotPasswordOtp: async (email, otp) => {
+    const response = await authFetch(`${API_BASE_URL}/auth/forgot-password/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Invalid OTP');
+    }
+    return data;
+  },
+
+  resetPasswordWithOtp: async (email, otp, newPassword) => {
+    const response = await authFetch(`${API_BASE_URL}/auth/forgot-password/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp, newPassword })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to reset password');
     }
     return data;
   }
@@ -74,7 +154,7 @@ export const authAPI = {
  */
 export const locationAPI = {
   lookupPincode: async (pincode) => {
-    const response = await fetch(`${API_BASE_URL}/utils/pincode/${pincode}`);
+    const response = await authFetch(`${API_BASE_URL}/utils/pincode/${pincode}`);
     const data = await response.json();
     if (!response.ok) {
       throw new Error(data.message || 'Pincode lookup failed');
@@ -95,7 +175,7 @@ export const dashboardAPI = {
    * @returns {Promise} Dashboard summary
    */
   getSummary: async (catererId) => {
-    const response = await fetch(`${API_BASE_URL}/dashboard/summary?catererId=${catererId}`);
+    const response = await authFetch(`${API_BASE_URL}/dashboard/summary?catererId=${catererId}`);
     return response.json();
   }
 };
@@ -111,7 +191,7 @@ export const contactAPI = {
    * @returns {Promise} Array of contacts
    */
   getAll: async (catererId) => {
-    const response = await fetch(`${API_BASE_URL}/contacts?catererId=${catererId}`);
+    const response = await authFetch(`${API_BASE_URL}/contacts?catererId=${catererId}`);
     return response.json();
   },
 
@@ -122,7 +202,7 @@ export const contactAPI = {
    * @returns {Promise} Contact object
    */
   getById: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/contacts/${id}`);
+    const response = await authFetch(`${API_BASE_URL}/contacts/${id}`);
     return response.json();
   },
 
@@ -134,7 +214,7 @@ export const contactAPI = {
    * @returns {Promise} Created contact
    */
   create: async (catererId, contactData) => {
-    const response = await fetch(`${API_BASE_URL}/contacts?catererId=${catererId}`, {
+    const response = await authFetch(`${API_BASE_URL}/contacts?catererId=${catererId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(contactData)
@@ -150,7 +230,7 @@ export const contactAPI = {
    * @returns {Promise} Updated contact
    */
   update: async (id, contactData) => {
-    const response = await fetch(`${API_BASE_URL}/contacts/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/contacts/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(contactData)
@@ -165,7 +245,7 @@ export const contactAPI = {
    * @returns {Promise} Response
    */
   delete: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/contacts/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/contacts/${id}`, {
       method: 'DELETE'
     });
     return response;
@@ -183,7 +263,7 @@ export const inventoryAPI = {
    * @returns {Promise} Array of inventory items
    */
   getAll: async (catererId) => {
-    const response = await fetch(`${API_BASE_URL}/inventory?catererId=${catererId}`);
+    const response = await authFetch(`${API_BASE_URL}/inventory?catererId=${catererId}`);
     return response.json();
   },
 
@@ -194,7 +274,7 @@ export const inventoryAPI = {
    * @returns {Promise} Array of low-stock items
    */
   getLowStock: async (catererId) => {
-    const response = await fetch(`${API_BASE_URL}/inventory/low-stock?catererId=${catererId}`);
+    const response = await authFetch(`${API_BASE_URL}/inventory/low-stock?catererId=${catererId}`);
     return response.json();
   },
 
@@ -205,7 +285,7 @@ export const inventoryAPI = {
    * @returns {Promise} Inventory item
    */
   getById: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/inventory/${id}`);
+    const response = await authFetch(`${API_BASE_URL}/inventory/${id}`);
     return response.json();
   },
 
@@ -217,7 +297,7 @@ export const inventoryAPI = {
    * @returns {Promise} Created item
    */
   create: async (catererId, itemData) => {
-    const response = await fetch(`${API_BASE_URL}/inventory?catererId=${catererId}`, {
+    const response = await authFetch(`${API_BASE_URL}/inventory?catererId=${catererId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(itemData)
@@ -233,7 +313,7 @@ export const inventoryAPI = {
    * @returns {Promise} Updated item
    */
   update: async (id, itemData) => {
-    const response = await fetch(`${API_BASE_URL}/inventory/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/inventory/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(itemData)
@@ -248,7 +328,7 @@ export const inventoryAPI = {
    * @returns {Promise} Response
    */
   delete: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/inventory/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/inventory/${id}`, {
       method: 'DELETE'
     });
     return response;
@@ -273,7 +353,7 @@ export const messageAPI = {
    * @returns {Promise} Send response
    */
   send: async (catererId, contactIds, messageText, sourceLanguage) => {
-    const response = await fetch(`${API_BASE_URL}/messages/send?catererId=${catererId}`, {
+    const response = await authFetch(`${API_BASE_URL}/messages/send?catererId=${catererId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contactIds, messageText, sourceLanguage })
@@ -289,7 +369,7 @@ export const messageAPI = {
    * @returns {Promise} Array of message logs
    */
   getLogs: async (catererId) => {
-    const response = await fetch(`${API_BASE_URL}/messages/logs?catererId=${catererId}`);
+    const response = await authFetch(`${API_BASE_URL}/messages/logs?catererId=${catererId}`);
     return response.json();
   },
 
@@ -301,7 +381,7 @@ export const messageAPI = {
    * @returns {Promise} Response
    */
   sendReorder: async (catererId, reorderData) => {
-    const response = await fetch(`${API_BASE_URL}/messages/reorder?catererId=${catererId}`, {
+    const response = await authFetch(`${API_BASE_URL}/messages/reorder?catererId=${catererId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(reorderData)
@@ -322,7 +402,7 @@ export const callAPI = {
    * @returns {Promise} Response
    */
   makeCall: async (to, message) => {
-    const response = await fetch(`${API_BASE_URL}/api/make-call`, {
+    const response = await authFetch(`${API_BASE_URL}/api/make-call`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ to, message })
@@ -341,16 +421,16 @@ export const callAPI = {
  */
 export const profileAPI = {
   get: async (catererId) => {
-    const response = await fetch(`${API_BASE_URL}/api/profile?catererId=${catererId}`);
+    const response = await authFetch(`${API_BASE_URL}/api/profile?catererId=${catererId}`);
     if (!response.ok) return null;
     return response.json();
   },
   getAll: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/profile/all`);
+    const response = await authFetch(`${API_BASE_URL}/api/profile/all`);
     return response.json();
   },
   update: async (catererId, data) => {
-    const response = await fetch(`${API_BASE_URL}/api/profile?catererId=${catererId}`, {
+    const response = await authFetch(`${API_BASE_URL}/api/profile?catererId=${catererId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -370,7 +450,7 @@ export const dishAPI = {
    * @returns {Promise} Array of dishes
    */
   getAll: async (userId) => {
-    const response = await fetch(`${API_BASE_URL}/dishes?userId=${userId}`);
+    const response = await authFetch(`${API_BASE_URL}/dishes?userId=${userId}`);
     return response.json();
   },
 
@@ -381,7 +461,7 @@ export const dishAPI = {
    * @returns {Promise} Created dish
    */
   create: async (dishData) => {
-    const response = await fetch(`${API_BASE_URL}/dishes`, {
+    const response = await authFetch(`${API_BASE_URL}/dishes`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(dishData)
@@ -397,7 +477,7 @@ export const dishAPI = {
    * @returns {Promise} Updated dish
    */
   update: async (id, dishData) => {
-    const response = await fetch(`${API_BASE_URL}/dishes/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/dishes/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(dishData)
@@ -412,7 +492,7 @@ export const dishAPI = {
    * @returns {Promise} Response
    */
   delete: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/dishes/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/dishes/${id}`, {
       method: 'DELETE'
     });
     return response;
@@ -433,7 +513,7 @@ export const fileAPI = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${API_BASE_URL}/api/files/upload`, {
+    const response = await authFetch(`${API_BASE_URL}/api/files/upload`, {
       method: 'POST',
       body: formData // Don't set Content-Type header, browser will set it automatically with boundary
     });
@@ -453,7 +533,7 @@ export const fileAPI = {
    * @returns {Promise} Response
    */
   delete: async (fileUrl) => {
-    const response = await fetch(`${API_BASE_URL}/api/files?url=${encodeURIComponent(fileUrl)}`, {
+    const response = await authFetch(`${API_BASE_URL}/api/files?url=${encodeURIComponent(fileUrl)}`, {
       method: 'DELETE'
     });
     return response.json();
@@ -484,7 +564,7 @@ export const calendarAPI = {
    * @returns {Promise} Created event
    */
   create: async (userId, eventData) => {
-    const response = await fetch(`${API_BASE_URL}/api/calendar/events?userId=${userId}`, {
+    const response = await authFetch(`${API_BASE_URL}/api/calendar/events?userId=${userId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(eventData)
@@ -503,7 +583,7 @@ export const calendarAPI = {
    * @returns {Promise} Array of events
    */
   getAll: async (userId) => {
-    const response = await fetch(`${API_BASE_URL}/api/calendar/events?userId=${userId}`);
+    const response = await authFetch(`${API_BASE_URL}/api/calendar/events?userId=${userId}`);
     return response.json();
   },
 
@@ -515,7 +595,7 @@ export const calendarAPI = {
    * @returns {Promise} Array of events
    */
   getByDate: async (userId, date) => {
-    const response = await fetch(`${API_BASE_URL}/api/calendar/events?userId=${userId}&date=${date}`);
+    const response = await authFetch(`${API_BASE_URL}/api/calendar/events?userId=${userId}&date=${date}`);
     return response.json();
   },
 
@@ -528,7 +608,7 @@ export const calendarAPI = {
    * @returns {Promise} Array of events
    */
   getByRange: async (userId, startDate, endDate) => {
-    const response = await fetch(`${API_BASE_URL}/api/calendar/events?userId=${userId}&startDate=${startDate}&endDate=${endDate}`);
+    const response = await authFetch(`${API_BASE_URL}/api/calendar/events?userId=${userId}&startDate=${startDate}&endDate=${endDate}`);
     return response.json();
   },
 
@@ -539,7 +619,7 @@ export const calendarAPI = {
    * @returns {Promise} Response
    */
   delete: async (eventId) => {
-    const response = await fetch(`${API_BASE_URL}/api/calendar/events/${eventId}`, {
+    const response = await authFetch(`${API_BASE_URL}/api/calendar/events/${eventId}`, {
       method: 'DELETE'
     });
     return response.json();
@@ -558,7 +638,7 @@ export const availabilityAPI = {
    * @returns {Promise} Created/updated status or null
    */
   setStatus: async (userId, data) => {
-    const response = await fetch(`${API_BASE_URL}/api/availability?userId=${userId}`, {
+    const response = await authFetch(`${API_BASE_URL}/api/availability?userId=${userId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -580,7 +660,7 @@ export const availabilityAPI = {
    * @returns {Promise} Array of availability statuses
    */
   getByRange: async (userId, startDate, endDate) => {
-    const response = await fetch(`${API_BASE_URL}/api/availability?userId=${userId}&startDate=${startDate}&endDate=${endDate}`);
+    const response = await authFetch(`${API_BASE_URL}/api/availability?userId=${userId}&startDate=${startDate}&endDate=${endDate}`);
     return response.json();
   }
 };
@@ -596,30 +676,7 @@ export const menuAPI = {
    * @returns {Promise} Array of menus
    */
   getAll: async (catererId) => {
-    const response = await fetch(`${API_BASE_URL}/menus?catererId=${catererId}`);
-    return response.json();
-  },
-
-  /**
-   * Get upcoming menus for a caterer.
-   *
-   * @param {number} catererId - Caterer user ID
-   * @returns {Promise} Array of menus
-   */
-  getUpcoming: async (catererId) => {
-    const response = await fetch(`${API_BASE_URL}/menus/upcoming?catererId=${catererId}`);
-    return response.json();
-  },
-
-  /**
-   * Get past menus for the last N days.
-   *
-   * @param {number} catererId - Caterer user ID
-   * @param {number} days - Number of days to look back
-   * @returns {Promise} Array of menus
-   */
-  getPast: async (catererId, days = 30) => {
-    const response = await fetch(`${API_BASE_URL}/menus/past?catererId=${catererId}&days=${days}`);
+    const response = await authFetch(`${API_BASE_URL}/menus?catererId=${catererId}`);
     return response.json();
   },
 
@@ -630,7 +687,7 @@ export const menuAPI = {
    * @returns {Promise} Menu data
    */
   getById: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/menus/${id}`);
+    const response = await authFetch(`${API_BASE_URL}/menus/${id}`);
     return response.json();
   },
 
@@ -642,7 +699,7 @@ export const menuAPI = {
    * @returns {Promise} Created menu
    */
   create: async (catererId, menuData) => {
-    const response = await fetch(`${API_BASE_URL}/menus?catererId=${catererId}`, {
+    const response = await authFetch(`${API_BASE_URL}/menus?catererId=${catererId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(menuData)
@@ -658,7 +715,7 @@ export const menuAPI = {
    * @returns {Promise} Updated menu
    */
   update: async (id, menuData) => {
-    const response = await fetch(`${API_BASE_URL}/menus/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/menus/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(menuData)
@@ -673,7 +730,7 @@ export const menuAPI = {
    * @returns {Promise} Updated menu
    */
   sendToClient: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/menus/${id}/send`, {
+    const response = await authFetch(`${API_BASE_URL}/menus/${id}/send`, {
       method: 'POST'
     });
     return response.json();
@@ -686,7 +743,7 @@ export const menuAPI = {
    * @returns {Promise} Empty response
    */
   delete: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/menus/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/menus/${id}`, {
       method: 'DELETE'
     });
     return response;
@@ -700,7 +757,6 @@ export const meetingRequestAPI = {
   /**
    * Create a new meeting request (client sends to caterer).
    * 
-   * @param {number} clientId - Client user ID
    * @param {object} requestData - Meeting request data
    * @param {number} requestData.catererId - Caterer ID
    * @param {string} requestData.eventDate - Event date (YYYY-MM-DD)
@@ -710,8 +766,8 @@ export const meetingRequestAPI = {
    * @param {string} requestData.message - Optional message
    * @returns {Promise} Created meeting request
    */
-  create: async (clientId, requestData) => {
-    const response = await fetch(`${API_BASE_URL}/api/meeting-requests?clientId=${clientId}`, {
+  create: async (requestData) => {
+    const response = await authFetch(`${API_BASE_URL}/api/meeting-requests`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestData)
@@ -728,12 +784,11 @@ export const meetingRequestAPI = {
   /**
    * Get all meeting requests for a caterer.
    * 
-   * @param {number} catererId - Caterer user ID
    * @param {string} status - Filter by status (all, pending, accepted, rejected)
    * @returns {Promise} Array of meeting requests
    */
-  getCatererRequests: async (catererId, status = 'all') => {
-    const response = await fetch(`${API_BASE_URL}/api/meeting-requests/caterer?catererId=${catererId}&status=${status}`);
+  getCatererRequests: async (status = 'all') => {
+    const response = await authFetch(`${API_BASE_URL}/api/meeting-requests/caterer?status=${encodeURIComponent(status)}`);
     
     if (!response.ok) {
       const error = await response.json();
@@ -746,12 +801,11 @@ export const meetingRequestAPI = {
   /**
    * Get all meeting requests sent by a client.
    * 
-   * @param {number} clientId - Client user ID
    * @param {string} status - Filter by status (all, pending, accepted, rejected)
    * @returns {Promise} Array of meeting requests
    */
-  getClientRequests: async (clientId, status = 'all') => {
-    const response = await fetch(`${API_BASE_URL}/api/meeting-requests/client?clientId=${clientId}&status=${status}`);
+  getClientRequests: async (status = 'all') => {
+    const response = await authFetch(`${API_BASE_URL}/api/meeting-requests/client?status=${encodeURIComponent(status)}`);
     
     if (!response.ok) {
       const error = await response.json();
@@ -768,7 +822,7 @@ export const meetingRequestAPI = {
    * @returns {Promise} Meeting request details
    */
   getById: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/api/meeting-requests/${id}`);
+    const response = await authFetch(`${API_BASE_URL}/api/meeting-requests/${id}`);
     
     if (!response.ok) {
       const error = await response.json();
@@ -782,14 +836,11 @@ export const meetingRequestAPI = {
    * Accept a meeting request (caterer only).
    * 
    * @param {number} id - Meeting request ID
-   * @param {number} catererId - Caterer user ID
    * @returns {Promise} Updated meeting request
    */
-  accept: async (id, catererId, meetingData) => {
-    const response = await fetch(`${API_BASE_URL}/api/meeting-requests/${id}/accept?catererId=${catererId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(meetingData || {})
+  accept: async (id) => {
+    const response = await authFetch(`${API_BASE_URL}/api/meeting-requests/${id}/accept`, {
+      method: 'PUT'
     });
     
     if (!response.ok) {
@@ -804,11 +855,10 @@ export const meetingRequestAPI = {
    * Reject a meeting request (caterer only).
    * 
    * @param {number} id - Meeting request ID
-   * @param {number} catererId - Caterer user ID
    * @returns {Promise} Updated meeting request
    */
-  reject: async (id, catererId) => {
-    const response = await fetch(`${API_BASE_URL}/api/meeting-requests/${id}/reject?catererId=${catererId}`, {
+  reject: async (id) => {
+    const response = await authFetch(`${API_BASE_URL}/api/meeting-requests/${id}/reject`, {
       method: 'PUT'
     });
     
@@ -823,17 +873,129 @@ export const meetingRequestAPI = {
   /**
    * Get count of pending requests for caterer.
    * 
-   * @param {number} catererId - Caterer user ID
    * @returns {Promise} Object with count
    */
-  getPendingCount: async (catererId) => {
-    const response = await fetch(`${API_BASE_URL}/api/meeting-requests/pending-count?catererId=${catererId}`);
+  getPendingCount: async () => {
+    const response = await authFetch(`${API_BASE_URL}/api/meeting-requests/pending-count`);
     
     if (!response.ok) {
       return { count: 0 };
     }
     
     return response.json();
+  }
+};
+
+const parseAdminResponse = async (response, fallbackMessage) => {
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || fallbackMessage);
+  }
+  return data;
+};
+
+/**
+ * Admin API
+ */
+export const adminAPI = {
+  getDashboard: async () => {
+    const response = await authFetch(`${API_BASE_URL}/api/admin/dashboard`);
+    return parseAdminResponse(response, 'Failed to fetch admin dashboard');
+  },
+
+  getCaterers: async (status = 'all') => {
+    const response = await authFetch(`${API_BASE_URL}/api/admin/caterers?status=${encodeURIComponent(status)}`);
+    return parseAdminResponse(response, 'Failed to fetch caterers');
+  },
+
+  updateCatererStatus: async (catererId, status) => {
+    const response = await authFetch(`${API_BASE_URL}/api/admin/caterers/${catererId}/status?status=${encodeURIComponent(status)}`, {
+      method: 'PUT'
+    });
+    return parseAdminResponse(response, 'Failed to update caterer status');
+  },
+
+  getClients: async () => {
+    const response = await authFetch(`${API_BASE_URL}/api/admin/clients`);
+    return parseAdminResponse(response, 'Failed to fetch clients');
+  },
+
+  getModeration: async (status = 'all') => {
+    const response = await authFetch(`${API_BASE_URL}/api/admin/moderation?status=${encodeURIComponent(status)}`);
+    return parseAdminResponse(response, 'Failed to fetch moderation reports');
+  },
+
+  updateModerationStatus: async (reportId, action) => {
+    const response = await authFetch(`${API_BASE_URL}/api/admin/moderation/${reportId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action })
+    });
+    return parseAdminResponse(response, 'Failed to update moderation status');
+  },
+
+  getSettings: async () => {
+    const response = await authFetch(`${API_BASE_URL}/api/admin/settings`);
+    return parseAdminResponse(response, 'Failed to fetch admin settings');
+  },
+
+  saveSettings: async (settings) => {
+    const response = await authFetch(`${API_BASE_URL}/api/admin/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+    return parseAdminResponse(response, 'Failed to save admin settings');
+  }
+};
+
+const parseDiscoveryResponse = async (response, fallbackMessage) => {
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || fallbackMessage);
+  }
+  return data;
+};
+
+/**
+ * Discovery API
+ */
+export const discoveryAPI = {
+  searchCaterers: async (params = {}) => {
+    const searchParams = new URLSearchParams();
+    if (params.q) searchParams.set('q', params.q);
+    if (params.city && params.city !== 'all') searchParams.set('city', params.city);
+    if (params.area && params.area !== 'all') searchParams.set('area', params.area);
+    if (typeof params.minRating === 'number' && params.minRating > 0) searchParams.set('minRating', String(params.minRating));
+    if (typeof params.minServiceRadius === 'number' && params.minServiceRadius > 0) searchParams.set('minServiceRadius', String(params.minServiceRadius));
+    if (typeof params.lat === 'number' && typeof params.lng === 'number') {
+      searchParams.set('lat', String(params.lat));
+      searchParams.set('lng', String(params.lng));
+    }
+    if (params.sortBy) searchParams.set('sortBy', params.sortBy);
+
+    const suffix = searchParams.toString();
+    const response = await authFetch(`${API_BASE_URL}/api/discovery/caterers${suffix ? `?${suffix}` : ''}`);
+    return parseDiscoveryResponse(response, 'Failed to search caterers');
+  },
+
+  getShortlist: async () => {
+    const response = await authFetch(`${API_BASE_URL}/api/discovery/shortlist`);
+    return parseDiscoveryResponse(response, 'Failed to load shortlist');
+  },
+
+  addToShortlist: async (catererId) => {
+    const response = await authFetch(`${API_BASE_URL}/api/discovery/shortlist/${catererId}`, {
+      method: 'POST'
+    });
+    return parseDiscoveryResponse(response, 'Failed to add caterer to shortlist');
+  },
+
+  removeFromShortlist: async (catererId) => {
+    const response = await authFetch(`${API_BASE_URL}/api/discovery/shortlist/${catererId}`, {
+      method: 'DELETE'
+    });
+    return parseDiscoveryResponse(response, 'Failed to remove caterer from shortlist');
   }
 };
 

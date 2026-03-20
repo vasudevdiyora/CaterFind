@@ -14,24 +14,34 @@ const ClientMeetingRequests = ({ user }) => {
 
     useEffect(() => {
         loadRequests();
+
+        const refreshInterval = setInterval(() => {
+            loadRequests(false);
+        }, 30000);
+
+        return () => clearInterval(refreshInterval);
     }, [user]);
 
-    const loadRequests = async () => {
+    const loadRequests = async (withLoader = true) => {
         try {
-            setLoading(true);
+            if (withLoader) {
+                setLoading(true);
+            }
             setError('');
             
             if (!user || !user.userId) {
                 throw new Error('User not authenticated');
             }
             
-            const data = await meetingRequestAPI.getClientRequests(user.userId);
-            setRequests(data);
+            const data = await meetingRequestAPI.getClientRequests('all');
+            setRequests(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Error loading requests:', error);
             setError('Failed to load requests. Please try again.');
         } finally {
-            setLoading(false);
+            if (withLoader) {
+                setLoading(false);
+            }
         }
     };
 
@@ -63,9 +73,16 @@ const ClientMeetingRequests = ({ user }) => {
         }
     };
 
+    const statusCounts = {
+        all: requests.length,
+        pending: requests.filter(r => r.status?.toUpperCase() === 'PENDING').length,
+        accepted: requests.filter(r => r.status?.toUpperCase() === 'ACCEPTED').length,
+        rejected: requests.filter(r => r.status?.toUpperCase() === 'REJECTED').length,
+    };
+
     const filteredRequests = requests.filter(req => {
         if (filter === 'all') return true;
-        return req.status.toUpperCase() === filter.toUpperCase();
+        return req.status?.toUpperCase() === filter.toUpperCase();
     });
 
     const formatDate = (dateString) => {
@@ -102,10 +119,10 @@ const ClientMeetingRequests = ({ user }) => {
                 {/* Filter Tabs */}
                 <div className="flex gap-3 mb-8 overflow-x-auto pb-2">
                     {[
-                        { key: 'all', label: 'All Requests', count: requests.length },
-                        { key: 'pending', label: 'Pending', count: requests.filter(r => r.status.toUpperCase() === 'PENDING').length },
-                        { key: 'accepted', label: 'Accepted', count: requests.filter(r => r.status.toUpperCase() === 'ACCEPTED').length },
-                        { key: 'rejected', label: 'Rejected', count: requests.filter(r => r.status.toUpperCase() === 'REJECTED').length },
+                        { key: 'all', label: 'All Requests', count: statusCounts.all },
+                        { key: 'pending', label: 'Pending', count: statusCounts.pending },
+                        { key: 'accepted', label: 'Accepted', count: statusCounts.accepted },
+                        { key: 'rejected', label: 'Rejected', count: statusCounts.rejected },
                     ].map((tab) => (
                         <button
                             key={tab.key}

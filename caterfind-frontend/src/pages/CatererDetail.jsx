@@ -398,7 +398,6 @@ const CatererDetail = ({ user }) => {
                 onClose={() => setShowMeetingModal(false)}
                 catererName={caterer?.businessName}
                 catererId={catererId}
-                clientId={user?.userId}
             />
         </div>
     );

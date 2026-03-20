@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-import { dashboardAPI } from '../services/api';
+import { dashboardAPI, meetingRequestAPI } from '../services/api';
 
 /**
  * Dashboard Component (Tailwind v4 + Loveable Style)
@@ -30,29 +30,33 @@ function Dashboard({ user }) {
             if (!user?.userId) return;
             try {
                 // Fetch summary from backend
-                const data = await dashboardAPI.getSummary(user.userId);
+                const [summary, pendingCount, pendingRequests] = await Promise.all([
+                    dashboardAPI.getSummary(user.userId),
+                    meetingRequestAPI.getPendingCount(),
+                    meetingRequestAPI.getCatererRequests('pending')
+                ]);
+
+                const recentActivity = (pendingRequests || []).slice(0, 5).map((request) => ({
+                    id: request.id,
+                    type: 'meeting',
+                    title: request.clientName,
+                    subtitle: `${request.eventType} • ${request.numberOfGuests} guests`,
+                    status: request.status,
+                    time: request.createdAt ? new Date(request.createdAt).toLocaleString() : 'Just now'
+                }));
+
                 setStats(prev => ({
                     ...prev,
-                    lowStockItems: data.lowStockItemsCount,
-                    totalContacts: data.totalContacts,
-                    totalMessages: data.totalMessagesSent
-                    // pendingRequests and upcomingEvents are not yet real in backend, keep mocked or add fields later
+                    pendingRequests: pendingCount?.count || 0,
+                    lowStockItems: summary.lowStockItemsCount,
+                    totalContacts: summary.totalContacts,
+                    totalMessages: summary.totalMessagesSent,
+                    recentActivity
                 }));
             } catch (error) {
                 // Error fetching dashboard stats
             }
         };
-
-        // Initial Mock Data for things not yet in backend
-        setStats(prev => ({
-            ...prev,
-            pendingRequests: 2,
-            upcomingEvents: 0,
-            recentActivity: [
-                { id: 1, type: 'meeting', title: 'Rajesh Kumar', subtitle: 'Wedding • 500 guests', status: 'pending', time: '10 mins ago' },
-                { id: 2, type: 'event', title: 'Priya Sharma', subtitle: 'Birthday Party • 100 guests', status: 'pending', time: '2 hours ago' }
-            ]
-        }));
 
         fetchStats();
     }, [user]);

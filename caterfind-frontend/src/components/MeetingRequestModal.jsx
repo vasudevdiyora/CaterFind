@@ -6,7 +6,7 @@ import { meetingRequestAPI } from '../services/api';
  * Meeting Request Modal - Client Side
  * Allows clients to send meeting/event requests to caterers
  */
-const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId, clientId }) => {
+const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId }) => {
     const [formData, setFormData] = useState({
         date: '',
         guests: '',
@@ -49,8 +49,7 @@ const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId, clientId
                 message: formData.message || null
             };
 
-            // Call API to create meeting request (pass clientId)
-            await meetingRequestAPI.create(clientId, requestData);
+            await meetingRequestAPI.create(requestData);
             
             // Show success message
             alert(`Meeting request sent successfully to ${catererName}!`);

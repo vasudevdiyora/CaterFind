@@ -26,7 +26,8 @@ import CatererDetail from './pages/CatererDetail';
 import ClientTrials from './pages/ClientTrials';
 import ClientProfile from './pages/ClientProfile';
 import ClientMeetingRequests from './pages/ClientMeetingRequests';
-import MenuHistory from './pages/MenuHistory';
+import ForgotPassword from './pages/ForgotPassword';
+import { authSession } from './services/api';
 
 
 /**
@@ -41,14 +42,30 @@ import MenuHistory from './pages/MenuHistory';
  */
 function App() {
   // Authentication state
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => authSession.get()?.user || null);
 
   /**
    * Handle successful login.
    * Stores user info for route protection.
    */
   const handleLogin = (loginResponse) => {
-    setUser(loginResponse);
+    const normalizedUser = {
+      userId: loginResponse.userId,
+      id: loginResponse.userId,
+      email: loginResponse.email,
+      role: loginResponse.role
+    };
+
+    if (loginResponse.token) {
+      authSession.save({
+        token: loginResponse.token,
+        tokenType: loginResponse.tokenType,
+        expiresIn: loginResponse.expiresIn,
+        user: normalizedUser
+      });
+    }
+
+    setUser(normalizedUser);
   };
 
   /**
@@ -57,6 +74,7 @@ function App() {
    */
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
+      authSession.clear();
       setUser(null);
     }
   };
@@ -82,6 +100,7 @@ function App() {
           user.role === 'CATERER' ? '/owner/dashboard' : '/client/home'
         } /> : <Register onLogin={handleLogin} />
       } />
+      <Route path="/forgot-password" element={user ? <Navigate to="/" /> : <ForgotPassword />} />
 
       {/* Caterer Routes */}
       <Route path="/owner/*" element={
@@ -95,7 +114,6 @@ function App() {
             <Route path="clients" element={<ClientRequests user={user} />} />
             <Route path="dish-library" element={<DishLibrary user={user} />} />
             <Route path="menu-builder" element={<MenuBuilder user={user} />} />
-            <Route path="menu-history" element={<MenuHistory user={user} />} />
             <Route path="inventory" element={<Inventory user={user} />} />
             <Route path="contacts" element={<Contacts user={user} />} />
             <Route path="messages" element={<Chat user={user} />} />

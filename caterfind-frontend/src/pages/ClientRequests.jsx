@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, MapPin, Users, MessageCircle, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { meetingRequestAPI, profileAPI } from '../services/api';
+import { meetingRequestAPI } from '../services/api';
 
 /**
  * Client Requests Page - Caterer Side
@@ -13,45 +13,10 @@ const ClientRequests = ({ user }) => {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all'); // all, pending, accepted, rejected
     const [error, setError] = useState('');
-    const [showMeetingModal, setShowMeetingModal] = useState(false);
-    const [selectedRequest, setSelectedRequest] = useState(null);
-    const [meetingAddressPreference, setMeetingAddressPreference] = useState('');
-    const [meetingForm, setMeetingForm] = useState({
-        meetingDate: '',
-        meetingTime: '',
-        meetingPlace: '',
-        meetingNotes: '',
-    });
 
     useEffect(() => {
         loadRequests();
     }, [user, filter]);
-
-    useEffect(() => {
-        const loadMeetingAddressPreference = async () => {
-            if (!user?.userId) return;
-
-            try {
-                const profile = await profileAPI.get(user.userId);
-                if (!profile) return;
-
-                const businessAddress = [profile.streetAddress, profile.area, profile.city, profile.landmark]
-                    .map(value => (value || '').trim())
-                    .filter(Boolean)
-                    .join(', ');
-
-                const preferredMeetingAddress = profile.meetingSameAsBusinessAddress
-                    ? businessAddress
-                    : (profile.meetingAddress || '').trim();
-
-                setMeetingAddressPreference(preferredMeetingAddress || businessAddress || '');
-            } catch (profileError) {
-                console.error('Error loading meeting address preference:', profileError);
-            }
-        };
-
-        loadMeetingAddressPreference();
-    }, [user]);
 
     const loadRequests =async () => {
         try {
@@ -63,7 +28,7 @@ const ClientRequests = ({ user }) => {
                 throw new Error('User not authenticated');
             }
             
-            const data = await meetingRequestAPI.getCatererRequests(user.userId, filter);
+            const data = await meetingRequestAPI.getCatererRequests(filter);
             
             // Transform API response to match UI format
             const transformedRequests = data.map(req => ({
@@ -77,10 +42,6 @@ const ClientRequests = ({ user }) => {
                 eventType: req.eventType,
                 message: req.message,
                 createdAt: req.createdAt,
-                meetingDate: req.meetingDate,
-                meetingTime: req.meetingTime,
-                meetingPlace: req.meetingPlace,
-                meetingNotes: req.meetingNotes,
             }));
             
             setRequests(transformedRequests);
@@ -92,52 +53,23 @@ const ClientRequests = ({ user }) => {
         }
     };
 
-    const openAcceptModal = (request) => {
-        setSelectedRequest(request);
-        setMeetingForm({
-            meetingDate: request.date || '',
-            meetingTime: '',
-            meetingPlace: meetingAddressPreference || request.location || '',
-            meetingNotes: '',
-        });
-        setShowMeetingModal(true);
-    };
-
-    const handleAccept = async () => {
+    const handleAccept = async (requestId) => {
         try {
             if (!user || !user.userId) {
                 throw new Error('User not authenticated');
             }
-
-            if (!selectedRequest) {
-                throw new Error('No request selected');
-            }
-
-            if (!meetingForm.meetingDate || !meetingForm.meetingTime || !meetingForm.meetingPlace.trim()) {
-                throw new Error('Please fill meeting date, time and place');
-            }
-
-            const response = await meetingRequestAPI.accept(selectedRequest.id, user.userId, meetingForm);
-
+            
+            await meetingRequestAPI.accept(requestId);
+            
+            // Update local state
             setRequests(prev =>
                 prev.map(req =>
-                    req.id === selectedRequest.id
-                        ? {
-                            ...req,
-                            status: 'accepted',
-                            meetingDate: response.meetingDate,
-                            meetingTime: response.meetingTime,
-                            meetingPlace: response.meetingPlace,
-                            meetingNotes: response.meetingNotes,
-                        }
-                        : req
+                    req.id === requestId ? { ...req, status: 'accepted' } : req
                 )
             );
-
-            setShowMeetingModal(false);
-            setSelectedRequest(null);
-            setMeetingForm({ meetingDate: '', meetingTime: '', meetingPlace: '', meetingNotes: '' });
-            alert(response.notificationMessage || 'Request accepted and meeting scheduled successfully!');
+            
+            // Show success message
+            alert('Request accepted successfully!');
         } catch (error) {
             console.error('Error accepting request:', error);
             alert(error.message || 'Failed to accept request. Please try again.');
@@ -150,7 +82,7 @@ const ClientRequests = ({ user }) => {
                 throw new Error('User not authenticated');
             }
             
-            await meetingRequestAPI.reject(requestId, user.userId);
+            await meetingRequestAPI.reject(requestId);
             
             // Update local state
             setRequests(prev =>
@@ -173,9 +105,7 @@ const ClientRequests = ({ user }) => {
         navigate('/owner/messages', { 
             state: { 
                 openConversationWith: request.clientId,
-                clientName: request.clientName,
-                eventName: request.eventType,
-                eventPlace: request.location,
+                clientName: request.clientName 
             } 
         });
     };
@@ -330,7 +260,7 @@ const ClientRequests = ({ user }) => {
                                 {request.status === 'pending' && (
                                     <>
                                         <button
-                                            onClick={() => openAcceptModal(request)}
+                                            onClick={() => handleAccept(request.id)}
                                             className="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
                                         >
                                             <Check size={18} />
@@ -353,79 +283,8 @@ const ClientRequests = ({ user }) => {
                                     Message
                                 </button>
                             </div>
-
-                            {request.status === 'accepted' && (request.meetingDate || request.meetingTime || request.meetingPlace) && (
-                                <div className="mt-4 rounded-lg border border-primary/30 bg-primary/10 p-3 text-sm text-foreground">
-                                    <p className="font-semibold text-primary mb-1">Scheduled Meeting</p>
-                                    <p>
-                                        {request.meetingDate || 'Date TBD'}
-                                        {request.meetingTime ? ` at ${request.meetingTime}` : ''}
-                                    </p>
-                                    {request.meetingPlace && <p>{request.meetingPlace}</p>}
-                                    {request.meetingNotes && (
-                                        <p className="text-muted-foreground mt-1">{request.meetingNotes}</p>
-                                    )}
-                                </div>
-                            )}
                         </div>
                     ))}
-                </div>
-            )}
-
-            {showMeetingModal && selectedRequest && (
-                <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-                    <div className="w-full max-w-md bg-card border border-border rounded-xl p-6">
-                        <h3 className="text-xl font-semibold text-foreground">Schedule Meeting</h3>
-                        <p className="text-sm text-muted-foreground mt-1 mb-4">
-                            {selectedRequest.clientName} - {selectedRequest.eventType}
-                        </p>
-
-                        <div className="space-y-3">
-                            <input
-                                type="date"
-                                value={meetingForm.meetingDate}
-                                onChange={(e) => setMeetingForm(prev => ({ ...prev, meetingDate: e.target.value }))}
-                                className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
-                            />
-                            <input
-                                type="time"
-                                value={meetingForm.meetingTime}
-                                onChange={(e) => setMeetingForm(prev => ({ ...prev, meetingTime: e.target.value }))}
-                                className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
-                            />
-                            <input
-                                type="text"
-                                value={meetingForm.meetingPlace}
-                                onChange={(e) => setMeetingForm(prev => ({ ...prev, meetingPlace: e.target.value }))}
-                                placeholder="Meeting place"
-                                className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
-                            />
-                            <textarea
-                                value={meetingForm.meetingNotes}
-                                onChange={(e) => setMeetingForm(prev => ({ ...prev, meetingNotes: e.target.value }))}
-                                placeholder="Notes (optional)"
-                                className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground min-h-[96px]"
-                            />
-                        </div>
-
-                        <div className="flex gap-3 mt-5">
-                            <button
-                                onClick={() => {
-                                    setShowMeetingModal(false);
-                                    setSelectedRequest(null);
-                                }}
-                                className="flex-1 px-4 py-2 rounded-lg border border-border text-foreground hover:bg-secondary"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleAccept}
-                                className="flex-1 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
-                            >
-                                Save and Accept
-                            </button>
-                        </div>
-                    </div>
                 </div>
             )}
         </div>

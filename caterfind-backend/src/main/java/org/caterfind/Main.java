@@ -7,19 +7,17 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 /**
  * Main entry point for the Catering Business Management System.
  * 
- * This is a COLLEGE PROJECT implementing CATERER-SIDE ONLY functionality.
+ * This is a college project implementing a multi-role catering platform prototype.
  * 
  * SCOPE:
- * - Contact management (staff, suppliers, dealers)
- * - Broadcast messaging (email/SMS stubs)
- * - Inventory tracking with low-stock alerts
- * - Calendar events with automatic cleanup
+ * - Caterer operations (contacts, inventory, broadcast messaging, calendar)
+ * - Client discovery and meeting-request workflows
+ * - Admin panel APIs (dashboard, user management, moderation, settings)
  * 
  * INTENTIONALLY EXCLUDED (NOT BUGS):
- * - Client dashboard (clients can only login)
- * - Online booking, payments, packages
- * - Real-time chat (messaging is broadcast-only)
- * - Analytics, charts
+ * - Full booking + payment execution pipeline
+ * - Marketplace settlement and invoicing
+ * - Production-grade analytics and BI
  * 
  * @author CaterFind Team
  * @version 1.0

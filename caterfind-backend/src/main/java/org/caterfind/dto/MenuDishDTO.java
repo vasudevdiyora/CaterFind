@@ -15,6 +15,7 @@ public class MenuDishDTO {
     private String dishLabels;
     private String menuCategory;
     private Integer displayOrder;
+    private String note;
 
     // Constructors
     public MenuDishDTO() {
@@ -30,6 +31,7 @@ public class MenuDishDTO {
         this.dishLabels = menuDish.getDish().getLabels();
         this.menuCategory = menuDish.getMenuCategory();
         this.displayOrder = menuDish.getDisplayOrder();
+        this.note = menuDish.getNote();
     }
 
     // Getters and Setters
@@ -103,5 +105,13 @@ public class MenuDishDTO {
 
     public void setDisplayOrder(Integer displayOrder) {
         this.displayOrder = displayOrder;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
     }
 }

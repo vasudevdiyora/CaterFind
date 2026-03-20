@@ -8,7 +8,7 @@ import { calendarAPI, availabilityAPI } from '../services/api';
  * 
  * Allows caterers to manage their availability on a calendar.
  * - Displays a monthly calendar view.
- * - Allows toggling dates between Available, Busy, and Neutral (future dates only).
+ * - Allows explicitly setting dates to Available, Busy, or Neutral (future dates only).
  * - Side panel for viewing/adding calendar events.
  * - Can view events from past 30 days (read-only).
  * - Can add/modify events for future dates only.
@@ -173,46 +173,9 @@ const Availability = ({ user }) => {
             return;
         }
 
-        const key = formatDateKey(day);
-        const currentStatus = availabilityMap[key];
-        const isEditable = canAddEvent(day);
-
         // Update selected date
         const clickedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
         setSelectedDate(clickedDate);
-
-        // Only toggle availability for future dates
-        if (isEditable) {
-            const nextStatus = !currentStatus ? 'available' : (currentStatus === 'available' ? 'busy' : null);
-
-            // Update availability status: Neutral -> Available -> Busy -> Neutral
-            setAvailabilityMap(prev => {
-                const newMap = { ...prev };
-                if (!nextStatus) {
-                    delete newMap[key];
-                } else {
-                    newMap[key] = nextStatus;
-                }
-                return newMap;
-            });
-
-            // Persist availability to backend
-            availabilityAPI.setStatus(catererId, { date: key, status: nextStatus })
-                .catch((error) => {
-                    // Revert on error
-                    setAvailabilityMap(prev => {
-                        const newMap = { ...prev };
-                        if (!currentStatus) {
-                            delete newMap[key];
-                        } else {
-                            newMap[key] = currentStatus;
-                        }
-                        return newMap;
-                    });
-                    setError(error.message || 'Failed to update availability');
-                    setTimeout(() => setError(''), 3000);
-                });
-        }
 
         // Reset form
         setFormData({
@@ -222,6 +185,41 @@ const Availability = ({ user }) => {
         });
         setError('');
         setSuccess('');
+    };
+
+    const updateAvailabilityStatus = async (status) => {
+        if (!selectedDate || !canAddEvent(selectedDate.getDate())) return;
+
+        const key = formatDateKey(selectedDate.getDate(), selectedDate.getMonth(), selectedDate.getFullYear());
+        const currentStatus = availabilityMap[key];
+
+        setAvailabilityMap(prev => {
+            const newMap = { ...prev };
+            if (!status) {
+                delete newMap[key];
+            } else {
+                newMap[key] = status;
+            }
+            return newMap;
+        });
+
+        try {
+            await availabilityAPI.setStatus(catererId, { date: key, status });
+            setSuccess(status ? `Date marked as ${status}` : 'Availability cleared for selected date');
+            setTimeout(() => setSuccess(''), 3000);
+        } catch (error) {
+            setAvailabilityMap(prev => {
+                const newMap = { ...prev };
+                if (!currentStatus) {
+                    delete newMap[key];
+                } else {
+                    newMap[key] = currentStatus;
+                }
+                return newMap;
+            });
+            setError(error.message || 'Failed to update availability');
+            setTimeout(() => setError(''), 3000);
+        }
     };
 
     const getDayClass = (day) => {
@@ -343,7 +341,7 @@ const Availability = ({ user }) => {
                 <h1 className="text-2xl font-bold flex items-center gap-2">
                     <span className="text-amber-500"><CalendarIcon className="h-6 w-6" /></span> Availability Calendar
                 </h1>
-                <p className="text-slate-400 mt-1">Tap dates to mark as busy or available, and add events</p>
+                <p className="text-slate-400 mt-1">Select a date, set it as busy or available, and add events</p>
             </div>
 
             {/* Side-by-side layout */}
@@ -405,6 +403,36 @@ const Availability = ({ user }) => {
                         ))}
                     </div>
 
+                    {selectedDate && canAddEvent(selectedDate.getDate()) && (
+                        <div className="mt-6 p-4 bg-slate-800/40 rounded-xl border border-slate-700">
+                            <p className="text-sm text-slate-300 mb-3">
+                                {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                <span className="text-slate-500"> • </span>
+                                <span className="capitalize">{availabilityMap[formatDateKey(selectedDate.getDate(), selectedDate.getMonth(), selectedDate.getFullYear())] || 'not set'}</span>
+                            </p>
+                            <div className="grid grid-cols-3 gap-2">
+                                <button
+                                    onClick={() => updateAvailabilityStatus('available')}
+                                    className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-semibold py-2 px-3 rounded-lg transition-colors"
+                                >
+                                    Available
+                                </button>
+                                <button
+                                    onClick={() => updateAvailabilityStatus('busy')}
+                                    className="bg-red-700 hover:bg-red-600 text-white text-sm font-semibold py-2 px-3 rounded-lg transition-colors"
+                                >
+                                    Busy
+                                </button>
+                                <button
+                                    onClick={() => updateAvailabilityStatus(null)}
+                                    className="bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold py-2 px-3 rounded-lg transition-colors"
+                                >
+                                    Clear
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Legend */}
                     <div className="flex flex-col gap-4 mt-8">
                         <div className="flex items-center justify-center gap-6">
@@ -451,6 +479,11 @@ const Availability = ({ user }) => {
                                 <p className="text-lg font-semibold">
                                     {selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                 </p>
+                                {canAddEvent(selectedDate.getDate()) && (
+                                    <p className="text-sm text-slate-400 mt-2">
+                                        Current status: <span className="capitalize text-white font-medium">{availabilityMap[formatDateKey(selectedDate.getDate(), selectedDate.getMonth(), selectedDate.getFullYear())] || 'not set'}</span>
+                                    </p>
+                                )}
                                 {isPastDate(selectedDate.getDate()) && (
                                     <p className="text-sm text-slate-500 mt-2">📋 Viewing past event details</p>
                                 )}

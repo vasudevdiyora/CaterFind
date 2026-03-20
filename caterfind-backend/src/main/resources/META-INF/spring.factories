@@ -1,1 +1,1 @@
-org.caterfind.config.DotenvConfig
+org.springframework.context.ApplicationContextInitializer=org.caterfind.config.DotenvConfig

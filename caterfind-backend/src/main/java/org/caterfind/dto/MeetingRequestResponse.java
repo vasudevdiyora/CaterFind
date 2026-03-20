@@ -2,6 +2,7 @@ package org.caterfind.dto;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 import org.caterfind.entity.MeetingRequest;
 
@@ -26,6 +27,13 @@ public class MeetingRequestResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime respondedAt;
+    private LocalDate meetingDate;
+    private LocalTime meetingTime;
+    private String meetingPlace;
+    private String meetingNotes;
+    private Boolean emailSent;
+    private Boolean chatMessageSent;
+    private String notificationMessage;
 
     // Constructors
     public MeetingRequestResponse() {
@@ -50,6 +58,10 @@ public class MeetingRequestResponse {
         this.createdAt = request.getCreatedAt();
         this.updatedAt = request.getUpdatedAt();
         this.respondedAt = request.getRespondedAt();
+        this.meetingDate = request.getMeetingDate();
+        this.meetingTime = request.getMeetingTime();
+        this.meetingPlace = request.getMeetingPlace();
+        this.meetingNotes = request.getMeetingNotes();
     }
 
     // Getters and Setters
@@ -171,5 +183,61 @@ public class MeetingRequestResponse {
 
     public void setRespondedAt(LocalDateTime respondedAt) {
         this.respondedAt = respondedAt;
+    }
+
+    public LocalDate getMeetingDate() {
+        return meetingDate;
+    }
+
+    public void setMeetingDate(LocalDate meetingDate) {
+        this.meetingDate = meetingDate;
+    }
+
+    public LocalTime getMeetingTime() {
+        return meetingTime;
+    }
+
+    public void setMeetingTime(LocalTime meetingTime) {
+        this.meetingTime = meetingTime;
+    }
+
+    public String getMeetingPlace() {
+        return meetingPlace;
+    }
+
+    public void setMeetingPlace(String meetingPlace) {
+        this.meetingPlace = meetingPlace;
+    }
+
+    public String getMeetingNotes() {
+        return meetingNotes;
+    }
+
+    public void setMeetingNotes(String meetingNotes) {
+        this.meetingNotes = meetingNotes;
+    }
+
+    public Boolean getEmailSent() {
+        return emailSent;
+    }
+
+    public void setEmailSent(Boolean emailSent) {
+        this.emailSent = emailSent;
+    }
+
+    public Boolean getChatMessageSent() {
+        return chatMessageSent;
+    }
+
+    public void setChatMessageSent(Boolean chatMessageSent) {
+        this.chatMessageSent = chatMessageSent;
+    }
+
+    public String getNotificationMessage() {
+        return notificationMessage;
+    }
+
+    public void setNotificationMessage(String notificationMessage) {
+        this.notificationMessage = notificationMessage;
     }
 }

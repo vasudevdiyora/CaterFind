@@ -36,6 +36,9 @@ public class CalendarEvent {
     @Column(name = "location", length = 500)
     private String location;
 
+    @Column(name = "menu_id")
+    private Long menuId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -91,6 +94,14 @@ public class CalendarEvent {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public Long getMenuId() {
+        return menuId;
+    }
+
+    public void setMenuId(Long menuId) {
+        this.menuId = menuId;
     }
 
     public LocalDateTime getCreatedAt() {

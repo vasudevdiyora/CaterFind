@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { NavLink as RouterNavLink } from 'react-router-dom';
 import {
     LayoutDashboard, Building2, Users, MessageSquare,
-    Package, Menu, X, LogOut, Contact, Calendar, UtensilsCrossed
+    Package, Menu, X, LogOut, Contact, Calendar, UtensilsCrossed, ClipboardList
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -29,10 +29,13 @@ const CatererLayout = ({ children, user, onLogout }) => {
         { path: '/owner/clients', icon: Users, label: 'Clients' },
         { path: '/owner/dish-library', icon: UtensilsCrossed, label: 'Dish Library' },
         { path: '/owner/menu-builder', icon: UtensilsCrossed, label: 'Menu Builder' },
+        { path: '/owner/menu-history', icon: ClipboardList, label: 'Menu History' },
         { path: '/owner/contacts', icon: Contact, label: 'Contacts' },
         { path: '/owner/inventory', icon: Package, label: 'Inventory' },
         { path: '/owner/broadcast', icon: MessageSquare, label: 'Messages' },
     ];
+
+    const catererName = user?.displayName || user?.name || (user?.email ? user.email.split('@')[0] : 'Caterer');
 
     return (
         <div className="min-h-screen bg-background flex">
@@ -61,8 +64,8 @@ const CatererLayout = ({ children, user, onLogout }) => {
                                     </span>
                                 </div>
                                 <div>
-                                    <p className="font-semibold text-sidebar-foreground">Caterer Panel</p>
-                                    <p className="text-xs text-muted-foreground">{user?.name || 'admin'}</p>
+                                    <p className="font-semibold text-sidebar-foreground">{catererName}</p>
+                                    <p className="text-xs text-muted-foreground">admin</p>
                                 </div>
                             </div>
                             {/* Close button (mobile only) */}
@@ -111,7 +114,7 @@ const CatererLayout = ({ children, user, onLogout }) => {
                         <button onClick={() => setSidebarOpen(true)} className="p-2 -ml-2">
                             <Menu className="w-6 h-6" />
                         </button>
-                        <h1 className="font-semibold text-lg">Caterer Panel</h1>
+                        <h1 className="font-semibold text-lg truncate">{catererName}</h1>
                     </div>
                 </header>
 

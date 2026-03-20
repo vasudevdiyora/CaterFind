@@ -2,6 +2,7 @@ package org.caterfind.entity;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -73,6 +74,18 @@ public class MeetingRequest {
 
     @Column(name = "responded_at")
     private LocalDateTime respondedAt; // When caterer accepted/rejected
+
+    @Column(name = "meeting_date")
+    private LocalDate meetingDate;
+
+    @Column(name = "meeting_time")
+    private LocalTime meetingTime;
+
+    @Column(name = "meeting_place", length = 500)
+    private String meetingPlace;
+
+    @Column(name = "meeting_notes", columnDefinition = "TEXT")
+    private String meetingNotes;
 
     /**
      * Enum for meeting request status.
@@ -193,5 +206,37 @@ public class MeetingRequest {
 
     public void setRespondedAt(LocalDateTime respondedAt) {
         this.respondedAt = respondedAt;
+    }
+
+    public LocalDate getMeetingDate() {
+        return meetingDate;
+    }
+
+    public void setMeetingDate(LocalDate meetingDate) {
+        this.meetingDate = meetingDate;
+    }
+
+    public LocalTime getMeetingTime() {
+        return meetingTime;
+    }
+
+    public void setMeetingTime(LocalTime meetingTime) {
+        this.meetingTime = meetingTime;
+    }
+
+    public String getMeetingPlace() {
+        return meetingPlace;
+    }
+
+    public void setMeetingPlace(String meetingPlace) {
+        this.meetingPlace = meetingPlace;
+    }
+
+    public String getMeetingNotes() {
+        return meetingNotes;
+    }
+
+    public void setMeetingNotes(String meetingNotes) {
+        this.meetingNotes = meetingNotes;
     }
 }

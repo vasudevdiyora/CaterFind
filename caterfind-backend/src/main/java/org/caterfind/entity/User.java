@@ -202,11 +202,14 @@ public class User {
     /**
      * Get display name for user.
      * For CATERER: returns business name from profile (or email if no profile)
-     * For CLIENT: returns email
+     * For CLIENT: returns name if available, otherwise email
      */
     public String getDisplayName() {
         if (this.role == UserRole.CATERER && this.cateringProfile != null) {
             return this.cateringProfile.getBusinessName();
+        }
+        if (this.role == UserRole.CLIENT && this.name != null && !this.name.trim().isEmpty()) {
+            return this.name;
         }
         return this.email; // Fallback to email
     }

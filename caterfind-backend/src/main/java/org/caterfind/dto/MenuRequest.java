@@ -8,6 +8,7 @@ import java.util.List;
  */
 public class MenuRequest {
     private String clientName;
+    private String eventType;
     private String eventLocation;
     private LocalDate eventDate;
     private Integer numberOfGuests;
@@ -20,6 +21,7 @@ public class MenuRequest {
         private Long dishId;
         private String menuCategory; // e.g., "Main Course", "Starter", "Dessert"
         private Integer displayOrder;
+        private String note;
 
         // Getters and Setters
         public Long getDishId() {
@@ -45,6 +47,14 @@ public class MenuRequest {
         public void setDisplayOrder(Integer displayOrder) {
             this.displayOrder = displayOrder;
         }
+
+        public String getNote() {
+            return note;
+        }
+
+        public void setNote(String note) {
+            this.note = note;
+        }
     }
 
     // Constructors
@@ -66,6 +76,14 @@ public class MenuRequest {
 
     public void setEventLocation(String eventLocation) {
         this.eventLocation = eventLocation;
+    }
+
+    public String getEventType() {
+        return eventType;
+    }
+
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
     }
 
     public LocalDate getEventDate() {

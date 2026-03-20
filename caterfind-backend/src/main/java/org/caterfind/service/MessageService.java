@@ -178,6 +178,35 @@ public class MessageService {
     }
 
     /**
+     * Send a direct email using the same pipeline as contact messaging.
+     * This is used by system workflows (e.g., meeting confirmation) where
+     * recipient is not necessarily a saved Contact row.
+     */
+    public boolean sendDirectEmail(Long catererId, String recipientName, String recipientEmail, String subject, String messageText) {
+        if (recipientEmail == null || recipientEmail.trim().isEmpty()) {
+            return false;
+        }
+
+        boolean sent;
+        try {
+            sent = emailService.sendEmail(recipientEmail.trim(), subject, messageText);
+        } catch (RuntimeException ex) {
+            System.err.println("❌ Failed to send direct email: " + ex.getMessage());
+            sent = false;
+        }
+
+        Message message = new Message();
+        message.setCatererId(catererId);
+        message.setContactMethod(Message.ContactMethod.EMAIL);
+        message.setMessageText(messageText);
+        message.setRecipientName(recipientName != null ? recipientName : recipientEmail);
+        message.setStatus(sent ? Message.MessageStatus.SENT : Message.MessageStatus.FAILED);
+        messageRepository.save(message);
+
+        return sent;
+    }
+
+    /**
      * Send reorder message to a dealer (Manual or Linked).
      * 
      * @param catererId   Caterer ID

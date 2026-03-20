@@ -157,6 +157,26 @@
     margin-bottom: 6px;
 }
 
+.recipient-preferences {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.recipient-preference-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    background: rgba(251, 191, 36, 0.12);
+    border: 1px solid rgba(251, 191, 36, 0.28);
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
 .recipient-labels {
     display: flex;
     gap: 6px;

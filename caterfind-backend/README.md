@@ -86,6 +86,10 @@ caterfind-backend/
 
 ### Authentication
 - `POST /auth/login` - User login
+- `POST /auth/register` - User registration
+- `POST /auth/forgot-password/request-otp` - Send OTP to email
+- `POST /auth/forgot-password/verify-otp` - Verify OTP
+- `POST /auth/forgot-password/reset` - Reset password using OTP
 
 ### Dashboard
 - `GET /dashboard/summary?catererId={id}` - Get dashboard stats
@@ -107,11 +111,36 @@ caterfind-backend/
 - `POST /messages/send?catererId={id}` - Send broadcast message
 - `GET /messages/logs?catererId={id}` - Get message history
 
+### Meeting Requests
+- `POST /api/meeting-requests` - Create meeting request
+- `GET /api/meeting-requests/caterer` - List caterer requests
+- `GET /api/meeting-requests/client` - List client requests
+- `PUT /api/meeting-requests/{id}/accept` - Accept a request
+- `PUT /api/meeting-requests/{id}/reject` - Reject a request
+
+### Admin APIs
+- `GET /api/admin/dashboard` - Admin dashboard counts and recent activity
+- `GET /api/admin/caterers` - List caterers with status
+- `PUT /api/admin/caterers/{id}/status` - Update caterer status
+- `GET /api/admin/clients` - List clients
+- `GET /api/admin/moderation` - List moderation reports
+- `PUT /api/admin/moderation/{id}` - Resolve or remove report
+- `GET /api/admin/settings` - Read platform settings
+- `PUT /api/admin/settings` - Persist platform settings
+
 ## 🔐 Security Notes
 
 - **Never commit `application-local.properties`** - It contains your real credentials
 - The main `application.properties` file has placeholder values safe for GitHub
 - For production deployment, use environment variables or a secrets manager
+- API authentication now uses **JWT Bearer tokens**
+- JWT configuration keys:
+   - `security.jwt.secret`
+   - `security.jwt.expiration-minutes`
+- OTP reset configuration keys:
+   - `security.otp.expiration-minutes`
+   - `security.otp.max-attempts`
+   - `security.otp.pepper`
 
 ## 🛠️ Technologies Used
 

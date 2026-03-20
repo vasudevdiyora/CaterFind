@@ -1,51 +1,62 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, CheckCircle, XCircle, MessageSquare, User, Clock } from 'lucide-react';
+import { adminAPI } from '../services/api';
 
 const AdminModeration = () => {
     const [flaggedItems, setFlaggedItems] = useState([]);
     const [filter, setFilter] = useState('all');
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [updatingId, setUpdatingId] = useState(null);
 
     useEffect(() => {
-        // TODO: Fetch from API
-        setFlaggedItems([
-            {
-                id: 1,
-                type: 'message',
-                content: 'This is an inappropriate message content...',
-                reportedBy: 'John Doe',
-                reportedUser: 'Spam User',
-                reason: 'Spam',
-                timestamp: '2024-02-27 10:30 AM',
-                status: 'pending'
-            },
-            {
-                id: 2,
-                type: 'profile',
-                content: 'Inappropriate business name or description',
-                reportedBy: 'Priya Sharma',
-                reportedUser: 'Fake Caterer',
-                reason: 'Inappropriate Content',
-                timestamp: '2024-02-27 09:15 AM',
-                status: 'pending'
-            },
-            {
-                id: 3,
-                type: 'message',
-                content: 'Offensive language in conversation',
-                reportedBy: 'Rahul Verma',
-                reportedUser: 'Rude Client',
-                reason: 'Harassment',
-                timestamp: '2024-02-26 05:45 PM',
-                status: 'resolved'
-            },
-        ]);
+        let isMounted = true;
+
+        const loadReports = async () => {
+            setLoading(true);
+            setError('');
+            try {
+                const data = await adminAPI.getModeration('all');
+                if (!isMounted) return;
+                setFlaggedItems(Array.isArray(data) ? data : []);
+            } catch (err) {
+                if (!isMounted) return;
+                setError(err.message || 'Failed to load moderation reports');
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadReports();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
-    const handleAction = (itemId, action) => {
-        // TODO: API call to handle moderation action
-        setFlaggedItems(prev => prev.map(item => 
-            item.id === itemId ? { ...item, status: action === 'approve' ? 'resolved' : 'removed' } : item
-        ));
+    const handleAction = async (itemId, action) => {
+        setUpdatingId(itemId);
+        setError('');
+        try {
+            const updated = await adminAPI.updateModerationStatus(itemId, action);
+            setFlaggedItems(prev => prev.map(item => 
+                item.id === itemId ? { ...item, ...updated } : item
+            ));
+        } catch (err) {
+            setError(err.message || 'Failed to update moderation item');
+        } finally {
+            setUpdatingId(null);
+        }
+    };
+
+    const formatTimestamp = (value) => {
+        const date = value ? new Date(value) : null;
+        if (!date || Number.isNaN(date.getTime())) {
+            return 'N/A';
+        }
+        return date.toLocaleString();
     };
 
     const filteredItems = flaggedItems.filter(item => {
@@ -79,6 +90,18 @@ const AdminModeration = () => {
                 <h1 className="text-3xl font-bold text-foreground">Content Moderation</h1>
                 <p className="text-muted-foreground mt-1">Review and manage flagged content and reports</p>
             </div>
+
+            {error && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg p-4">
+                    {error}
+                </div>
+            )}
+
+            {loading && (
+                <div className="bg-card border border-border rounded-lg p-4 text-sm text-muted-foreground">
+                    Loading moderation reports...
+                </div>
+            )}
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -195,7 +218,7 @@ const AdminModeration = () => {
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <Clock size={14} />
-                                            <span>{item.timestamp}</span>
+                                            <span>{formatTimestamp(item.timestamp)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -204,6 +227,7 @@ const AdminModeration = () => {
                                 <div className="flex gap-2 ml-4">
                                     <button
                                         onClick={() => handleAction(item.id, 'approve')}
+                                        disabled={updatingId === item.id}
                                         className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                                     >
                                         <CheckCircle size={18} />
@@ -211,6 +235,7 @@ const AdminModeration = () => {
                                     </button>
                                     <button
                                         onClick={() => handleAction(item.id, 'remove')}
+                                        disabled={updatingId === item.id}
                                         className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                                     >
                                         <XCircle size={18} />

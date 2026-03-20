@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { fileAPI } from '../services/api';
+import { fileAPI, profileAPI } from '../services/api';
 import '../styles/MyBusiness.css';
 
 /**
@@ -23,6 +23,8 @@ function MyBusiness({ user }) {
         area: '',
         city: '',
         landmark: '',
+        latitude: '',
+        longitude: '',
         serviceRadius: 50,
         imageUrl: '' // Profile image URL - saved to database
     });
@@ -31,6 +33,7 @@ function MyBusiness({ user }) {
     const [saving, setSaving] = useState(false);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [uploadingVideo, setUploadingVideo] = useState(false);
+    const [locatingPosition, setLocatingPosition] = useState(false);
     const [businessPhotos, setBusinessPhotos] = useState([]);
     const [businessVideos, setBusinessVideos] = useState([]);
 
@@ -49,9 +52,8 @@ function MyBusiness({ user }) {
         }
 
         try {
-            const response = await fetch(`http://localhost:8080/api/profile?catererId=${catererId}`);
-            if (response.ok) {
-                const data = await response.json();
+            const data = await profileAPI.get(catererId);
+            if (data) {
                 setFormData({
                     businessName: data.businessName || '',
                     description: data.description || '',
@@ -62,6 +64,8 @@ function MyBusiness({ user }) {
                     area: data.area || '',
                     city: data.city || '',
                     landmark: data.landmark || '',
+                    latitude: data.latitude ?? '',
+                    longitude: data.longitude ?? '',
                     serviceRadius: data.serviceRadius || 50,
                     imageUrl: data.imageUrl || ''
                 });
@@ -71,8 +75,6 @@ function MyBusiness({ user }) {
                     const photoUrls = data.businessPhotos.split(',').filter(url => url.trim());
                     setBusinessPhotos(photoUrls.map(url => ({ url: url.trim(), name: '' })));
                 }
-            } else {
-                // Optional: set defaults if first time
             }
         } catch (error) {
             // Error loading profile
@@ -94,24 +96,38 @@ function MyBusiness({ user }) {
         const catererId = user?.userId || user?.id;
 
         try {
+            const hasLatitude = String(formData.latitude).trim() !== '';
+            const hasLongitude = String(formData.longitude).trim() !== '';
+
+            if ((hasLatitude && !hasLongitude) || (!hasLatitude && hasLongitude)) {
+                throw new Error('Please provide both latitude and longitude, or leave both empty.');
+            }
+
+            if (hasLatitude && hasLongitude) {
+                const latValue = Number(formData.latitude);
+                const lngValue = Number(formData.longitude);
+
+                if (Number.isNaN(latValue) || latValue < -90 || latValue > 90) {
+                    throw new Error('Latitude must be between -90 and 90.');
+                }
+
+                if (Number.isNaN(lngValue) || lngValue < -180 || lngValue > 180) {
+                    throw new Error('Longitude must be between -180 and 180.');
+                }
+            }
+
             // Convert businessPhotos array to comma-separated string
             const businessPhotosString = businessPhotos.map(photo => photo.url).join(',');
             
             const dataToSave = {
                 ...formData,
+                latitude: hasLatitude ? Number(formData.latitude) : null,
+                longitude: hasLongitude ? Number(formData.longitude) : null,
                 businessPhotos: businessPhotosString
             };
             
-            const response = await fetch(`http://localhost:8080/api/profile?catererId=${catererId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(dataToSave),
-            });
-
-            if (response.ok) {
-                const updatedData = await response.json();
+            const updatedData = await profileAPI.update(catererId, dataToSave);
+            if (updatedData) {
                 setFormData(updatedData); // Update with server response
                 alert('Business profile updated successfully!');
             } else {
@@ -122,6 +138,32 @@ function MyBusiness({ user }) {
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleUseCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported in this browser.');
+            return;
+        }
+
+        setLocatingPosition(true);
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                handleChange('latitude', String(position.coords.latitude));
+                handleChange('longitude', String(position.coords.longitude));
+                setLocatingPosition(false);
+            },
+            (error) => {
+                alert(error.message || 'Unable to fetch your current location.');
+                setLocatingPosition(false);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 300000,
+            }
+        );
     };
 
     const handlePhotoUpload = () => {
@@ -338,6 +380,44 @@ function MyBusiness({ user }) {
                             onChange={(e) => handleChange('landmark', e.target.value)}
                             placeholder="e.g., Near Central Market"
                         />
+                    </div>
+
+                    <div className="form-field">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                            <label className="field-label" style={{ marginBottom: 0 }}>Coordinates (Optional)</label>
+                            <button
+                                type="button"
+                                className="upload-button"
+                                onClick={handleUseCurrentLocation}
+                                disabled={locatingPosition}
+                                style={{ padding: '8px 12px', fontSize: '12px' }}
+                            >
+                                {locatingPosition ? 'Locating...' : 'Use current location'}
+                            </button>
+                        </div>
+                        <div className="form-row">
+                            <div className="form-field">
+                                <input
+                                    type="number"
+                                    step="any"
+                                    className="field-input"
+                                    value={formData.latitude}
+                                    onChange={(e) => handleChange('latitude', e.target.value)}
+                                    placeholder="Latitude (e.g. 28.6139)"
+                                />
+                            </div>
+                            <div className="form-field">
+                                <input
+                                    type="number"
+                                    step="any"
+                                    className="field-input"
+                                    value={formData.longitude}
+                                    onChange={(e) => handleChange('longitude', e.target.value)}
+                                    placeholder="Longitude (e.g. 77.2090)"
+                                />
+                            </div>
+                        </div>
+                        <p className="field-hint">Coordinates improve nearby ranking in client discovery.</p>
                     </div>
                 </div>
 

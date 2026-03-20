@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { authAPI, locationAPI } from '../services/api';
-import { UtensilsCrossed, Mail, Lock, Store, ArrowRight, Info, ArrowLeft, Eye, EyeOff, ChefHat, User, Phone, Home } from 'lucide-react';
+import { UtensilsCrossed, Mail, Lock, Store, ArrowRight, Info, ArrowLeft, Eye, EyeOff, ChefHat, User, Phone, Home, MapPin, LocateFixed } from 'lucide-react';
 import { states, getCities } from '../lib/locations';
 
 
@@ -22,6 +22,9 @@ function Register({ onLogin }) {
     const [city, setCity] = useState('');
     const [selectedState, setSelectedState] = useState('');
     const [pincode, setPincode] = useState('');
+    const [latitude, setLatitude] = useState('');
+    const [longitude, setLongitude] = useState('');
+    const [locatingPosition, setLocatingPosition] = useState(false);
     const [pincodeLoading, setPincodeLoading] = useState(false);
     const [pincodeError, setPincodeError] = useState('');
     const [clientName, setClientName] = useState('');
@@ -61,6 +64,29 @@ function Register({ onLogin }) {
             if (!selectedState) { setError('State is required'); return; }
             if (!city.trim()) { setError('City is required'); return; }
             if (!streetAddress.trim()) { setError('Business street address is required'); return; }
+
+            const hasLatitude = latitude.trim() !== '';
+            const hasLongitude = longitude.trim() !== '';
+
+            if ((hasLatitude && !hasLongitude) || (!hasLatitude && hasLongitude)) {
+                setError('Please provide both latitude and longitude, or leave both empty.');
+                return;
+            }
+
+            if (hasLatitude && hasLongitude) {
+                const latValue = Number(latitude);
+                const lngValue = Number(longitude);
+
+                if (Number.isNaN(latValue) || latValue < -90 || latValue > 90) {
+                    setError('Latitude must be between -90 and 90.');
+                    return;
+                }
+
+                if (Number.isNaN(lngValue) || lngValue < -180 || lngValue > 180) {
+                    setError('Longitude must be between -180 and 180.');
+                    return;
+                }
+            }
         } else {
             // Client
             if (!clientName.trim()) { setError('Name is required'); return; }
@@ -96,6 +122,11 @@ function Register({ onLogin }) {
                 payload.state = selectedState;
                 payload.city = city;
                 payload.address = `${streetAddress}${area ? ', ' + area : ''}${city ? ', ' + city : ''}`;
+
+                if (latitude.trim() !== '' && longitude.trim() !== '') {
+                    payload.latitude = Number(latitude);
+                    payload.longitude = Number(longitude);
+                }
             } else {
                 payload.name = clientName;
                 payload.phone = clientPhone;
@@ -117,6 +148,32 @@ function Register({ onLogin }) {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleUseCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            setError('Geolocation is not supported in this browser.');
+            return;
+        }
+
+        setLocatingPosition(true);
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setLatitude(String(position.coords.latitude));
+                setLongitude(String(position.coords.longitude));
+                setLocatingPosition(false);
+            },
+            (geoError) => {
+                setError(geoError.message || 'Unable to fetch your current location.');
+                setLocatingPosition(false);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 300000,
+            }
+        );
     };
 
     const handlePincodeChange = async (e) => {
@@ -320,6 +377,45 @@ function Register({ onLogin }) {
                                         <label className="text-sm font-medium leading-none flex items-center gap-2 text-muted-foreground">Area</label>
                                         <input type="text" className="flex h-12 w-full rounded-xl border bg-input px-4 py-2 text-sm" value={area} onChange={(e) => setArea(e.target.value)} required />
                                     </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-medium leading-none flex items-center gap-2 text-muted-foreground">
+                                            <MapPin className="h-4 w-4" />
+                                            Coordinates (Optional)
+                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={handleUseCurrentLocation}
+                                            disabled={locatingPosition}
+                                            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border bg-input hover:bg-secondary text-foreground"
+                                        >
+                                            <LocateFixed className="h-3 w-3" />
+                                            {locatingPosition ? 'Locating...' : 'Use current location'}
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            className="flex h-12 w-full rounded-xl border bg-input px-4 py-2 text-sm"
+                                            placeholder="Latitude (e.g. 28.6139)"
+                                            value={latitude}
+                                            onChange={(e) => setLatitude(e.target.value)}
+                                        />
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            className="flex h-12 w-full rounded-xl border bg-input px-4 py-2 text-sm"
+                                            placeholder="Longitude (e.g. 77.2090)"
+                                            value={longitude}
+                                            onChange={(e) => setLongitude(e.target.value)}
+                                        />
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Adding coordinates improves nearby search ranking for clients.
+                                    </p>
                                 </div>
                             </>
                         )}

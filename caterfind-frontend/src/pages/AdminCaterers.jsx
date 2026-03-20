@@ -1,78 +1,59 @@
 import React, { useState, useEffect } from 'react';
 import { 
-    Search, Filter, CheckCircle, XCircle, Eye, 
-    Edit, Trash2, MoreVertical, MapPin, Star 
+    Search, CheckCircle, XCircle, Eye, MapPin, Star 
 } from 'lucide-react';
+import { adminAPI } from '../services/api';
 
 const AdminCaterers = () => {
     const [caterers, setCaterers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [selectedCaterer, setSelectedCaterer] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [updatingId, setUpdatingId] = useState(null);
 
     useEffect(() => {
-        // TODO: Fetch from API
-        setCaterers([
-            {
-                id: 1,
-                businessName: 'Royal Caterers',
-                ownerName: 'Rajesh Kumar',
-                email: 'royal@caterers.com',
-                phone: '+91 9876543210',
-                location: 'Mumbai, Maharashtra',
-                status: 'pending',
-                rating: 0,
-                totalOrders: 0,
-                joinedDate: '2024-02-20',
-                specialties: ['North Indian', 'South Indian']
-            },
-            {
-                id: 2,
-                businessName: 'Sharma Catering Services',
-                ownerName: 'Amit Sharma',
-                email: 'sharma@catering.com',
-                phone: '+91 9876543211',
-                location: 'Delhi, NCR',
-                status: 'active',
-                rating: 4.5,
-                totalOrders: 45,
-                joinedDate: '2024-01-15',
-                specialties: ['Punjabi', 'Chinese']
-            },
-            {
-                id: 3,
-                businessName: 'Chennai Tiffin House',
-                ownerName: 'Venkat Raman',
-                email: 'chennai@tiffin.com',
-                phone: '+91 9876543212',
-                location: 'Chennai, Tamil Nadu',
-                status: 'active',
-                rating: 4.8,
-                totalOrders: 78,
-                joinedDate: '2023-11-10',
-                specialties: ['South Indian', 'Tiffin']
-            },
-            {
-                id: 4,
-                businessName: 'Bengal Sweets & Catering',
-                ownerName: 'Sourav Das',
-                email: 'bengal@sweets.com',
-                phone: '+91 9876543213',
-                location: 'Kolkata, West Bengal',
-                status: 'suspended',
-                rating: 3.5,
-                totalOrders: 23,
-                joinedDate: '2024-02-01',
-                specialties: ['Bengali', 'Sweets']
-            },
-        ]);
+        let isMounted = true;
+
+        const loadCaterers = async () => {
+            setLoading(true);
+            setError('');
+            try {
+                const data = await adminAPI.getCaterers('all');
+                if (!isMounted) return;
+                setCaterers(Array.isArray(data) ? data : []);
+            } catch (err) {
+                if (!isMounted) return;
+                setError(err.message || 'Failed to load caterers');
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadCaterers();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
-    const handleStatusChange = (catererId, newStatus) => {
-        // TODO: API call to update status
-        setCaterers(prev => prev.map(c => 
-            c.id === catererId ? { ...c, status: newStatus } : c
-        ));
+    const handleStatusChange = async (catererId, newStatus) => {
+        setUpdatingId(catererId);
+        setError('');
+        try {
+            await adminAPI.updateCatererStatus(catererId, newStatus);
+            setCaterers(prev => prev.map(c => 
+                c.id === catererId ? { ...c, status: newStatus } : c
+            ));
+            setSelectedCaterer(prev => prev && prev.id === catererId ? { ...prev, status: newStatus } : prev);
+        } catch (err) {
+            setError(err.message || 'Failed to update caterer status');
+        } finally {
+            setUpdatingId(null);
+        }
     };
 
     const filteredCaterers = caterers.filter(caterer => {
@@ -99,6 +80,18 @@ const AdminCaterers = () => {
                 <h1 className="text-3xl font-bold text-foreground">Caterers Management</h1>
                 <p className="text-muted-foreground mt-1">Manage and monitor all caterers on the platform</p>
             </div>
+
+            {error && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg p-4">
+                    {error}
+                </div>
+            )}
+
+            {loading && (
+                <div className="bg-card border border-border rounded-lg p-4 text-sm text-muted-foreground">
+                    Loading caterers...
+                </div>
+            )}
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -225,6 +218,7 @@ const AdminCaterers = () => {
                                                 <>
                                                     <button
                                                         onClick={() => handleStatusChange(caterer.id, 'active')}
+                                                        disabled={updatingId === caterer.id}
                                                         className="p-1 text-green-500 hover:bg-green-500/10 rounded"
                                                         title="Approve"
                                                     >
@@ -232,6 +226,7 @@ const AdminCaterers = () => {
                                                     </button>
                                                     <button
                                                         onClick={() => handleStatusChange(caterer.id, 'suspended')}
+                                                        disabled={updatingId === caterer.id}
                                                         className="p-1 text-red-500 hover:bg-red-500/10 rounded"
                                                         title="Reject"
                                                     >
@@ -242,6 +237,7 @@ const AdminCaterers = () => {
                                             {caterer.status === 'active' && (
                                                 <button
                                                     onClick={() => handleStatusChange(caterer.id, 'suspended')}
+                                                    disabled={updatingId === caterer.id}
                                                     className="p-1 text-red-500 hover:bg-red-500/10 rounded"
                                                     title="Suspend"
                                                 >
@@ -251,6 +247,7 @@ const AdminCaterers = () => {
                                             {caterer.status === 'suspended' && (
                                                 <button
                                                     onClick={() => handleStatusChange(caterer.id, 'active')}
+                                                    disabled={updatingId === caterer.id}
                                                     className="p-1 text-green-500 hover:bg-green-500/10 rounded"
                                                     title="Activate"
                                                 >
@@ -316,11 +313,14 @@ const AdminCaterers = () => {
                             <div>
                                 <label className="text-sm font-medium text-muted-foreground">Specialties</label>
                                 <div className="flex gap-2 mt-1">
-                                    {selectedCaterer.specialties.map((spec, idx) => (
+                                    {(selectedCaterer.specialties || []).map((spec, idx) => (
                                         <span key={idx} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded">
                                             {spec}
                                         </span>
                                     ))}
+                                    {(!selectedCaterer.specialties || selectedCaterer.specialties.length === 0) && (
+                                        <span className="text-sm text-muted-foreground">No specialties added</span>
+                                    )}
                                 </div>
                             </div>
                             <div>

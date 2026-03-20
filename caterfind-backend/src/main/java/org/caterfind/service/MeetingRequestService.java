@@ -27,6 +27,9 @@ public class MeetingRequestService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private MeetingRequestNotificationService meetingRequestNotificationService;
+
     /**
      * Create a new meeting request.
      * Called by client when they want to request a meeting with a caterer.
@@ -62,7 +65,7 @@ public class MeetingRequestService {
 
         request = requestRepository.save(request);
 
-        // TODO: Send notification to caterer (email/push/websocket)
+        meetingRequestNotificationService.notifyRequestCreated(request);
 
         return new MeetingRequestResponse(request);
     }
@@ -76,7 +79,7 @@ public class MeetingRequestService {
         List<MeetingRequest> requests;
         
         if (status != null && !status.equalsIgnoreCase("all")) {
-            RequestStatus requestStatus = RequestStatus.valueOf(status.toUpperCase());
+            RequestStatus requestStatus = parseStatus(status);
             requests = requestRepository.findByCatererIdAndStatus(catererId, requestStatus);
         } else {
             requests = requestRepository.findByCatererId(catererId);
@@ -96,7 +99,7 @@ public class MeetingRequestService {
         List<MeetingRequest> requests;
         
         if (status != null && !status.equalsIgnoreCase("all")) {
-            RequestStatus requestStatus = RequestStatus.valueOf(status.toUpperCase());
+            RequestStatus requestStatus = parseStatus(status);
             requests = requestRepository.findByClientIdAndStatus(clientId, requestStatus);
         } else {
             requests = requestRepository.findByClientId(clientId);
@@ -118,6 +121,26 @@ public class MeetingRequestService {
         return new MeetingRequestResponse(request);
     }
 
+    @Transactional(readOnly = true)
+    public MeetingRequestResponse getRequestByIdForUser(Long requestId, Long userId, User.UserRole role) {
+        MeetingRequest request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Meeting request not found"));
+
+        if (role == User.UserRole.ADMIN) {
+            return new MeetingRequestResponse(request);
+        }
+
+        if (role == User.UserRole.CLIENT && request.getClient().getId().equals(userId)) {
+            return new MeetingRequestResponse(request);
+        }
+
+        if (role == User.UserRole.CATERER && request.getCaterer().getId().equals(userId)) {
+            return new MeetingRequestResponse(request);
+        }
+
+        throw new SecurityException("You are not allowed to view this meeting request");
+    }
+
     /**
      * Accept a meeting request.
      * Only the caterer can accept their received requests.
@@ -129,7 +152,7 @@ public class MeetingRequestService {
 
         // Verify the caterer owns this request
         if (!request.getCaterer().getId().equals(catererId)) {
-            throw new RuntimeException("You can only respond to your own requests");
+            throw new SecurityException("You can only respond to your own requests");
         }
 
         // Check if already responded
@@ -142,7 +165,7 @@ public class MeetingRequestService {
         
         request = requestRepository.save(request);
 
-        // TODO: Send notification to client (email/push/websocket)
+        meetingRequestNotificationService.notifyRequestAccepted(request);
 
         return new MeetingRequestResponse(request);
     }
@@ -158,7 +181,7 @@ public class MeetingRequestService {
 
         // Verify the caterer owns this request
         if (!request.getCaterer().getId().equals(catererId)) {
-            throw new RuntimeException("You can only respond to your own requests");
+            throw new SecurityException("You can only respond to your own requests");
         }
 
         // Check if already responded
@@ -171,7 +194,7 @@ public class MeetingRequestService {
         
         request = requestRepository.save(request);
 
-        // TODO: Send notification to client (email/push/websocket)
+        meetingRequestNotificationService.notifyRequestRejected(request);
 
         return new MeetingRequestResponse(request);
     }
@@ -183,5 +206,13 @@ public class MeetingRequestService {
     @Transactional(readOnly = true)
     public Long getPendingRequestCount(Long catererId) {
         return requestRepository.countPendingByCatererId(catererId);
+    }
+
+    private RequestStatus parseStatus(String status) {
+        try {
+            return RequestStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid status: " + status);
+        }
     }
 }

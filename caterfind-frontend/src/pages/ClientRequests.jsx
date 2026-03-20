@@ -28,7 +28,7 @@ const ClientRequests = ({ user }) => {
                 throw new Error('User not authenticated');
             }
             
-            const data = await meetingRequestAPI.getCatererRequests(user.userId, filter);
+            const data = await meetingRequestAPI.getCatererRequests(filter);
             
             // Transform API response to match UI format
             const transformedRequests = data.map(req => ({
@@ -59,7 +59,7 @@ const ClientRequests = ({ user }) => {
                 throw new Error('User not authenticated');
             }
             
-            await meetingRequestAPI.accept(requestId, user.userId);
+            await meetingRequestAPI.accept(requestId);
             
             // Update local state
             setRequests(prev =>
@@ -82,7 +82,7 @@ const ClientRequests = ({ user }) => {
                 throw new Error('User not authenticated');
             }
             
-            await meetingRequestAPI.reject(requestId, user.userId);
+            await meetingRequestAPI.reject(requestId);
             
             // Update local state
             setRequests(prev =>

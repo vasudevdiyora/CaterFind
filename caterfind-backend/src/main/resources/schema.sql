@@ -11,6 +11,10 @@ DROP TABLE IF EXISTS menu_dishes;
 DROP TABLE IF EXISTS menus;
 DROP TABLE IF EXISTS dishes;
 DROP TABLE IF EXISTS meeting_requests;
+DROP TABLE IF EXISTS client_shortlist;
+DROP TABLE IF EXISTS moderation_reports;
+DROP TABLE IF EXISTS platform_settings;
+DROP TABLE IF EXISTS password_reset_otps;
 DROP TABLE IF EXISTS availability_status;
 DROP TABLE IF EXISTS calendar_events;
 DROP TABLE IF EXISTS messages;
@@ -33,6 +37,7 @@ CREATE TABLE users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL, -- In production, this should be hashed (BCrypt)
     role ENUM('ADMIN', 'CATERER', 'CLIENT') NOT NULL,
+    account_status ENUM('ACTIVE', 'PENDING', 'SUSPENDED') DEFAULT 'ACTIVE',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -47,6 +52,8 @@ CREATE TABLE catering_profile (
     user_id BIGINT NOT NULL UNIQUE,
     business_name VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
+    latitude DECIMAL(10, 7),
+    longitude DECIMAL(10, 7),
     address TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -259,6 +266,68 @@ CREATE TABLE meeting_requests (
     INDEX idx_client (client_id),
     INDEX idx_status (status),
     INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- CLIENT_SHORTLIST TABLE
+-- ============================================================
+-- Stores client favorite/shortlisted caterers for discovery.
+CREATE TABLE client_shortlist (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    client_id BIGINT NOT NULL,
+    caterer_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_shortlist_client FOREIGN KEY (client_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_shortlist_caterer FOREIGN KEY (caterer_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT uk_client_shortlist_client_caterer UNIQUE (client_id, caterer_id),
+    INDEX idx_shortlist_client (client_id),
+    INDEX idx_shortlist_caterer (caterer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- MODERATION_REPORTS TABLE
+-- ============================================================
+-- Stores reported content handled by admin moderation workflow
+CREATE TABLE moderation_reports (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    type ENUM('MESSAGE', 'PROFILE') NOT NULL,
+    content TEXT NOT NULL,
+    reported_by VARCHAR(255) NOT NULL,
+    reported_user VARCHAR(255) NOT NULL,
+    reason VARCHAR(100) NOT NULL,
+    status ENUM('PENDING', 'RESOLVED', 'REMOVED') NOT NULL DEFAULT 'PENDING',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_moderation_status (status),
+    INDEX idx_moderation_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- PLATFORM_SETTINGS TABLE
+-- ============================================================
+-- Stores configurable key/value admin settings for the platform
+CREATE TABLE platform_settings (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    setting_key VARCHAR(100) NOT NULL UNIQUE,
+    setting_value TEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- PASSWORD_RESET_OTPS TABLE
+-- ============================================================
+-- Stores hashed OTP records for forgot-password flow
+CREATE TABLE password_reset_otps (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    otp_hash VARCHAR(128) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used BOOLEAN NOT NULL DEFAULT FALSE,
+    attempts INT NOT NULL DEFAULT 0,
+    verified_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_password_otp_email_created (email, created_at),
+    INDEX idx_password_otp_expires_at (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================

@@ -12,6 +12,7 @@ import org.caterfind.service.MeetingRequestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,9 +34,6 @@ import org.springframework.web.bind.annotation.RestController;
  * - PUT /api/meeting-requests/{id}/accept - Accept request (caterer)
  * - PUT /api/meeting-requests/{id}/reject - Reject request (caterer)
  * - GET /api/meeting-requests/pending-count - Get pending count
- * 
- * NOTE: This controller follows the project's pattern of using query parameters
- * for user identification instead of Spring Security sessions.
  */
 @RestController
 @RequestMapping("/api/meeting-requests")
@@ -50,18 +48,28 @@ public class MeetingRequestController {
 
     /**
      * Create a new meeting request.
-     * POST /api/meeting-requests?clientId={id}
+     * POST /api/meeting-requests
      * 
      * Client sends this when they want to request a meeting with a caterer.
      */
     @PostMapping
     public ResponseEntity<?> createRequest(
             @RequestBody MeetingRequestDTO dto,
-            @RequestParam Long clientId) {
+            Authentication authentication) {
         try {
-            MeetingRequestResponse response = requestService.createRequest(clientId, dto);
+            User actor = getAuthenticatedUser(authentication);
+            if (actor.getRole() != User.UserRole.CLIENT) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only clients can create meeting requests"));
+            }
+
+            MeetingRequestResponse response = requestService.createRequest(actor.getId(), dto);
             
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -71,27 +79,27 @@ public class MeetingRequestController {
 
     /**
      * Get all meeting requests for a caterer.
-     * GET /api/meeting-requests/caterer?catererId={id}&status=all|pending|accepted|rejected
+     * GET /api/meeting-requests/caterer?status=all|pending|accepted|rejected
      * 
      * Used in the "Clients" page to show all incoming requests.
      */
     @GetMapping("/caterer")
     public ResponseEntity<?> getCatererRequests(
-            @RequestParam Long catererId,
-            @RequestParam(required = false, defaultValue = "all") String status) {
+            @RequestParam(required = false, defaultValue = "all") String status,
+            Authentication authentication) {
         try {
-            // Verify user is a caterer
-            User user = userRepository.findById(catererId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+            User actor = getAuthenticatedUser(authentication);
 
-            if (user.getRole() != User.UserRole.CATERER) {
+            if (actor.getRole() != User.UserRole.CATERER) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Only caterers can access this endpoint"));
             }
 
-            List<MeetingRequestResponse> requests = requestService.getCatererRequests(catererId, status);
+            List<MeetingRequestResponse> requests = requestService.getCatererRequests(actor.getId(), status);
             
             return ResponseEntity.ok(requests);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -101,27 +109,27 @@ public class MeetingRequestController {
 
     /**
      * Get all meeting requests sent by a client.
-     * GET /api/meeting-requests/client?clientId={id}&status=all|pending|accepted|rejected
+     * GET /api/meeting-requests/client?status=all|pending|accepted|rejected
      * 
      * Used by client to track their sent requests.
      */
     @GetMapping("/client")
     public ResponseEntity<?> getClientRequests(
-            @RequestParam Long clientId,
-            @RequestParam(required = false, defaultValue = "all") String status) {
+            @RequestParam(required = false, defaultValue = "all") String status,
+            Authentication authentication) {
         try {
-            // Verify user is a client
-            User user = userRepository.findById(clientId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+            User actor = getAuthenticatedUser(authentication);
 
-            if (user.getRole() != User.UserRole.CLIENT) {
+            if (actor.getRole() != User.UserRole.CLIENT) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Only clients can access this endpoint"));
             }
 
-            List<MeetingRequestResponse> requests = requestService.getClientRequests(clientId, status);
+            List<MeetingRequestResponse> requests = requestService.getClientRequests(actor.getId(), status);
             
             return ResponseEntity.ok(requests);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -134,13 +142,14 @@ public class MeetingRequestController {
      * GET /api/meeting-requests/{id}
      */
     @GetMapping("/{id}")
-    public ResponseEntity<?> getRequest(@PathVariable Long id) {
+    public ResponseEntity<?> getRequest(@PathVariable Long id, Authentication authentication) {
         try {
-            MeetingRequestResponse response = requestService.getRequestById(id);
-            
-            // TODO: Add authorization check (only client or caterer involved in request)
+            User actor = getAuthenticatedUser(authentication);
+            MeetingRequestResponse response = requestService.getRequestByIdForUser(id, actor.getId(), actor.getRole());
             
             return ResponseEntity.ok(response);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -150,27 +159,27 @@ public class MeetingRequestController {
 
     /**
      * Accept a meeting request.
-     * PUT /api/meeting-requests/{id}/accept?catererId={id}
+     * PUT /api/meeting-requests/{id}/accept
      * 
      * Only the caterer can accept their received requests.
      */
     @PutMapping("/{id}/accept")
     public ResponseEntity<?> acceptRequest(
             @PathVariable Long id,
-            @RequestParam Long catererId) {
+            Authentication authentication) {
         try {
-            // Verify user is a caterer
-            User user = userRepository.findById(catererId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+            User actor = getAuthenticatedUser(authentication);
 
-            if (user.getRole() != User.UserRole.CATERER) {
+            if (actor.getRole() != User.UserRole.CATERER) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Only caterers can accept requests"));
             }
 
-            MeetingRequestResponse response = requestService.acceptRequest(id, catererId);
+            MeetingRequestResponse response = requestService.acceptRequest(id, actor.getId());
             
             return ResponseEntity.ok(response);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -180,27 +189,27 @@ public class MeetingRequestController {
 
     /**
      * Reject a meeting request.
-     * PUT /api/meeting-requests/{id}/reject?catererId={id}
+     * PUT /api/meeting-requests/{id}/reject
      * 
      * Only the caterer can reject their received requests.
      */
     @PutMapping("/{id}/reject")
     public ResponseEntity<?> rejectRequest(
             @PathVariable Long id,
-            @RequestParam Long catererId) {
+            Authentication authentication) {
         try {
-            // Verify user is a caterer
-            User user = userRepository.findById(catererId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+            User actor = getAuthenticatedUser(authentication);
 
-            if (user.getRole() != User.UserRole.CATERER) {
+            if (actor.getRole() != User.UserRole.CATERER) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Only caterers can reject requests"));
             }
 
-            MeetingRequestResponse response = requestService.rejectRequest(id, catererId);
+            MeetingRequestResponse response = requestService.rejectRequest(id, actor.getId());
             
             return ResponseEntity.ok(response);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -210,22 +219,20 @@ public class MeetingRequestController {
 
     /**
      * Get count of pending requests.
-     * GET /api/meeting-requests/pending-count?catererId={id}
+     * GET /api/meeting-requests/pending-count
      * 
      * Useful for showing badge count in UI.
      */
     @GetMapping("/pending-count")
-    public ResponseEntity<?> getPendingCount(@RequestParam Long catererId) {
+    public ResponseEntity<?> getPendingCount(Authentication authentication) {
         try {
-            // Verify user is a caterer
-            User user = userRepository.findById(catererId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+            User actor = getAuthenticatedUser(authentication);
 
-            if (user.getRole() != User.UserRole.CATERER) {
+            if (actor.getRole() != User.UserRole.CATERER) {
                 return ResponseEntity.ok(Map.of("count", 0));
             }
 
-            Long count = requestService.getPendingRequestCount(catererId);
+            Long count = requestService.getPendingRequestCount(actor.getId());
             
             return ResponseEntity.ok(Map.of("count", count));
         } catch (Exception e) {
@@ -233,5 +240,15 @@ public class MeetingRequestController {
             error.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(error);
         }
+    }
+
+    private User getAuthenticatedUser(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new SecurityException("Authentication required");
+        }
+
+        String email = authentication.getName();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new SecurityException("Authenticated user not found"));
     }
 }

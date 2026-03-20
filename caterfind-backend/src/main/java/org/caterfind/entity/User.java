@@ -18,10 +18,7 @@ import javax.persistence.Table;
 /**
  * User entity representing both CATERER and CLIENT roles.
  * 
- * IMPORTANT: Client role exists for authentication testing only.
- * Clients can login but have NO dashboard or features (intentionally excluded).
- * 
- * Only CATERER role has full access to the system.
+ * Supports ADMIN, CATERER, and CLIENT roles.
  * 
  * NOTE: Passwords are stored in plain text for college project demo.
  * In production, use BCrypt hashing via Spring Security.
@@ -43,6 +40,10 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_status", length = 20)
+    private AccountStatus accountStatus = AccountStatus.ACTIVE;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -77,6 +78,12 @@ public class User {
         ADMIN,
         CATERER,
         CLIENT
+    }
+
+    public enum AccountStatus {
+        ACTIVE,
+        PENDING,
+        SUSPENDED
     }
 
     // Automatically set createdAt timestamp before persisting
@@ -134,6 +141,14 @@ public class User {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public AccountStatus getAccountStatus() {
+        return accountStatus == null ? AccountStatus.ACTIVE : accountStatus;
+    }
+
+    public void setAccountStatus(AccountStatus accountStatus) {
+        this.accountStatus = accountStatus;
     }
 
     public CateringProfile getCateringProfile() {

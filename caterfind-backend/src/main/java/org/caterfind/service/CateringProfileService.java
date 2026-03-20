@@ -81,6 +81,8 @@ public class CateringProfileService {
         profile.setArea(dto.getArea());
         profile.setCity(dto.getCity());
         profile.setLandmark(dto.getLandmark());
+        profile.setLatitude(dto.getLatitude());
+        profile.setLongitude(dto.getLongitude());
         profile.setServiceRadius(dto.getServiceRadius());
         // Only update rating/image if provided (optional)
         if (dto.getRating() != null)
@@ -120,6 +122,8 @@ public class CateringProfileService {
         dto.setArea(entity.getArea());
         dto.setCity(entity.getCity());
         dto.setLandmark(entity.getLandmark());
+        dto.setLatitude(entity.getLatitude());
+        dto.setLongitude(entity.getLongitude());
         dto.setServiceRadius(entity.getServiceRadius());
         dto.setRating(entity.getRating());
         dto.setImageUrl(entity.getImageUrl());

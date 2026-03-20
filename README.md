@@ -2,28 +2,30 @@
 
 ## Project Overview
 
-This is a **college project** implementing a **caterer-side only** management system for internal coordination and operations.
+This is a **college project** implementing a **multi-role catering platform prototype** with caterer, client, and admin modules.
 
 ### ⚠️ Important Scope Clarification
 
-This system is **NOT** a full catering platform. It is specifically designed for **caterer-side management only**.
+This system is **NOT** a full production marketplace. It is an educational prototype focused on core workflow modules.
 
 **Implemented Features:**
 - ✅ Contact Management (staff, suppliers, dealers)
 - ✅ Broadcast Messaging (Email/SMS stubs)
 - ✅ Inventory Tracking with Low-Stock Alerts
-- ✅ Simple Dashboard with Statistics
+- ✅ Caterer Dashboard with Statistics
+- ✅ Client flows (browse caterers, meeting requests, profile pages)
+- ✅ Meeting request lifecycle (PENDING/ACCEPTED/REJECTED)
+- ✅ Admin panel with live API integration (dashboard, caterers, clients, moderation, settings)
+- ✅ JWT-based authentication for protected APIs
+- ✅ Forgot-password flow with OTP sent on email
 
 **Intentionally Excluded Features (NOT BUGS):**
-- ❌ Client Dashboard (clients can login but have no features)
 - ❌ Online Booking System
 - ❌ Pricing or Payment Processing
 - ❌ Predefined Packages
-- ❌ Event Management (client or caterer events)
-- ❌ Real-time Chat (messaging is broadcast-only)
+- ❌ End-to-end contract/payment fulfillment pipeline
 - ❌ WhatsApp Integration
-- ❌ Analytics, Charts, or Graphs
-- ❌ Calendar or Availability Management
+- ❌ Enterprise analytics/BI reporting
 
 ---
 
@@ -111,10 +113,13 @@ Frontend will start on **http://localhost:5173**
 - **Email:** admin@caterfind.com
 - **Password:** admin123
 
-### Client Account (No Dashboard - For Testing)
+### Client Account
 - **Email:** client@test.com
 - **Password:** client123
-- **Note:** Client login will show "Client dashboard not implemented" message (this is expected behavior)
+
+### Admin Account
+- **Email:** superadmin@caterfind.com
+- **Password:** admin@123
 
 ---
 
@@ -124,7 +129,8 @@ Frontend will start on **http://localhost:5173**
 - Email and password authentication
 - Role-based routing:
   - **CATERER** → Dashboard (full access)
-  - **CLIENT** → "Not implemented" message
+  - **CLIENT** → Client module
+  - **ADMIN** → Admin panel
 
 ### 2. Dashboard
 - **Total Contacts** count
@@ -163,6 +169,10 @@ Frontend will start on **http://localhost:5173**
 
 ### Authentication
 - `POST /auth/login` - User login
+- `POST /auth/register` - User registration
+- `POST /auth/forgot-password/request-otp` - Send OTP to email
+- `POST /auth/forgot-password/verify-otp` - Verify OTP
+- `POST /auth/forgot-password/reset` - Reset password with OTP
 
 ### Dashboard
 - `GET /dashboard/summary?catererId={id}` - Get dashboard stats
@@ -183,6 +193,23 @@ Frontend will start on **http://localhost:5173**
 ### Messages
 - `POST /messages/send?catererId={id}` - Send broadcast message
 - `GET /messages/logs?catererId={id}` - View message history
+
+### Meeting Requests
+- `POST /api/meeting-requests` - Create request
+- `GET /api/meeting-requests/caterer` - Caterer-side requests
+- `GET /api/meeting-requests/client` - Client-side requests
+- `PUT /api/meeting-requests/{id}/accept` - Accept request
+- `PUT /api/meeting-requests/{id}/reject` - Reject request
+
+### Admin
+- `GET /api/admin/dashboard` - Platform summary and activity
+- `GET /api/admin/caterers` - List caterers
+- `PUT /api/admin/caterers/{id}/status` - Update caterer status
+- `GET /api/admin/clients` - List clients
+- `GET /api/admin/moderation` - List moderation reports
+- `PUT /api/admin/moderation/{id}` - Resolve/remove moderation report
+- `GET /api/admin/settings` - Fetch admin settings
+- `PUT /api/admin/settings` - Save admin settings
 
 ---
 
@@ -247,11 +274,11 @@ src/
 
 ## Why Features Are Missing
 
-This is a **partial submission** for a college project. The scope is intentionally limited to **caterer-side management only**.
+This is a **partial submission** for a college project. The scope is intentionally limited to core discovery and management flows.
 
-### Client Dashboard
-- **Why missing:** Out of scope for this phase
-- **Future:** Could be implemented in next phase
+### Payment and Booking Engine
+- **Why missing:** Requires contracts, pricing engine, and payment gateway orchestration
+- **Future:** Stripe/Razorpay + booking state machine
 
 ### Booking & Payments
 - **Why missing:** Requires complex business logic, payment gateway integration
@@ -294,7 +321,13 @@ This is a **partial submission** for a college project. The scope is intentional
 ### 5. Test Client Login Rejection
 - Logout
 - Login as client: `client@test.com` / `client123`
-- Verify "Client dashboard not implemented" message appears
+- Verify client routes open successfully (home, caterer detail, requests)
+
+### 6. Test Admin Panel
+- Login as admin: `superadmin@caterfind.com` / `admin@123`
+- Verify dashboard loads live counts
+- Verify caterer status updates persist
+- Verify settings save/reload from API
 
 ---
 
@@ -306,7 +339,7 @@ This is a **partial submission** for a college project. The scope is intentional
 
 3. **Email/SMS are stubs** - They log to console instead of sending real messages. No API keys needed.
 
-4. **Client dashboard is intentionally missing** - This is NOT a bug. The project scope is caterer-side only.
+4. **Payments and booking contracts are intentionally missing** - This is NOT a bug for this phase.
 
 5. **Messaging is NOT a chat** - It's broadcast-only. No threading, no replies, no inbox.
 
@@ -317,10 +350,9 @@ This is a **partial submission** for a college project. The scope is intentional
 ## Future Enhancements (Out of Scope)
 
 If this project were to be extended:
-- Client dashboard with event requests
 - Online booking system
 - Payment gateway integration
-- Real-time chat with WebSockets
+- Strong admin auth + role-based API authorization
 - Analytics dashboard with charts
 - Mobile app (React Native)
 - Email/SMS integration with real APIs

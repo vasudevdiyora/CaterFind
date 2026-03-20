@@ -65,6 +65,12 @@ public class CateringProfile {
     @Column(length = 100)
     private String landmark;
 
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
     @Column(name = "service_radius")
     private Integer serviceRadius;
 
@@ -206,8 +212,24 @@ public class CateringProfile {
         return landmark;
     }
 
+    public Double getLatitude() {
+        return latitude;
+    }
+
     public void setLandmark(String landmark) {
         this.landmark = landmark;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
     }
 
     public Integer getServiceRadius() {

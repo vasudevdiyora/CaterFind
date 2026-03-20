@@ -1,60 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Eye, XCircle, MapPin, Calendar, MessageSquare } from 'lucide-react';
+import { adminAPI } from '../services/api';
 
 const AdminClients = () => {
     const [clients, setClients] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedClient, setSelectedClient] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
 
     useEffect(() => {
-        // TODO: Fetch from API
-        setClients([
-            {
-                id: 1,
-                name: 'John Doe',
-                email: 'john@example.com',
-                phone: '+91 9876543210',
-                location: 'Mumbai, Maharashtra',
-                joinedDate: '2024-02-15',
-                totalTrials: 5,
-                activeConversations: 2,
-                lastActive: '2024-02-27'
-            },
-            {
-                id: 2,
-                name: 'Priya Sharma',
-                email: 'priya@example.com',
-                phone: '+91 9876543211',
-                location: 'Delhi, NCR',
-                joinedDate: '2024-01-20',
-                totalTrials: 8,
-                activeConversations: 3,
-                lastActive: '2024-02-26'
-            },
-            {
-                id: 3,
-                name: 'Rahul Verma',
-                email: 'rahul@example.com',
-                phone: '+91 9876543212',
-                location: 'Bangalore, Karnataka',
-                joinedDate: '2023-12-10',
-                totalTrials: 12,
-                activeConversations: 1,
-                lastActive: '2024-02-25'
-            },
-            {
-                id: 4,
-                name: 'Anita Desai',
-                email: 'anita@example.com',
-                phone: '+91 9876543213',
-                location: 'Pune, Maharashtra',
-                joinedDate: '2024-02-01',
-                totalTrials: 3,
-                activeConversations: 4,
-                lastActive: '2024-02-27'
-            },
-        ]);
+        let isMounted = true;
+
+        const loadClients = async () => {
+            setLoading(true);
+            setError('');
+            try {
+                const data = await adminAPI.getClients();
+                if (!isMounted) return;
+                setClients(Array.isArray(data) ? data : []);
+            } catch (err) {
+                if (!isMounted) return;
+                setError(err.message || 'Failed to load clients');
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadClients();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
+
+    const toDate = (value) => {
+        const date = value ? new Date(value) : null;
+        return date && !Number.isNaN(date.getTime()) ? date : null;
+    };
 
     const filteredClients = clients.filter(client => {
         const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -70,6 +55,18 @@ const AdminClients = () => {
                 <p className="text-muted-foreground mt-1">Manage and monitor all clients on the platform</p>
             </div>
 
+            {error && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg p-4">
+                    {error}
+                </div>
+            )}
+
+            {loading && (
+                <div className="bg-card border border-border rounded-lg p-4 text-sm text-muted-foreground">
+                    Loading clients...
+                </div>
+            )}
+
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-card border border-border rounded-lg p-4">
@@ -81,7 +78,8 @@ const AdminClients = () => {
                 <div className="bg-card border border-border rounded-lg p-4">
                     <div className="text-2xl font-bold text-green-500">
                         {clients.filter(c => {
-                            const lastActive = new Date(c.lastActive);
+                            const lastActive = toDate(c.lastActive);
+                            if (!lastActive) return false;
                             const today = new Date();
                             const diffDays = Math.floor((today - lastActive) / (1000 * 60 * 60 * 24));
                             return diffDays <= 7;
@@ -175,7 +173,7 @@ const AdminClients = () => {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm text-foreground">
-                                            {new Date(client.lastActive).toLocaleDateString()}
+                                            {toDate(client.lastActive)?.toLocaleDateString() || 'N/A'}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
@@ -232,7 +230,7 @@ const AdminClients = () => {
                             </div>
                             <div>
                                 <label className="text-sm font-medium text-muted-foreground">Joined Date</label>
-                                <p className="text-foreground">{new Date(selectedClient.joinedDate).toLocaleDateString()}</p>
+                                <p className="text-foreground">{toDate(selectedClient.joinedDate)?.toLocaleDateString() || 'N/A'}</p>
                             </div>
                             <div>
                                 <label className="text-sm font-medium text-muted-foreground">Total Trials</label>
@@ -244,7 +242,7 @@ const AdminClients = () => {
                             </div>
                             <div>
                                 <label className="text-sm font-medium text-muted-foreground">Last Active</label>
-                                <p className="text-foreground">{new Date(selectedClient.lastActive).toLocaleDateString()}</p>
+                                <p className="text-foreground">{toDate(selectedClient.lastActive)?.toLocaleDateString() || 'N/A'}</p>
                             </div>
                         </div>
                     </div>

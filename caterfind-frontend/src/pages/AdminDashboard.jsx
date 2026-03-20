@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
     Users, UserCheck, MessageSquare, Calendar, 
-    TrendingUp, Activity, DollarSign, AlertCircle 
+    TrendingUp, Activity, AlertCircle 
 } from 'lucide-react';
+import { adminAPI } from '../services/api';
 
 const AdminDashboard = () => {
     const [stats, setStats] = useState({
@@ -17,26 +18,35 @@ const AdminDashboard = () => {
     });
 
     const [recentActivity, setRecentActivity] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
 
     useEffect(() => {
-        // TODO: Fetch from API
-        setStats({
-            totalUsers: 247,
-            totalCaterers: 85,
-            totalClients: 162,
-            activeConversations: 43,
-            scheduledTrials: 28,
-            newRegistrations: 12,
-            pendingApprovals: 5,
-            flaggedContent: 2
-        });
+        let isMounted = true;
 
-        setRecentActivity([
-            { id: 1, type: 'registration', user: 'Royal Caterers', time: '5 minutes ago' },
-            { id: 2, type: 'trial', user: 'John Doe booked trial with Sharma Catering', time: '15 minutes ago' },
-            { id: 3, type: 'message', user: 'New conversation between Client A and Caterer B', time: '30 minutes ago' },
-            { id: 4, type: 'approval', user: 'Chennai Tiffin House approved', time: '1 hour ago' },
-        ]);
+        const loadDashboard = async () => {
+            setLoading(true);
+            setError('');
+            try {
+                const data = await adminAPI.getDashboard();
+                if (!isMounted) return;
+                setStats(prev => ({ ...prev, ...(data.stats || {}) }));
+                setRecentActivity(data.recentActivity || []);
+            } catch (err) {
+                if (!isMounted) return;
+                setError(err.message || 'Failed to load admin dashboard');
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadDashboard();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     const statCards = [
@@ -110,6 +120,18 @@ const AdminDashboard = () => {
                     Last updated: {new Date().toLocaleString()}
                 </div>
             </div>
+
+            {error && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg p-4">
+                    {error}
+                </div>
+            )}
+
+            {loading && (
+                <div className="bg-card border border-border rounded-lg p-4 text-sm text-muted-foreground">
+                    Loading dashboard data...
+                </div>
+            )}
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

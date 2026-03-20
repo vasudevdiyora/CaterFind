@@ -1,5 +1,6 @@
 package org.caterfind.service;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -95,22 +96,25 @@ public class TranslationService {
         requestBody.put("temperature", 0.3);
         requestBody.put("max_tokens", 1000);
 
-        // Set headers
+        // Set headers — explicitly request UTF-8 so non-Latin scripts (Hindi, Gujarati, etc.)
+        // survive the HTTP response decoding. Spring's StringHttpMessageConverter defaults
+        // to ISO-8859-1 when the Content-Type has no charset, which corrupts Unicode.
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setContentType(new MediaType("application", "json", StandardCharsets.UTF_8));
         headers.set("Authorization", "Bearer " + apiKey);
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-        // Make API call
-        ResponseEntity<String> response = restTemplate.postForEntity(
+        // Receive as raw bytes and decode as UTF-8 to avoid ISO-8859-1 corruption
+        ResponseEntity<byte[]> response = restTemplate.postForEntity(
             apiUrl,
             entity,
-            String.class
+            byte[].class
         );
 
         // Parse response
-        JsonNode responseJson = objectMapper.readTree(response.getBody());
+        String responseBody = new String(response.getBody(), StandardCharsets.UTF_8);
+        JsonNode responseJson = objectMapper.readTree(responseBody);
         String translatedText = responseJson
             .path("choices")
             .get(0)

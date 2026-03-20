@@ -81,6 +81,34 @@ function Messages({ user }) {
             .slice(0, 2);
     };
 
+    const formatPreferredMethod = (method) => {
+        if (!method) return 'Method: SMS';
+
+        switch (method) {
+            case 'EMAIL':
+                return 'Method: Email';
+            case 'CALL':
+                return 'Method: Call';
+            case 'SMS':
+            default:
+                return 'Method: SMS';
+        }
+    };
+
+    const formatPreferredLanguage = (language) => {
+        if (!language) return 'Language: English';
+
+        switch (language) {
+            case 'HINDI':
+                return 'Language: Hindi';
+            case 'GUJARATI':
+                return 'Language: Gujarati';
+            case 'ENGLISH':
+            default:
+                return 'Language: English';
+        }
+    };
+
     return (
         <div className="messages-page">
             {/* Header */}
@@ -127,6 +155,14 @@ function Messages({ user }) {
                                 <div className="recipient-info">
                                     <div className="recipient-name">{contact.name}</div>
                                     <div className="recipient-phone">{contact.phone}</div>
+                                    <div className="recipient-preferences">
+                                        <span className="recipient-preference-pill">
+                                            {formatPreferredMethod(contact.preferredContactMethod)}
+                                        </span>
+                                        <span className="recipient-preference-pill">
+                                            {formatPreferredLanguage(contact.preferredLanguage)}
+                                        </span>
+                                    </div>
                                     {contact.labels && contact.labels.length > 0 && (
                                         <div className="recipient-labels">
                                             {contact.labels.map(label => (

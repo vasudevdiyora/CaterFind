@@ -362,4 +362,112 @@ public class AuthService {
 
         return false;
     }
+
+    // ──────────────────────────────────────────────────────────────────────────────
+    // Email Change OTP
+    //
+    // We reuse the password_reset_otps table but key it with a special prefix:
+    //   email-change:<currentEmail>
+    // This keeps email-change OTPs completely separate from password-reset OTPs.
+    // ──────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Send an OTP to the requested NEW email address so the caterer can verify it.
+     *
+     * @param currentEmail  Email of the currently authenticated user
+     * @param newEmail      The new email the user wants to switch to
+     * @return A status message (always generic to avoid enumeration)
+     */
+    public String requestEmailChangeOtp(String currentEmail, String newEmail) {
+        if (currentEmail == null || currentEmail.isBlank() || newEmail == null || newEmail.isBlank()) {
+            throw new RuntimeException("Both current and new email are required.");
+        }
+
+        String normalizedNew = newEmail.trim().toLowerCase();
+
+        // Reject if new email is the same as the current one
+        if (normalizedNew.equals(currentEmail.trim().toLowerCase())) {
+            throw new RuntimeException("New email is the same as the current email.");
+        }
+
+        // Reject if new email is already taken by another account
+        if (userRepository.findByEmail(normalizedNew).isPresent()) {
+            throw new RuntimeException("This email address is already registered by another account.");
+        }
+
+        // Clean up any expired records
+        passwordResetOtpRepository.deleteByExpiresAtBefore(LocalDateTime.now());
+
+        // Key used in the OTP table for email-change OTPs
+        String otpKey = "email-change:" + currentEmail.trim().toLowerCase();
+
+        String otp = generateOtp();
+        PasswordResetOtp record = new PasswordResetOtp();
+        record.setEmail(otpKey);   // Using the prefixed key as the "email" field
+        record.setOtpHash(hashOtp(otpKey, otp));
+        record.setExpiresAt(LocalDateTime.now().plusMinutes(otpExpirationMinutes));
+        record.setUsed(false);
+        record.setAttempts(0);
+        passwordResetOtpRepository.save(record);
+
+        // Send OTP to the NEW email address
+        String subject = "CaterFind — Verify Your New Email Address";
+        String body = "You requested to change your email to: " + normalizedNew + "\n\n"
+                + "Your verification OTP is: " + otp + "\n\n"
+                + "This OTP will expire in " + otpExpirationMinutes + " minutes.\n"
+                + "If you did not request this, please ignore this email.";
+        emailService.sendEmail(normalizedNew, subject, body);
+
+        System.out.println("✅ Email change OTP sent to: " + normalizedNew + " | OTP: " + otp);
+        return "OTP sent to " + normalizedNew + ". Please verify to complete the email change.";
+    }
+
+    /**
+     * Verify the email-change OTP and apply the email change.
+     *
+     * @param currentEmail  Email of the currently authenticated user
+     * @param newEmail      The new email address to switch to
+     * @param otp           The 6-digit OTP entered by the user
+     */
+    public void verifyEmailChangeOtp(String currentEmail, String newEmail, String otp) {
+        if (currentEmail == null || otp == null || newEmail == null) {
+            throw new RuntimeException("Missing required fields.");
+        }
+
+        String normalizedCurrent = currentEmail.trim().toLowerCase();
+        String normalizedNew = newEmail.trim().toLowerCase();
+        String otpKey = "email-change:" + normalizedCurrent;
+
+        Optional<PasswordResetOtp> recordOpt = passwordResetOtpRepository.findTopByEmailOrderByCreatedAtDesc(otpKey);
+        if (recordOpt.isEmpty()) {
+            throw new RuntimeException("No pending OTP found. Please request a new one.");
+        }
+
+        PasswordResetOtp record = recordOpt.get();
+        boolean valid = validateOtpRecord(record, otp, true);
+        if (!valid) {
+            throw new RuntimeException("Invalid or expired OTP. Please try again.");
+        }
+
+        // Confirm the new email is still available
+        if (userRepository.findByEmail(normalizedNew).isPresent()) {
+            throw new RuntimeException("This email is already taken by another account.");
+        }
+
+        // Update User.email
+        User user = userRepository.findByEmail(normalizedCurrent)
+                .orElseThrow(() -> new RuntimeException("User not found."));
+        user.setEmail(normalizedNew);
+        userRepository.save(user);
+
+        // Also update CateringProfile.email if the user is a caterer
+        if (user.getRole() == User.UserRole.CATERER) {
+            cateringProfileRepository.findByUserId(user.getId()).ifPresent(profile -> {
+                profile.setEmail(normalizedNew);
+                cateringProfileRepository.save(profile);
+            });
+        }
+
+        System.out.println("✅ Email changed from " + normalizedCurrent + " to " + normalizedNew);
+    }
 }

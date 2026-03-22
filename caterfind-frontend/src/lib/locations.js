@@ -2,12 +2,12 @@
 // Expand this list as needed or replace with an API call.
 
 export const states = [
-  { value: 'Delhi', label: 'Delhi' },
-  { value: 'Gujarat', label: 'Gujarat' },
-  { value: 'Maharashtra', label: 'Maharashtra' },
-  { value: 'Tamil Nadu', label: 'Tamil Nadu' },
-  { value: 'West Bengal', label: 'West Bengal' },
-  { value: 'Karnataka', label: 'Karnataka' }
+  'Delhi',
+  'Gujarat',
+  'Maharashtra',
+  'Tamil Nadu',
+  'West Bengal',
+  'Karnataka'
 ];
 
 export const citiesByState = {

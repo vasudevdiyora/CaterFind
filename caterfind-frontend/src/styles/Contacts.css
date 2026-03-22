@@ -1,8 +1,17 @@
+@import "tailwindcss";
+
 /* ============================================================
-   CONTACTS PAGE STYLES (PREMIUM DARK THEME)
+   CONTACTS PAGE STYLES (PREMIUM LIGHT THEME)
    ============================================================ */
 
 /* Page Layout */
+.filter-pill {
+    @apply px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300;
+}
+
+.filter-pill.active {
+    @apply bg-[color:var(--color-primary)] text-white border-transparent shadow-md transform scale-105;
+}
 .page-container {
     padding: 32px;
     max-width: 1600px;
@@ -271,6 +280,39 @@
     width: 100%;
     max-height: 90vh;
     overflow-y: auto;
+}
+
+/* Side panel variant for mobile sidebars / slide-in panels */
+.modal-side {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    z-index: 1100;
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-start;
+    background: transparent; /* actual panel background provided by inner element */
+}
+
+.modal-side .sidebar,
+.side-left,
+.side-right {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+    width: 272px;
+    max-width: 90vw;
+    height: 100vh;
+    overflow: auto;
+}
+
+.modal-side.side-left {
+    left: 0;
+}
+
+.modal-side.side-right {
+    right: 0;
+    justify-content: flex-end;
 }
 
 .modal-title {

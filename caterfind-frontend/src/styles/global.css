@@ -1,68 +1,76 @@
-@import "tailwindcss";
+/* Catering Management Platform - Light Theme Design System */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
-/* Catering Management Platform - Dark Theme Design System */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
 
 /* Prevent vertical overscroll/pull-to-refresh bounce, but keep horizontal swipe navigation */
 html,
 body {
-  overscroll-behavior-y: none; /* Prevents vertical bounce/stretch only */
-  overscroll-behavior-x: auto; /* Allows horizontal swipe for browser back/forward */
+  /* Allow normal vertical scrolling (two-finger) while preventing unwanted
+     horizontal navigation/overscroll. Avoid setting global touch-action so
+     desktop touchpad two-finger scroll continues to work. */
+  overscroll-behavior-y: auto;
+  overscroll-behavior-x: none;
+  touch-action: auto;
+}
+
+html {
+  font-size: 16px;
 }
 
 @theme {
-  /* Professional Dark Theme - Sophisticated Color Palette */
+  /* Professional Light Theme - Clean and Calm Palette */
 
-  /* Base Colors - Darker, more professional */
-  --color-background: oklch(0.18 0.015 250);
-  --color-foreground: oklch(0.98 0 0);
+  /* Base Colors */
+  --color-background: oklch(0.98 0.01 95);
+  --color-foreground: oklch(0.28 0.02 255);
 
-  /* Card backgrounds - Slightly lighter than base for depth */
-  --color-card: oklch(0.22 0.015 250);
-  --color-card-foreground: oklch(0.98 0 0);
+  /* Card backgrounds */
+  --color-card: oklch(1 0 0);
+  --color-card-foreground: oklch(0.28 0.02 255);
 
-  --color-popover: oklch(0.22 0.015 250);
-  --color-popover-foreground: oklch(0.98 0 0);
+  --color-popover: oklch(1 0 0);
+  --color-popover-foreground: oklch(0.28 0.02 255);
 
-  /* Primary - Professional Orange (like Dashboard CTAs) */
-  --color-primary: oklch(0.65 0.15 45);
-  --color-primary-foreground: oklch(0.98 0 0);
+  /* Primary - Calm Sky Blue (aligned with landing page) */
+  --color-primary: oklch(0.63 0.14 244);
+  --color-primary-foreground: oklch(0.99 0.01 255);
 
-  /* Secondary - Muted slate */
-  --color-secondary: oklch(0.28 0.015 250);
-  --color-secondary-foreground: oklch(0.98 0 0);
+  /* Secondary */
+  --color-secondary: oklch(0.95 0.01 255);
+  --color-secondary-foreground: oklch(0.32 0.02 255);
 
   /* Muted - Subtle backgrounds */
-  --color-muted: oklch(0.28 0.015 250);
-  --color-muted-foreground: oklch(0.60 0.01 250);
+  --color-muted: oklch(0.96 0.005 255);
+  --color-muted-foreground: oklch(0.52 0.015 255);
 
   /* Accent - Same as primary for consistency */
-  --color-accent: oklch(0.65 0.15 45);
-  --color-accent-foreground: oklch(0.98 0 0);
+  --color-accent: oklch(0.63 0.14 244);
+  --color-accent-foreground: oklch(0.99 0.01 255);
 
   /* Destructive - Professional red */
   --color-destructive: oklch(0.55 0.20 25);
   --color-destructive-foreground: oklch(1 0 0);
 
   /* Borders and Inputs - Subtle but visible */
-  --color-border: oklch(0.32 0.015 250);
-  --color-input: oklch(0.25 0.015 250);
-  --color-ring: oklch(0.65 0.15 45);
+  --color-border: oklch(0.88 0.01 255);
+  --color-input: oklch(0.99 0.005 255);
+  --color-ring: oklch(0.63 0.14 244);
 
   /* Border Radius */
   --radius-lg: 0.75rem;
   --radius-md: calc(0.75rem - 2px);
   --radius-sm: calc(0.75rem - 4px);
 
-  /* Sidebar - Darkest for contrast */
-  --color-sidebar-background: oklch(0.16 0.015 250);
-  --color-sidebar-foreground: oklch(0.98 0 0);
-  --color-sidebar-primary: oklch(0.65 0.15 45);
-  --color-sidebar-primary-foreground: oklch(0.98 0 0);
-  --color-sidebar-accent: oklch(0.25 0.015 250);
-  --color-sidebar-accent-foreground: oklch(0.98 0 0);
-  --color-sidebar-border: oklch(0.28 0.015 250);
-  --color-sidebar-ring: oklch(0.65 0.15 45);
+  /* Sidebar */
+  --color-sidebar-background: oklch(0.985 0.008 255);
+  --color-sidebar-foreground: oklch(0.3 0.02 255);
+  --color-sidebar-primary: oklch(0.63 0.14 244);
+  --color-sidebar-primary-foreground: oklch(0.99 0.01 255);
+  --color-sidebar-accent: oklch(0.95 0.01 255);
+  --color-sidebar-accent-foreground: oklch(0.32 0.02 255);
+  --color-sidebar-border: oklch(0.9 0.01 255);
+  --color-sidebar-ring: oklch(0.63 0.14 244);
 }
 
 @layer base {
@@ -71,8 +79,35 @@ body {
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', sans-serif;
+    @apply bg-slate-50 text-slate-900 font-sans antialiased;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    line-height: 1.5;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Manrope', sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--color-primary) 72%, white 28%);
+    outline-offset: 2px;
   }
 
   /* Enhanced visual separation for sections */
@@ -84,7 +119,7 @@ body {
   .history-section,
   .stat-card,
   .content-card {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
   }
 
   /* Legacy CSS Variable Mappings for Existing Stylesheets */
@@ -99,7 +134,7 @@ body {
     /* Text colors */
     --text-primary: var(--color-foreground);
     --text-secondary: var(--color-muted-foreground);
-    --text-muted: oklch(0.50 0.01 250);
+    --text-muted: oklch(0.62 0.012 255);
 
     /* Border and other colors */
     --border-color: var(--color-border);
@@ -119,5 +154,26 @@ body {
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .page-shell {
+    @apply w-full max-w-[1500px] mx-auto px-3 md:px-4 lg:px-6;
+  }
+
+  .surface-card {
+    @apply bg-white border border-slate-200 rounded-xl shadow-sm transition-all duration-200;
+  }
+
+  .dense-grid {
+    @apply grid gap-4;
+  }
+
+  /* Accessible Button Components */
+  .primary-button {
+    @apply inline-flex items-center justify-center rounded-lg bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 text-sm font-medium shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .secondary-button {
+    @apply inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 text-sm font-medium shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
   }
 }

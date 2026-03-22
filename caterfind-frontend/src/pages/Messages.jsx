@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { messageAPI, contactAPI } from '../services/api';
 import '../styles/Messages.css';
+import Modal from '../components/Modal';
 
 /**
  * Messages Page Component (Premium Design)
@@ -16,6 +17,7 @@ function Messages({ user }) {
     const [messageLogs, setMessageLogs] = useState([]);
     const [sending, setSending] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
+    const [loadError, setLoadError] = useState('');
 
     useEffect(() => {
         fetchContacts();
@@ -25,18 +27,20 @@ function Messages({ user }) {
     const fetchContacts = async () => {
         try {
             const data = await contactAPI.getAll(user.userId);
-            setContacts(data);
+            setContacts(Array.isArray(data) ? data : []);
+            setLoadError('');
         } catch (error) {
-            // Error fetching contacts
+            setContacts([]);
+            setLoadError(error?.message || 'Failed to load contacts.');
         }
     };
 
     const fetchMessageLogs = async () => {
         try {
             const data = await messageAPI.getLogs(user.userId);
-            setMessageLogs(data);
+            setMessageLogs(Array.isArray(data) ? data : []);
         } catch (error) {
-            // Error fetching message logs
+            setMessageLogs([]);
         }
     };
 
@@ -66,11 +70,13 @@ function Messages({ user }) {
             setMessageText('');
             fetchMessageLogs();
         } catch (error) {
-            alert('Failed to send message');
+            alert(error?.message || 'Failed to send message');
         } finally {
             setSending(false);
         }
     };
+
+    const safeContacts = Array.isArray(contacts) ? contacts : [];
 
     const getInitials = (name) => {
         return name
@@ -136,8 +142,14 @@ function Messages({ user }) {
                         Select Contacts ({selectedContacts.length} selected)
                     </p>
 
+                    {loadError && (
+                        <p className="section-subtitle" style={{ color: '#b91c1c' }}>
+                            {loadError}
+                        </p>
+                    )}
+
                     <div className="recipients-grid">
-                        {contacts.map(contact => (
+                        {safeContacts.map(contact => (
                             <div
                                 key={contact.id}
                                 className={`recipient-card ${selectedContacts.includes(contact.id) ? 'selected' : ''}`}
@@ -256,50 +268,37 @@ function Messages({ user }) {
                 </div>
             </div>
 
-            {/* Message History Modal/Panel */}
-            {showHistory && (
-                <div className="history-overlay" onClick={() => setShowHistory(false)}>
-                    <div className="history-panel" onClick={e => e.stopPropagation()}>
-                        <div className="history-header">
-                            <h2 className="history-title">📜 Message History</h2>
-                            <button
-                                className="history-close-btn"
-                                onClick={() => setShowHistory(false)}
-                            >
-                                ✕
-                            </button>
+            {/* Message History (uses shared Modal) */}
+            <Modal isOpen={showHistory} onClose={() => setShowHistory(false)} title={'Message History'} className={'!max-w-2xl'}>
+                <div className="history-content">
+                    {messageLogs.length === 0 ? (
+                        <div className="history-empty">
+                            <div className="empty-icon">💬</div>
+                            <p className="empty-text">No messages sent yet</p>
                         </div>
-                        <div className="history-content">
-                            {messageLogs.length === 0 ? (
-                                <div className="history-empty">
-                                    <div className="empty-icon">💬</div>
-                                    <p className="empty-text">No messages sent yet</p>
+                    ) : (
+                        <div className="history-list">
+                            {messageLogs.map(log => (
+                                <div key={log.id} className="history-item">
+                                    <div className="history-item-header">
+                                        <span className="history-recipient">{log.contactName}</span>
+                                        <span className="history-time">
+                                            {new Date(log.sentAt).toLocaleString()}
+                                        </span>
+                                    </div>
+                                    <p className="history-message">{log.messageText}</p>
+                                    <div className="history-item-footer">
+                                        <span className="history-method">
+                                            {log.contactMethod === 'EMAIL' ? '📧 EMAIL' :
+                                                log.contactMethod === 'CALL' ? '📞 CALL' : '📱 SMS'}
+                                        </span>
+                                    </div>
                                 </div>
-                            ) : (
-                                <div className="history-list">
-                                    {messageLogs.map(log => (
-                                        <div key={log.id} className="history-item">
-                                            <div className="history-item-header">
-                                                <span className="history-recipient">{log.contactName}</span>
-                                                <span className="history-time">
-                                                    {new Date(log.sentAt).toLocaleString()}
-                                                </span>
-                                            </div>
-                                            <p className="history-message">{log.messageText}</p>
-                                            <div className="history-item-footer">
-                                                <span className="history-method">
-                                                    {log.contactMethod === 'EMAIL' ? '📧 EMAIL' :
-                                                        log.contactMethod === 'CALL' ? '📞 CALL' : '📱 SMS'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                            ))}
                         </div>
-                    </div>
+                    )}
                 </div>
-            )}
+            </Modal>
         </div>
     );
 }

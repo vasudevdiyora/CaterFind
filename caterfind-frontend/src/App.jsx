@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -13,6 +13,7 @@ import Availability from './pages/Availability';
 import DishLibrary from './pages/DishLibrary';
 import ClientRequests from './pages/ClientRequests';
 import MenuBuilder from './pages/MenuBuilder';
+import MenuHistory from './pages/MenuHistory';
 import CatererLayout from '@/components/layouts/CatererLayout';
 import ClientLayout from '@/components/layouts/ClientLayout';
 import AdminLayout from '@/components/layouts/AdminLayout';
@@ -27,7 +28,7 @@ import ClientTrials from './pages/ClientTrials';
 import ClientProfile from './pages/ClientProfile';
 import ClientMeetingRequests from './pages/ClientMeetingRequests';
 import ForgotPassword from './pages/ForgotPassword';
-import { authSession } from './services/api';
+import { AUTH_EXPIRED_EVENT, authSession } from './services/api';
 
 
 /**
@@ -42,7 +43,19 @@ import { authSession } from './services/api';
  */
 function App() {
   // Authentication state
-  const [user, setUser] = useState(() => authSession.get()?.user || null);
+  const [user, setUser] = useState(() => {
+    const session = authSession.get();
+    return session?.token && session?.user ? session.user : null;
+  });
+
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      setUser(null);
+    };
+
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+  }, []);
 
   /**
    * Handle successful login.
@@ -88,13 +101,13 @@ function App() {
           user.role === 'CATERER' ? '/owner/dashboard' : '/client/home'
         } /> : <Landing />
       } />
-      <Route path="/login/:role" element={
+      <Route path="/login" element={
         user ? <Navigate to={
           user.role === 'ADMIN' ? '/admin/dashboard' :
           user.role === 'CATERER' ? '/owner/dashboard' : '/client/home'
         } /> : <Login onLogin={handleLogin} />
       } />
-      <Route path="/register/:role" element={
+      <Route path="/register" element={
         user ? <Navigate to={
           user.role === 'ADMIN' ? '/admin/dashboard' :
           user.role === 'CATERER' ? '/owner/dashboard' : '/client/home'
@@ -113,6 +126,7 @@ function App() {
             <Route path="calendar" element={<Availability user={user} />} />
             <Route path="clients" element={<ClientRequests user={user} />} />
             <Route path="dish-library" element={<DishLibrary user={user} />} />
+            <Route path="menu-history" element={<MenuHistory user={user} />} />
             <Route path="menu-builder" element={<MenuBuilder user={user} />} />
             <Route path="inventory" element={<Inventory user={user} />} />
             <Route path="contacts" element={<Contacts user={user} />} />

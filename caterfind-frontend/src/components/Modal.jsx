@@ -1,0 +1,89 @@
+import React, { useEffect, useRef, useState } from 'react';
+import './Modal.css';
+import { X } from 'lucide-react';
+
+const Modal = ({ isOpen = true, onClose = () => {}, title = null, children, className = '', side = null }) => {
+    const overlayRef = useRef(null);
+
+    useEffect(() => {
+        const onKey = (e) => {
+            if (e.key === 'Escape') onClose();
+        };
+
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [onClose]);
+
+    if (!isOpen) return null;
+
+    // Side panel variant (used for slide-in sidebars)
+    const [isMobile, setIsMobile] = useState(() => {
+        try { return window.innerWidth < 1024; } catch { return false; }
+    });
+
+    useEffect(() => {
+        const onResize = () => setIsMobile(window.innerWidth < 1024);
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
+
+    const overlayClass = 'modal-overlay';
+
+    // Compute overlay left offset on desktop so it doesn't cover the persistent sidebar.
+    const [overlayStyle, setOverlayStyle] = useState(null);
+
+    useEffect(() => {
+        if (isMobile) {
+            setOverlayStyle(null);
+            return;
+        }
+
+        try {
+            // Try to detect a left `aside` (desktop sidebar) and use its width as left offset.
+            const aside = document.querySelector('aside');
+            const width = aside ? Math.round(aside.getBoundingClientRect().width) : 256;
+            setOverlayStyle({ left: `${width}px` });
+        } catch (err) {
+            setOverlayStyle({ left: '256px' });
+        }
+    }, [isMobile]);
+
+    // Side panels are intended for mobile; don't render overlay/panel on desktop
+    if (side === 'left' || side === 'right') {
+        if (!isMobile) return null;
+
+        return (
+            <div className={overlayClass} ref={overlayRef} style={overlayStyle || undefined} onMouseDown={(e) => { if (e.target === overlayRef.current) onClose(); }}>
+                <div
+                    className={`${className} modal-side ${side === 'left' ? 'side-left' : 'side-right'}`}
+                    role="dialog"
+                    aria-modal="true"
+                    onMouseDown={(e) => e.stopPropagation()}
+                >
+                    {children}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className={overlayClass} ref={overlayRef} style={overlayStyle || undefined} onMouseDown={(e) => { if (e.target === overlayRef.current) onClose(); }}>
+            <div className={`modal-content ${className}`} role="dialog" aria-modal="true">
+                <div className="modal-header">
+                    {title ? (
+                        typeof title === 'string' ? <h2>{title}</h2> : <div>{title}</div>
+                    ) : null}
+                    <button type="button" className="close-btn" onClick={onClose} aria-label="Close">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <div className="modal-body">
+                    {children}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default Modal;

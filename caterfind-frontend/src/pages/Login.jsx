@@ -1,23 +1,28 @@
-import { useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { authAPI } from '../services/api';
-import { UtensilsCrossed, Mail, Lock, ArrowRight, Info, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { UtensilsCrossed, Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import '../styles/Login.css';
 
-import { cn } from '@/lib/utils';
-
-/**
- * Login Page Component (Tailwind v4 + Loveable Style)
- */
-function Login({ onLogin }) {
+const Login = ({ onLogin }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
-    const { role } = useParams(); // Get role from URL (client or caterer)
-    const selectedRole = role?.toUpperCase();
+    const location = useLocation();
 
+    const getRoleFromQuery = () => {
+        const params = new URLSearchParams(location.search);
+        return params.get('role')?.toUpperCase() || 'CLIENT';
+    };
+
+    const [role, setRole] = useState(getRoleFromQuery());
+
+    useEffect(() => {
+        setRole(getRoleFromQuery());
+    }, [location.search]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -26,141 +31,122 @@ function Login({ onLogin }) {
 
         try {
             const response = await authAPI.login(email, password);
-
-            if (response.success) {
-                if (response.role === 'ADMIN' || response.role === 'CATERER' || response.role === 'CLIENT') {
-                    onLogin(response);
-                    // Navigation is handled by App.jsx redirects
-                } else {
-                    setError('Unknown role. Please contact support.');
-                }
-            } else {
-                setError(response.message || 'Invalid email or password');
-            }
+            onLogin(response);
+            // Navigation is handled by App.jsx redirects
         } catch (err) {
-            setError('Login failed. Please check your credentials.');
+            setError(err.message || 'Login failed. Please check your credentials.');
         } finally {
             setLoading(false);
         }
     };
 
-    return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-            {/* Back Button */}
-            <button
-                onClick={() => navigate('/')}
-                className="absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-                <ArrowLeft className="w-5 h-5" />
-                <span className="text-sm font-medium">Back</span>
-            </button>
+    const getPageInfo = () => {
+        switch (role) {
+            case 'ADMIN':
+                return { title: 'Admin Panel', subtitle: 'Access the control center' };
+            case 'CATERER':
+                return { title: 'Caterer Dashboard', subtitle: 'Manage your business' };
+            default:
+                return { title: 'Welcome Back', subtitle: 'Find the perfect caterer for your event' };
+        }
+    };
 
-            <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {/* Header */}
-                <div className="text-center space-y-2">
-                    <div className="mx-auto h-16 w-16 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20 rotate-3 hover:rotate-0 transition-transform duration-300">
-                        <UtensilsCrossed className="h-8 w-8 text-primary-foreground" />
+    const { title, subtitle } = getPageInfo();
+
+    return (
+        <div className="login-container">
+            <div className="login-card">
+                <Link to="/" className="back-button">
+                    <ArrowLeft size={16} /> Back to Home
+                </Link>
+
+                <div className="login-header">
+                    <div className="logo-icon">
+                        <UtensilsCrossed size={24} />
                     </div>
-                    <h1 className="text-4xl font-extrabold tracking-tight mt-6">CaterFind</h1>
-                    <p className="text-muted-foreground text-lg">
-                        {selectedRole === 'ADMIN'
-                            ? 'Admin Panel'
-                            : selectedRole === 'CATERER' 
-                            ? 'Catering Business Management'
-                            : 'Find Perfect Caterers'}
-                    </p>
+                    <h1>{title}</h1>
+                    <p>{subtitle}</p>
                 </div>
 
-                {/* Card */}
-                <div className="bg-card border rounded-2xl p-8 shadow-2xl shadow-background/50 relative overflow-hidden group">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50" />
-
-                    <form className="space-y-6" onSubmit={handleSubmit}>
-                        {/* Email Field */}
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none flex items-center gap-2 text-muted-foreground">
-                                <Mail className="h-4 w-4" />
-                                Email Address
-                            </label>
+                <form className="space-y-6" onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <label htmlFor="email">Email Address</label>
+                        <div className="input-wrapper">
+                            <Mail size={18} className="input-icon" />
                             <input
+                                id="email"
                                 type="email"
-                                className="flex h-12 w-full rounded-xl border bg-input px-4 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all border-border/50 hover:border-primary/50"
-                                placeholder="admin@caterfind.com"
+                                className="form-input with-icon"
+                                placeholder="you@example.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
                             />
                         </div>
+                    </div>
 
-                        {/* Password Field */}
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none flex items-center gap-2 text-muted-foreground">
-                                <Lock className="h-4 w-4" />
-                                Password
-                            </label>
-                            <div className="relative">
-                                <input
-                                    type={showPassword ? "text" : "password"}
-                                    className="flex h-12 w-full rounded-xl border bg-input px-4 py-2 pr-12 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all border-border/50 hover:border-primary/50"
-                                    placeholder="••••••••"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
-                                >
-                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                </button>
-                            </div>
-
-                            <div className="text-right">
-                                <Link to="/forgot-password" className="text-sm text-primary hover:underline">
-                                    Forgot Password?
-                                </Link>
-                            </div>
-
+                    <div className="form-group">
+                        <label htmlFor="password">Password</label>
+                        <div className="input-wrapper">
+                            <Lock size={18} className="input-icon" />
+                            <input
+                                id="password"
+                                type={showPassword ? "text" : "password"}
+                                className="form-input with-icon"
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="password-toggle"
+                            >
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
                         </div>
+                    </div>
 
-                        {error && (
-                            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-start gap-2 animate-in shake duration-300">
-                                <Info className="h-4 w-4 mt-0.5 shrink-0" />
-                                {error}
-                            </div>
-                        )}
-
-                        <button
-                            type="submit"
-                            className="w-full h-12 inline-flex items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-lg shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none"
-                            disabled={loading}
-                        >
-                            {loading ? 'Logging in...' : 'Login to Dashboard'}
-                            {!loading && <ArrowRight className="ml-2 h-5 w-5" />}
-                        </button>
-                    </form>
-                </div>
-
-                {/* Footer Info */}
-                <div className="text-center space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                        Don't have an account?{' '}
-                        <Link
-                            to={`/register/${role || 'client'}`}
-                            className="font-medium text-primary hover:underline transition-all"
-                        >
-                            Sign up here
+                    <div className="text-right text-sm">
+                        <Link to="/forgot-password" className="text-sky-600 hover:underline">
+                            Forgot Password?
                         </Link>
-                    </p>
+                    </div>
 
-                    <p className="text-xs text-muted-foreground">
-                        © 2026 CaterFind Business. All rights reserved.
+                    {error && (
+                        <div className="error-alert">
+                            <AlertCircle size={20} />
+                            <span>{error}</span>
+                        </div>
+                    )}
+
+                    <button
+                        type="submit"
+                        className="primary-button w-full !text-base !py-3"
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                            <>
+                                Login <ArrowRight size={20} className="ml-2" />
+                            </>
+                        )}
+                    </button>
+                </form>
+
+                <div className="login-footer">
+                    <p>
+                        Don't have an account?{' '}
+                        <Link to={`/register?role=${role.toLowerCase()}`} className="font-semibold text-sky-600 hover:underline">
+                            Sign up
+                        </Link>
                     </p>
                 </div>
             </div>
         </div>
     );
-}
+};
 
 export default Login;

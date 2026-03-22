@@ -3,6 +3,7 @@ import {
     Search, CheckCircle, XCircle, Eye, MapPin, Star 
 } from 'lucide-react';
 import { adminAPI } from '../services/api';
+import Modal from '../components/Modal';
 
 const AdminCaterers = () => {
     const [caterers, setCaterers] = useState([]);
@@ -174,8 +175,8 @@ const AdminCaterers = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {filteredCaterers.map((caterer) => (
-                                <tr key={caterer.id} className="hover:bg-secondary/50">
+                            {filteredCaterers.map((caterer, index) => (
+                                <tr key={caterer.id || index} className="hover:bg-secondary/50">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div>
                                             <div className="text-sm font-medium text-foreground">
@@ -277,66 +278,60 @@ const AdminCaterers = () => {
             </div>
 
             {/* Details Modal */}
-            {selectedCaterer && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-auto">
-                        <div className="p-6 border-b border-border flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-foreground">Caterer Details</h2>
-                            <button
-                                onClick={() => setSelectedCaterer(null)}
-                                className="text-muted-foreground hover:text-foreground"
-                            >
-                                <XCircle size={24} />
-                            </button>
+            <Modal
+                isOpen={!!selectedCaterer}
+                onClose={() => setSelectedCaterer(null)}
+                title={<h2 className="text-xl font-bold text-foreground">Caterer Details</h2>}
+                className="bg-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-auto"
+            >
+                {selectedCaterer && (
+                    <div className="p-6 space-y-4">
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">Business Name</label>
+                            <p className="text-foreground">{selectedCaterer.businessName}</p>
                         </div>
-                        <div className="p-6 space-y-4">
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">Business Name</label>
-                                <p className="text-foreground">{selectedCaterer.businessName}</p>
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">Owner Name</label>
+                            <p className="text-foreground">{selectedCaterer.ownerName}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">Email</label>
+                            <p className="text-foreground">{selectedCaterer.email}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">Phone</label>
+                            <p className="text-foreground">{selectedCaterer.phone}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">Location</label>
+                            <p className="text-foreground">{selectedCaterer.location}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">Specialties</label>
+                            <div className="flex gap-2 mt-1">
+                                {(selectedCaterer.specialties || []).map((spec, idx) => (
+                                    <span key={idx} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded">
+                                        {spec}
+                                    </span>
+                                ))}
+                                {(!selectedCaterer.specialties || selectedCaterer.specialties.length === 0) && (
+                                    <span className="text-sm text-muted-foreground">No specialties added</span>
+                                )}
                             </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">Owner Name</label>
-                                <p className="text-foreground">{selectedCaterer.ownerName}</p>
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">Email</label>
-                                <p className="text-foreground">{selectedCaterer.email}</p>
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">Phone</label>
-                                <p className="text-foreground">{selectedCaterer.phone}</p>
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">Location</label>
-                                <p className="text-foreground">{selectedCaterer.location}</p>
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">Specialties</label>
-                                <div className="flex gap-2 mt-1">
-                                    {(selectedCaterer.specialties || []).map((spec, idx) => (
-                                        <span key={idx} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded">
-                                            {spec}
-                                        </span>
-                                    ))}
-                                    {(!selectedCaterer.specialties || selectedCaterer.specialties.length === 0) && (
-                                        <span className="text-sm text-muted-foreground">No specialties added</span>
-                                    )}
-                                </div>
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">Joined Date</label>
-                                <p className="text-foreground">{new Date(selectedCaterer.joinedDate).toLocaleDateString()}</p>
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">Status</label>
-                                <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full border ${getStatusBadge(selectedCaterer.status)}`}>
-                                    {selectedCaterer.status.charAt(0).toUpperCase() + selectedCaterer.status.slice(1)}
-                                </span>
-                            </div>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">Joined Date</label>
+                            <p className="text-foreground">{new Date(selectedCaterer.joinedDate).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">Status</label>
+                            <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full border ${getStatusBadge(selectedCaterer.status)}`}>
+                                {selectedCaterer.status.charAt(0).toUpperCase() + selectedCaterer.status.slice(1)}
+                            </span>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </Modal>
         </div>
     );
 };

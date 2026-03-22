@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X, Send, MessageSquare, Mail, Phone } from 'lucide-react';
+import { Send, MessageSquare, Mail } from 'lucide-react';
+import Modal from '../components/Modal';
 import { messageAPI, contactAPI } from '../services/api';
 // Styles are loaded via Table.css in parent component
 
 const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
     const [message, setMessage] = useState('');
-    const [quantity, setQuantity] = useState('');
+    const [quantity, setQuantity] = useState(0);
     const [loading, setLoading] = useState(false);
 
     // Contact details state
@@ -16,7 +17,7 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
     
     // New: All contacts and selected contact
     const [allContacts, setAllContacts] = useState([]);
-    const [selectedContactId, setSelectedContactId] = useState(null);
+    const [selectedContactId, setSelectedContactId] = useState('');
 
     // Initial item details
     const dealerContactId = item.dealerContactId || null;
@@ -28,9 +29,10 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
             // Load all contacts
             try {
                 const contacts = await contactAPI.getAll(catererId);
-                setAllContacts(contacts || []);
+                setAllContacts(Array.isArray(contacts) ? contacts : []);
             } catch (err) {
                 console.error('Failed to load contacts:', err);
+                setAllContacts([]);
             }
 
             // 1. Calculate quantity
@@ -43,7 +45,7 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
             let name = manualDealerName;
             let phone = manualDealerPhone;
             let email = '';
-            let contactId = dealerContactId;
+            let contactId = dealerContactId || '';
 
             // 2. If linked contact, fetch details to get preference
             if (dealerContactId) {
@@ -65,7 +67,7 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
             setContactName(name);
             setContactPhone(phone);
             setContactEmail(email);
-            setSelectedContactId(contactId);
+            setSelectedContactId(contactId ? String(contactId) : '');
 
             // 3. Pre-fill message
             const template = `Hi ${name}, please send ${suggestQty} ${item.unit} of ${item.itemName} to CaterFind Kitchen.`;
@@ -76,26 +78,27 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
     }, [item, catererId, dealerContactId, manualDealerName, manualDealerPhone]);
 
     const handleQuantityChange = (e) => {
-        const newQty = e.target.value;
+        const newQty = parseInt(e.target.value) || 0;
         setQuantity(newQty);
         setMessage(`Hi ${contactName}, please send ${newQty} ${item.unit} of ${item.itemName} to CaterFind Kitchen.`);
     };
 
     const handleContactChange = async (e) => {
         const contactId = e.target.value;
-        
+
         if (!contactId) {
             // Reset to manual/default
-            setSelectedContactId(null);
+            setSelectedContactId('');
             setContactName(manualDealerName);
             setContactPhone(manualDealerPhone);
             setContactEmail('');
             setContactMethod('SMS');
+            setMessage(`Hi ${manualDealerName}, please send ${quantity} ${item.unit} of ${item.itemName} to CaterFind Kitchen.`);
             return;
         }
 
         setSelectedContactId(contactId);
-        
+
         try {
             const contact = await contactAPI.getById(contactId);
             if (contact) {
@@ -131,8 +134,10 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
         try {
             const reorderData = {
                 dealerName: contactName,
-                dealerPhone: contactPhone, // Backend uses this for SMS
-                dealerContactId: dealerContactId,
+                dealerPhone: contactPhone || null,
+                dealerEmail: contactEmail || null,
+                dealerContactId: selectedContactId ? parseInt(selectedContactId) : null,
+                contactMethod: contactMethod,
                 messageText: message
             };
 
@@ -141,12 +146,12 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
 
             const response = await messageAPI.sendReorder(catererId, reorderData);
 
-            if (response.success) {
+            if (response && response.success) {
                 alert(`Reorder sent successfully via ${contactMethod}!`);
                 onSuccess();
                 onClose();
             } else {
-                alert('Failed: ' + response.message);
+                alert('Failed: ' + (response?.message || 'Unknown error'));
             }
         } catch (error) {
             alert('Failed to send reorder. Please try again.');
@@ -156,21 +161,12 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
     };
 
     const isReady = (contactMethod === 'SMS' && contactPhone) ||
-        (contactMethod === 'EMAIL' && contactEmail) ||
+        (contactMethod === 'EMAIL' && (contactEmail || contactPhone)) ||
         (contactMethod === 'CALL' && contactPhone);
 
     return (
-        <div className="modal-overlay">
-            <div className="modal-content reorder-modal">
-                <div className="modal-header">
-                    <h2>
-                        {contactMethod === 'EMAIL' ? <Mail size={24} /> : <MessageSquare size={24} />}
-                        Reorder Item
-                    </h2>
-                    <button className="close-btn" onClick={onClose}><X size={24} /></button>
-                </div>
-
-                <form onSubmit={handleSubmit} className="modal-form">
+        <Modal isOpen={true} onClose={onClose} title={<><span style={{marginRight:8}}>{contactMethod === 'EMAIL' ? <Mail size={20} /> : <MessageSquare size={20} />}</span>Reorder Item</>} className="reorder-modal">
+            <form onSubmit={handleSubmit} className="modal-form">
                     <div className="item-summary" style={{
                         background: '#333',
                         padding: '10px',
@@ -204,13 +200,50 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
                                 fontSize: '14px'
                             }}
                         >
-                            {allContacts.map(contact => (
-                                <option key={contact.id} value={contact.id}>
-                                    {contact.name} ({contact.phone || contact.email || 'No contact info'})
-                                </option>
-                            ))}
+                            <option value="">Manual / Select Dealer</option>
+                            {Array.isArray(allContacts) && allContacts.length > 0 ? (
+                                allContacts.map(contact => (
+                                    <option key={contact.id} value={contact.id}>
+                                        {contact.name} ({contact.phone || contact.email || 'No contact info'})
+                                    </option>
+                                ))
+                            ) : (
+                                <option value="" disabled>No registered contacts</option>
+                            )}
                         </select>
-                        {dealerContactId && selectedContactId === dealerContactId && (
+
+                        {/* Manual dealer inputs when no registered contact selected */}
+                        {!selectedContactId && (
+                            <div style={{ marginTop: '10px', display: 'grid', gap: '8px' }}>
+                                <input
+                                    type="text"
+                                    placeholder="Dealer name"
+                                    value={contactName}
+                                    onChange={(e) => setContactName(e.target.value)}
+                                    className="form-input"
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Phone or Email"
+                                    value={contactPhone || contactEmail}
+                                    onChange={(e) => {
+                                        const v = e.target.value;
+                                        // simple heuristic: contains @ -> treat as email
+                                        if (v.includes('@')) {
+                                            setContactEmail(v);
+                                            setContactPhone('');
+                                            setContactMethod('EMAIL');
+                                        } else {
+                                            setContactPhone(v);
+                                            setContactEmail('');
+                                            setContactMethod('SMS');
+                                        }
+                                    }}
+                                    className="form-input"
+                                />
+                            </div>
+                        )}
+                        {dealerContactId && selectedContactId && String(selectedContactId) === String(dealerContactId) && (
                             <div style={{ fontSize: '11px', color: '#f49d25', marginTop: '4px' }}>
                                 * Using preferred method: {contactMethod}
                             </div>
@@ -237,6 +270,7 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
                             className="form-textarea"
                             rows="4"
                             required
+                            style={{ whiteSpace: 'pre-wrap' }}
                         />
                     </div>
 
@@ -252,14 +286,13 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
                             type="submit"
                             className="submit-btn"
                             disabled={loading || !isReady}
-                            style={{ background: '#f49d25', color: '#000' }}
+                            style={{ background: contactMethod === 'EMAIL' ? '#2563eb' : (contactMethod === 'CALL' ? '#f59e0b' : '#f97316'), color: contactMethod === 'EMAIL' ? '#fff' : '#000' }}
                         >
                             {loading ? 'Sending...' : <><Send size={18} /> Send {contactMethod}</>}
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+        </Modal>
     );
 };
 

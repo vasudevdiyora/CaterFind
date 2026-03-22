@@ -1,934 +1,588 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { dishAPI, menuAPI } from '@/services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, Plus, Search, X, Trash2, Save, Send, Edit3, Utensils, Calendar, Users, Building, Info, Mail, Phone } from 'lucide-react';
+import '../styles/Table.css'; // Reusing modal and table styles
+import '../styles/Contacts.css'; // Reusing filter pills
 
 /**
- * Menu Builder Component
+ * Menu Builder Component (Dense Light Theme)
  * Three-step process: Client Details -> Build Menu -> Review & Send
  */
 function MenuBuilder({ user }) {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingMenuId, setEditingMenuId] = useState(null);
-  
-  // Client details (Step 1)
-  const [clientDetails, setClientDetails] = useState({
-    clientName: '',
-    eventType: '',
-    eventLocation: '',
-    eventDate: '',
-    numberOfGuests: '',
-    contactNumber: '',
-    clientEmail: ''
-  });
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const [currentStep, setCurrentStep] = useState(1);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingMenuId, setEditingMenuId] = useState(null);
 
-  const [formErrors, setFormErrors] = useState({});
-
-  // Menu dishes (Step 2)
-  const [selectedDishes, setSelectedDishes] = useState([]);
-  
-  // All available dishes from library
-  const [allDishes, setAllDishes] = useState([]);
-  const [filteredDishes, setFilteredDishes] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('All Categories');
-  const [selectedLabels, setSelectedLabels] = useState([]);
-
-  // Loading state
-  const [loading, setLoading] = useState(false);
-  const eventDateInputRef = useRef(null);
-
-  // Load dishes from library
-  useEffect(() => {
-    loadDishes();
-  }, []);
-
-  // Load menu when editing from history
-  useEffect(() => {
-    const menuId = searchParams.get('menuId');
-    if (!menuId) {
-      setEditingMenuId(null);
-      return;
-    }
-
-    setEditingMenuId(Number(menuId));
-    loadMenuForEdit(menuId);
-  }, [searchParams]);
-
-  const loadDishes = async () => {
-    try {
-      const dishes = await dishAPI.getAll(user.userId);
-      setAllDishes(dishes);
-      setFilteredDishes(dishes);
-    } catch (error) {
-      console.error('Error loading dishes:', error);
-      alert('Failed to load dishes');
-    }
-  };
-
-  const loadMenuForEdit = async (menuId) => {
-    try {
-      setLoading(true);
-      const menu = await menuAPI.getById(menuId);
-
-      setClientDetails({
-        clientName: menu.clientName || '',
-        eventType: menu.eventType || '',
-        eventLocation: menu.eventLocation || '',
-        eventDate: menu.eventDate || '',
-        numberOfGuests: menu.numberOfGuests ? String(menu.numberOfGuests) : '',
-        contactNumber: (menu.contactNumber || '').replace(/^\+91/, ''),
-        clientEmail: menu.clientEmail || ''
-      });
-
-      const flattenedDishes = Object.entries(menu.dishesByCategory || {})
-        .flatMap(([category, dishes]) =>
-          (dishes || []).map((dish, index) => ({
-            id: dish.dishId,
-            name: dish.dishName,
-            category: dish.dishCategory,
-            imageUrl: dish.dishImageUrl,
-            type: dish.dishType,
-            labels: dish.dishLabels,
-            menuCategory: category,
-            note: dish.note || '',
-            displayOrder: Number.isFinite(dish.displayOrder) ? dish.displayOrder : index
-          }))
-        )
-        .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
-
-      setSelectedDishes(flattenedDishes);
-      setCurrentStep(1);
-    } catch (error) {
-      console.error('Error loading menu for edit:', error);
-      alert('Failed to load selected menu');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Filter dishes based on search and filters
-  useEffect(() => {
-    let filtered = [...allDishes];
-
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(dish =>
-        dish.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Category filter
-    if (categoryFilter !== 'All Categories') {
-      filtered = filtered.filter(dish => dish.category === categoryFilter);
-    }
-
-    // All selected labels must be present in dish labels
-    if (selectedLabels.length > 0) {
-      filtered = filtered.filter(dish => {
-        const dishLabels = new Set(
-          (dish.labels || '')
-            .split(',')
-            .map(label => label.trim().toLowerCase())
-            .filter(Boolean)
-        );
-
-        return selectedLabels.every(label => dishLabels.has(label.toLowerCase()));
-      });
-    }
-
-    setFilteredDishes(filtered);
-  }, [searchQuery, categoryFilter, selectedLabels, allDishes]);
-
-  // Get unique categories and labels
-  const categories = ['All Categories', ...new Set(allDishes.map(d => d.category))];
-  const labels = [...new Set(
-    allDishes.flatMap(d => d.labels ? d.labels.split(',').map(l => l.trim()) : [])
-  )];
-
-  const toggleLabel = (label) => {
-    setSelectedLabels(prev => {
-      if (prev.includes(label)) {
-        return prev.filter(item => item !== label);
-      }
-      return [...prev, label];
+    // Client details (Step 1)
+    const [clientDetails, setClientDetails] = useState({
+        clientName: '',
+        eventType: '',
+        mealTime: '',
+        venueName: '',
+        venueAddress: '',
+        eventDate: '',
+        numberOfGuests: '',
+        contactNumber: '',
+        clientEmail: ''
     });
-  };
 
-  // Handle client details form change
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    const normalizedValue = name === 'contactNumber'
-      ? value.replace(/\D/g, '').slice(0, 10)
-      : value;
+    const [formErrors, setFormErrors] = useState({});
 
-    setClientDetails(prev => ({ ...prev, [name]: normalizedValue }));
+    // Menu dishes (Step 2)
+    const [selectedDishes, setSelectedDishes] = useState([]);
 
-    setFormErrors(prev => {
-      if (!prev[name]) {
-        return prev;
-      }
+    // All available dishes from library
+    const [allDishes, setAllDishes] = useState([]);
+    const [filteredDishes, setFilteredDishes] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('All Categories');
+    const [selectedLabels, setSelectedLabels] = useState([]);
 
-      const nextErrors = { ...prev };
-      delete nextErrors[name];
-      return nextErrors;
-    });
-  };
+    // Loading state
+    const [loading, setLoading] = useState(false);
+    const eventDateInputRef = useRef(null);
 
-  const getTodayDateString = () => new Date().toISOString().split('T')[0];
+    // Load dishes from library
+    useEffect(() => {
+        loadDishes();
+    }, []);
 
-  const validateStep1 = () => {
-    const errors = {};
-    const today = getTodayDateString();
+    // Load menu when editing from history
+    useEffect(() => {
+        const menuId = searchParams.get('menuId');
+        if (!menuId) {
+            setEditingMenuId(null);
+            return;
+        }
 
-    if (!clientDetails.eventType) {
-      errors.eventType = 'Event Type is required';
-    }
+        setEditingMenuId(Number(menuId));
+        loadMenuForEdit(menuId);
+    }, [searchParams]);
 
-    if (clientDetails.eventDate && clientDetails.eventDate < today) {
-      errors.eventDate = 'Event Date cannot be in the past';
-    }
+    const loadDishes = async () => {
+        try {
+            const dishes = await dishAPI.getAll(user.userId);
+            setAllDishes(dishes);
+            setFilteredDishes(dishes);
+        } catch (error) {
+            console.error('Error loading dishes:', error);
+            alert('Failed to load dishes');
+        }
+    };
 
-    const guestCount = Number(clientDetails.numberOfGuests);
-    if (clientDetails.numberOfGuests !== '' && (!Number.isFinite(guestCount) || guestCount < 1)) {
-      errors.numberOfGuests = 'Guest Count must be at least 1';
-    }
+    const loadMenuForEdit = async (menuId) => {
+        try {
+            setLoading(true);
+            const menu = await menuAPI.getById(menuId);
 
-    if (!/^[6-9]\d{9}$/.test(clientDetails.contactNumber || '')) {
-      errors.contactNumber = 'Enter a valid 10-digit Indian mobile number';
-    }
+            const rawEventLocation = (menu.eventLocation || '').trim();
+            const [parsedVenueName, ...parsedAddressParts] = rawEventLocation
+                ? rawEventLocation.split(',')
+                : [''];
+            const parsedVenueAddress = parsedAddressParts.join(',').trim();
 
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
+            setClientDetails({
+                clientName: menu.clientName || '',
+                eventType: menu.eventType || '',
+                mealTime: menu.mealTime || '',
+                venueName: (menu.venueName || parsedVenueName || '').trim(),
+                venueAddress: (menu.venueAddress || parsedVenueAddress || '').trim(),
+                eventDate: menu.eventDate || '',
+                numberOfGuests: menu.numberOfGuests ? String(menu.numberOfGuests) : '',
+                contactNumber: (menu.contactNumber || '').replace(/^\+91/, ''),
+                clientEmail: menu.clientEmail || ''
+            });
 
-  // Step 1: Validate and proceed to Step 2
-  const handleStep1Next = () => {
-    if (!validateStep1()) {
-      return;
-    }
+            const flattenedDishes = Object.entries(menu.dishesByCategory || {})
+                .flatMap(([category, dishes]) =>
+                    (dishes || []).map((dish, index) => ({
+                        id: dish.dishId,
+                        name: dish.dishName,
+                        category: dish.dishCategory,
+                        imageUrl: dish.dishImageUrl,
+                        type: dish.dishType,
+                        labels: dish.dishLabels,
+                        menuCategory: category,
+                        note: dish.note || '',
+                        displayOrder: Number.isFinite(dish.displayOrder) ? dish.displayOrder : index
+                    }))
+                )
+                .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
-    setCurrentStep(2);
-  };
+            setSelectedDishes(flattenedDishes);
+            setCurrentStep(1);
+        } catch (error) {
+            console.error('Error loading menu for edit:', error);
+            alert('Failed to load selected menu');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  const handleBack = () => {
-    if (currentStep === 1) {
-      navigate(-1);
-      return;
-    }
+    // Filter dishes based on search and filters
+    useEffect(() => {
+        let filtered = [...allDishes];
 
-    if (currentStep === 2) {
-      setCurrentStep(1);
-      return;
-    }
+        // Search filter
+        if (searchQuery) {
+            filtered = filtered.filter(dish =>
+                dish.name.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
 
-    setCurrentStep(2);
-  };
+        // Category filter
+        if (categoryFilter !== 'All Categories') {
+            filtered = filtered.filter(dish => dish.category === categoryFilter);
+        }
 
-  const openEventDatePicker = () => {
-    const input = eventDateInputRef.current;
-    if (!input) {
-      return;
-    }
+        // All selected labels must be present in dish labels
+        if (selectedLabels.length > 0) {
+            filtered = filtered.filter(dish => {
+                const dishLabels = new Set(
+                    (dish.labels || '')
+                    .split(',')
+                    .map(label => label.trim().toLowerCase())
+                    .filter(Boolean)
+                );
 
-    if (typeof input.showPicker === 'function') {
-      input.showPicker();
-    } else {
-      input.focus();
-    }
-  };
+                return selectedLabels.every(label => dishLabels.has(label.toLowerCase()));
+            });
+        }
 
-  // Step 2: Add dish to menu
-  const handleAddDish = (dish) => {
-    // Check if already added
-    if (selectedDishes.find(d => d.id === dish.id)) {
-      alert('Dish already added');
-      return;
-    }
+        setFilteredDishes(filtered);
+    }, [searchQuery, categoryFilter, selectedLabels, allDishes]);
 
-    // Automatically assign to category based on dish category
-    let menuCategory = 'Main Course';
-    const category = dish.category.toLowerCase();
-    const name = dish.name.toLowerCase();
-    
-    // Check for Juice/Beverages
-    if (category.includes('juice') || category.includes('shake') || category.includes('drink') || category.includes('beverage') ||
-        name.includes('juice') || name.includes('shake') || name.includes('smoothie')) {
-      menuCategory = 'Juice/Beverages';
-    }
-    // Check for Soup
-    else if (category.includes('soup') || name.includes('soup')) {
-      menuCategory = 'Soup';
-    }
-    // Check for Starter
-    else if (category.includes('starter') || category.includes('appetizer')) {
-      menuCategory = 'Starter';
-    }
-    // Check for Italian
-    else if (category.includes('italian') || category.includes('pizza') || category.includes('pasta') ||
-             name.includes('pizza') || name.includes('pasta') || name.includes('lasagna') || name.includes('risotto')) {
-      menuCategory = 'Italian';
-    }
-    // Check for Mexican
-    else if (category.includes('mexican') || category.includes('taco') || category.includes('burrito') ||
-             name.includes('taco') || name.includes('burrito') || name.includes('quesadilla') || name.includes('nacho')) {
-      menuCategory = 'Mexican';
-    }
-    // Check for Dessert
-    else if (category.includes('dessert') || category.includes('sweet') || category.includes('cake') ||
-             name.includes('cake') || name.includes('ice cream') || name.includes('pudding')) {
-      menuCategory = 'Dessert';
-    }
+    // Get unique categories and labels
+    const categories = ['All Categories', ...new Set(allDishes.map(d => d.category))];
+    const labels = [...new Set(
+        allDishes.flatMap(d => d.labels ? d.labels.split(',').map(l => l.trim()) : [])
+    )];
 
-    setSelectedDishes(prev => [...prev, { ...dish, menuCategory, note: '' }]);
-  };
+    const toggleLabel = (label) => {
+        setSelectedLabels(prev => {
+            if (prev.includes(label)) {
+                return prev.filter(item => item !== label);
+            }
+            return [...prev, label];
+        });
+    };
 
-  const handleDishNoteChange = (dishId, note) => {
-    setSelectedDishes(prev => prev.map(dish => (
-      dish.id === dishId ? { ...dish, note } : dish
-    )));
-  };
+    // Handle client details form change
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        const normalizedValue = name === 'contactNumber' ?
+            value.replace(/\D/g, '').slice(0, 10) :
+            value;
 
-  // Remove dish from selection
-  const handleRemoveDish = (dishId) => {
-    setSelectedDishes(prev => prev.filter(d => d.id !== dishId));
-  };
+        setClientDetails(prev => ({ ...prev, [name]: normalizedValue }));
 
-  // Step 3: Save draft
-  const handleSaveDraft = async () => {
-    try {
-      setLoading(true);
-      const menuData = {
-        clientName: clientDetails.clientName || null,
-        eventType: clientDetails.eventType || null,
-        eventLocation: clientDetails.eventLocation || null,
-        eventDate: clientDetails.eventDate || null,
-        numberOfGuests: clientDetails.numberOfGuests ? parseInt(clientDetails.numberOfGuests, 10) : null,
-        contactNumber: clientDetails.contactNumber ? clientDetails.contactNumber.trim() : null,
-        clientEmail: clientDetails.clientEmail || null,
-        dishes: selectedDishes.map((dish, index) => ({
-          dishId: dish.id,
-          menuCategory: dish.menuCategory,
-          displayOrder: index,
-          note: dish.note || null
-        }))
-      };
+        setFormErrors(prev => {
+            if (!prev[name]) {
+                return prev;
+            }
 
-      if (editingMenuId) {
-        await menuAPI.update(editingMenuId, menuData);
-        alert('Menu updated successfully!');
-      } else {
-        await menuAPI.create(user.userId, menuData);
-        alert('Menu draft saved successfully!');
-      }
-      resetForm();
-    } catch (error) {
-      console.error('Error saving draft:', error);
-      alert('Failed to save draft');
-    } finally {
-      setLoading(false);
-    }
-  };
+            const nextErrors = { ...prev };
+            delete nextErrors[name];
+            return nextErrors;
+        });
+    };
 
-  // Step 3: Send to client
-  const handleSendToClient = async () => {
-    if (selectedDishes.length === 0) {
-      alert('Please add at least one dish to the menu');
-      return;
-    }
+    const getTodayDateString = () => new Date().toISOString().split('T')[0];
 
-    try {
-      setLoading(true);
-      const menuData = {
-        clientName: clientDetails.clientName || null,
-        eventType: clientDetails.eventType || null,
-        eventLocation: clientDetails.eventLocation || null,
-        eventDate: clientDetails.eventDate || null,
-        numberOfGuests: clientDetails.numberOfGuests ? parseInt(clientDetails.numberOfGuests, 10) : null,
-        contactNumber: clientDetails.contactNumber ? clientDetails.contactNumber.trim() : null,
-        clientEmail: clientDetails.clientEmail || null,
-        dishes: selectedDishes.map((dish, index) => ({
-          dishId: dish.id,
-          menuCategory: dish.menuCategory,
-          displayOrder: index,
-          note: dish.note || null
-        }))
-      };
+    const validateStep1 = () => {
+        const errors = {};
+        if (!clientDetails.clientName) errors.clientName = 'Client name is required';
+        if (!clientDetails.eventType) errors.eventType = 'Event type is required';
+        if (!clientDetails.eventDate) errors.eventDate = 'Event date is required';
+        if (!clientDetails.numberOfGuests) errors.numberOfGuests = 'Number of guests is required';
+        if (clientDetails.contactNumber && !/^\d{10}$/.test(clientDetails.contactNumber)) {
+            errors.contactNumber = 'Must be a 10-digit phone number';
+        }
+        if (clientDetails.clientEmail && !/\S+@\S+\.\S+/.test(clientDetails.clientEmail)) {
+            errors.clientEmail = 'Must be a valid email address';
+        }
+        setFormErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
 
-      const menuIdToSend = editingMenuId
-        ? editingMenuId
-        : (await menuAPI.create(user.userId, menuData)).id;
+    const handleNextStep = () => {
+        if (currentStep === 1 && validateStep1()) {
+            setCurrentStep(2);
+        } else if (currentStep === 2) {
+            setCurrentStep(3);
+        }
+    };
 
-      if (editingMenuId) {
-        await menuAPI.update(editingMenuId, menuData);
-      }
+    const handlePrevStep = () => {
+        if (currentStep > 1) {
+            setCurrentStep(currentStep - 1);
+        }
+    };
 
-      await menuAPI.sendToClient(menuIdToSend);
-      
-      alert('Menu sent to client successfully!');
-      resetForm();
-    } catch (error) {
-      console.error('Error sending menu:', error);
-      alert('Failed to send menu to client');
-    } finally {
-      setLoading(false);
-    }
-  };
+    const addDishToMenu = (dish) => {
+        const defaultMenuCategory = dish.category || 'Uncategorized';
+        const newDish = {
+            ...dish,
+            menuCategory: defaultMenuCategory,
+            note: '',
+            displayOrder: selectedDishes.length
+        };
+        setSelectedDishes([...selectedDishes, newDish]);
+    };
 
-  const resetForm = () => {
-    setCurrentStep(1);
-    setClientDetails({
-      clientName: '',
-      eventType: '',
-      eventLocation: '',
-      eventDate: '',
-      numberOfGuests: '',
-      contactNumber: '',
-      clientEmail: ''
-    });
-    setFormErrors({});
-    setSelectedDishes([]);
-    setSelectedLabels([]);
-    setEditingMenuId(null);
-    navigate('/owner/menu-builder', { replace: true });
-  };
+    const removeDishFromMenu = (dishId, index) => {
+        setSelectedDishes(selectedDishes.filter((_, i) => i !== index));
+    };
 
-  // Define category order
-  const categoryOrder = [
-    'Juice/Beverages',
-    'Soup',
-    'Starter',
-    'Italian',
-    'Mexican',
-    'Main Course',
-    'Dessert'
-  ];
+    const updateSelectedDish = (index, field, value) => {
+        const updated = [...selectedDishes];
+        updated[index][field] = value;
+        setSelectedDishes(updated);
+    };
 
-  // Group dishes by menu category for review
-  const dishesByCategory = selectedDishes.reduce((acc, dish) => {
-    if (!acc[dish.menuCategory]) {
-      acc[dish.menuCategory] = [];
-    }
-    acc[dish.menuCategory].push(dish);
-    return acc;
-  }, {});
+    const handleSaveMenu = async (status = 'DRAFT') => {
+        if (currentStep === 1 && !validateStep1()) return;
+        if (selectedDishes.length === 0) {
+            alert('Please add at least one dish to the menu.');
+            return;
+        }
 
-  // Get ordered categories
-  const orderedCategories = categoryOrder.filter(cat => dishesByCategory[cat]);
+        const dishesByCategory = selectedDishes.reduce((acc, dish) => {
+            const category = dish.menuCategory || 'Uncategorized';
+            if (!acc[category]) {
+                acc[category] = [];
+            }
+            acc[category].push({
+                dishId: dish.id,
+                dishName: dish.name,
+                dishCategory: dish.category,
+                dishImageUrl: dish.imageUrl,
+                dishType: dish.type,
+                dishLabels: dish.labels,
+                note: dish.note,
+                displayOrder: dish.displayOrder
+            });
+            return acc;
+        }, {});
 
-  return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-2 md:p-3">
-      <div className="max-w-7xl mx-auto">
-        {/* Header + Step Indicators */}
-        <div className="flex items-center gap-2 mb-2 pl-1">
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="text-lg">🍴</div>
-            <h1 className="text-lg font-bold">Menu Builder</h1>
-          </div>
-          <div className="flex-1 overflow-x-auto">
-            <div className="min-w-[500px] flex items-center justify-end">
-          {/* Step 1 */}
-          <div className="flex items-center gap-1.5">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-              currentStep === 1 ? 'bg-[#f59e0b] text-black' : 
-              currentStep > 1 ? 'bg-[#f59e0b] text-black' : 'bg-gray-700 text-gray-400'
-            }`}>
-              {currentStep > 1 ? '✓' : '1'}
+        const payload = {
+            userId: user.userId,
+            clientName: clientDetails.clientName,
+            eventType: clientDetails.eventType,
+            mealTime: clientDetails.mealTime,
+            venueName: clientDetails.venueName,
+            venueAddress: clientDetails.venueAddress,
+            eventLocation: `${clientDetails.venueName}, ${clientDetails.venueAddress}`,
+            eventDate: clientDetails.eventDate,
+            numberOfGuests: Number(clientDetails.numberOfGuests),
+            contactNumber: `+91${clientDetails.contactNumber}`,
+            clientEmail: clientDetails.clientEmail,
+            status: status,
+            dishesByCategory: dishesByCategory,
+        };
+
+        try {
+            setLoading(true);
+            if (editingMenuId) {
+                await menuAPI.update(editingMenuId, payload);
+            } else {
+                await menuAPI.create(payload);
+            }
+            alert(`Menu successfully ${status === 'DRAFT' ? 'saved' : 'sent'}!`);
+            navigate('/caterer/menu-history');
+        } catch (error) {
+            console.error('Error saving menu:', error);
+            alert('Failed to save menu.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const Stepper = () => (
+        <div className="w-full max-w-2xl mx-auto mb-8">
+            <div className="flex items-center justify-center">
+                {['Client Details', 'Build Menu', 'Review & Send'].map((step, index) => (
+                    <React.Fragment key={index}>
+                        <div className="flex flex-col items-center">
+                            <div
+                                className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+                                    currentStep > index + 1 ? 'bg-green-500 border-green-500 text-white' :
+                                    currentStep === index + 1 ? 'bg-sky-500 border-sky-500 text-white' :
+                                    'bg-white border-slate-300 text-slate-500'
+                                }`}
+                            >
+                                {index + 1}
+                            </div>
+                            <p className={`mt-2 text-sm text-center ${currentStep >= index + 1 ? 'font-semibold text-slate-700' : 'text-slate-500'}`}>
+                                {step}
+                            </p>
+                        </div>
+                        {index < 2 && <div className={`flex-auto border-t-2 mx-4 transition-all duration-300 ${currentStep > index + 1 ? 'border-green-500' : 'border-slate-300'}`}></div>}
+                    </React.Fragment>
+                ))}
             </div>
-            <span className={`text-xs ${currentStep >= 1 ? 'text-white' : 'text-gray-500'}`}>Client Details</span>
-          </div>
-
-          {/* Connector */}
-          <div className={`w-8 h-0.5 mx-2 ${currentStep > 1 ? 'bg-[#f59e0b]' : 'bg-gray-700'}`}></div>
-
-          {/* Step 2 */}
-          <div className="flex items-center gap-1.5">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-              currentStep === 2 ? 'bg-[#f59e0b] text-black' : 
-              currentStep > 2 ? 'bg-[#f59e0b] text-black' : 'bg-gray-700 text-gray-400'
-            }`}>
-              {currentStep > 2 ? '✓' : '2'}
-            </div>
-            <span className={`text-xs ${currentStep >= 2 ? 'text-white' : 'text-gray-500'}`}>Build Menu</span>
-          </div>
-
-          {/* Connector */}
-          <div className={`w-8 h-0.5 mx-2 ${currentStep > 2 ? 'bg-[#f59e0b]' : 'bg-gray-700'}`}></div>
-
-          {/* Step 3 */}
-          <div className="flex items-center gap-1.5">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-              currentStep === 3 ? 'bg-[#f59e0b] text-black' : 'bg-gray-700 text-gray-400'
-            }`}>
-              3
-            </div>
-            <span className={`text-xs ${currentStep === 3 ? 'text-white' : 'text-gray-500'}`}>Review & Send</span>
-          </div>
-            </div>
-          </div>
         </div>
+    );
 
-        {/* Step 1: Client Details */}
-        {currentStep === 1 && (
-          <div className="bg-[#1a1a1a] rounded-lg p-8 max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold mb-6">Client Details</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block mb-2 text-sm">Event Type *</label>
-                <select
-                  name="eventType"
-                  value={clientDetails.eventType}
-                  onChange={handleInputChange}
-                  className={`w-full bg-[#2a2a2a] border rounded-lg px-4 py-3 focus:outline-none focus:border-[#f59e0b] ${
-                    formErrors.eventType ? 'border-red-500' : 'border-gray-700'
-                  }`}
-                >
-                  <option value="">Select event type</option>
-                  <option value="Wedding">Wedding</option>
-                  <option value="Birthday">Birthday</option>
-                  <option value="Corporate Event">Corporate Event</option>
-                  <option value="Engagement">Engagement</option>
-                  <option value="Party">Party</option>
-                  <option value="Other">Other</option>
-                </select>
-                {formErrors.eventType && (
-                  <p className="text-red-400 text-xs mt-1">{formErrors.eventType}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block mb-2 text-sm">Client Name</label>
-                <input
-                  type="text"
-                  name="clientName"
-                  value={clientDetails.clientName}
-                  onChange={handleInputChange}
-                  placeholder="Enter client name"
-                  className="w-full bg-[#2a2a2a] border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-[#f59e0b]"
-                />
-              </div>
-
-              <div>
-                <label className="block mb-2 text-sm">Event Location</label>
-                <input
-                  type="text"
-                  name="eventLocation"
-                  value={clientDetails.eventLocation}
-                  onChange={handleInputChange}
-                  placeholder="Enter venue address"
-                  className="w-full bg-[#2a2a2a] border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-[#f59e0b]"
-                />
-              </div>
-
-              <div>
-                <label className="block mb-2 text-sm">Event Date</label>
-                <div className="relative">
-                  <input
-                    ref={eventDateInputRef}
-                    type="date"
-                    name="eventDate"
-                    value={clientDetails.eventDate}
-                    onChange={handleInputChange}
-                    min={getTodayDateString()}
-                    className={`w-full bg-[#2a2a2a] border rounded-lg px-4 py-3 focus:outline-none focus:border-[#f59e0b] ${
-                      formErrors.eventDate ? 'border-red-500' : 'border-gray-700'
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={openEventDatePicker}
-                    className="absolute top-0 right-0 h-full w-[65%] rounded-r-lg"
-                    aria-label="Open calendar"
-                  />
+    const Step1_ClientDetails = () => (
+        <div className="surface-card p-6 md:p-8">
+            <h2 className="text-xl font-bold text-slate-800 mb-6">Step 1: Client & Event Details</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <div className="form-group">
+                    <label htmlFor="clientName">Client Name</label>
+                    <input id="clientName" name="clientName" type="text" className={`form-input ${formErrors.clientName ? 'error' : ''}`} value={clientDetails.clientName} onChange={handleInputChange} placeholder="e.g., John Doe" />
+                    {formErrors.clientName && <p className="form-error-text">{formErrors.clientName}</p>}
                 </div>
-                {formErrors.eventDate && (
-                  <p className="text-red-400 text-xs mt-1">{formErrors.eventDate}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block mb-2 text-sm">Number of Guests</label>
-                <input
-                  type="number"
-                  name="numberOfGuests"
-                  value={clientDetails.numberOfGuests}
-                  onChange={handleInputChange}
-                  min="1"
-                  step="1"
-                  placeholder="e.g., 200"
-                  className={`w-full bg-[#2a2a2a] border rounded-lg px-4 py-3 focus:outline-none focus:border-[#f59e0b] ${
-                    formErrors.numberOfGuests ? 'border-red-500' : 'border-gray-700'
-                  }`}
-                />
-                {formErrors.numberOfGuests && (
-                  <p className="text-red-400 text-xs mt-1">{formErrors.numberOfGuests}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block mb-2 text-sm">Contact Number</label>
-                <input
-                  type="tel"
-                  name="contactNumber"
-                  value={clientDetails.contactNumber}
-                  onChange={handleInputChange}
-                  placeholder="10-digit mobile number"
-                  inputMode="numeric"
-                  maxLength={10}
-                  className={`w-full bg-[#2a2a2a] border rounded-lg px-4 py-3 focus:outline-none focus:border-[#f59e0b] ${
-                    formErrors.contactNumber ? 'border-red-500' : 'border-gray-700'
-                  }`}
-                />
-                {formErrors.contactNumber && (
-                  <p className="text-red-400 text-xs mt-1">{formErrors.contactNumber}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block mb-2 text-sm">Client Email</label>
-                <input
-                  type="email"
-                  name="clientEmail"
-                  value={clientDetails.clientEmail}
-                  onChange={handleInputChange}
-                  placeholder="client@example.com"
-                  className="w-full bg-[#2a2a2a] border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-[#f59e0b]"
-                />
-              </div>
-
-              <div className="flex gap-4 mt-6">
-                <button
-                  onClick={handleBack}
-                  className="flex-1 bg-gray-700 text-white font-semibold py-3 rounded-lg hover:bg-gray-600 transition"
-                >
-                  ← Back
-                </button>
-                <button
-                  onClick={resetForm}
-                  className="flex-1 bg-[#3a3a3a] text-white font-semibold py-3 rounded-lg hover:bg-[#2a2a2a] transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleStep1Next}
-                  className="flex-1 bg-[#f59e0b] text-black font-semibold py-3 rounded-lg hover:bg-[#d97706] transition"
-                >
-                  Next: Build Menu →
-                </button>
-              </div>
+                <div className="form-group">
+                    <label htmlFor="eventType">Event Type</label>
+                    <input id="eventType" name="eventType" type="text" className={`form-input ${formErrors.eventType ? 'error' : ''}`} value={clientDetails.eventType} onChange={handleInputChange} placeholder="e.g., Wedding, Birthday Party" />
+                    {formErrors.eventType && <p className="form-error-text">{formErrors.eventType}</p>}
+                </div>
+                <div className="form-group">
+                    <label htmlFor="eventDate">Event Date</label>
+                    <input id="eventDate" name="eventDate" type="date" className={`form-input ${formErrors.eventDate ? 'error' : ''}`} value={clientDetails.eventDate} onChange={handleInputChange} min={getTodayDateString()} />
+                    {formErrors.eventDate && <p className="form-error-text">{formErrors.eventDate}</p>}
+                </div>
+                <div className="form-group">
+                    <label htmlFor="numberOfGuests">Number of Guests</label>
+                    <input id="numberOfGuests" name="numberOfGuests" type="number" className={`form-input ${formErrors.numberOfGuests ? 'error' : ''}`} value={clientDetails.numberOfGuests} onChange={handleInputChange} placeholder="e.g., 150" />
+                    {formErrors.numberOfGuests && <p className="form-error-text">{formErrors.numberOfGuests}</p>}
+                </div>
+                <div className="form-group">
+                    <label htmlFor="mealTime">Meal Time</label>
+                    <select id="mealTime" name="mealTime" className="form-select" value={clientDetails.mealTime} onChange={handleInputChange}>
+                        <option value="">Select meal time</option>
+                        <option value="Breakfast">Breakfast</option>
+                        <option value="Lunch">Lunch</option>
+                        <option value="Dinner">Dinner</option>
+                        <option value="High-Tea">High-Tea</option>
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label htmlFor="venueName">Venue Name</label>
+                    <input id="venueName" name="venueName" type="text" className="form-input" value={clientDetails.venueName} onChange={handleInputChange} placeholder="e.g., Grand Palace Hall" />
+                </div>
+                <div className="form-group md:col-span-2">
+                    <label htmlFor="venueAddress">Venue Address</label>
+                    <input id="venueAddress" name="venueAddress" type="text" className="form-input" value={clientDetails.venueAddress} onChange={handleInputChange} placeholder="Full address of the event location" />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="contactNumber">Contact Number</label>
+                    <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">+91</span>
+                        <input id="contactNumber" name="contactNumber" type="tel" className={`form-input pl-10 ${formErrors.contactNumber ? 'error' : ''}`} value={clientDetails.contactNumber} onChange={handleInputChange} placeholder="98765 43210" />
+                    </div>
+                    {formErrors.contactNumber && <p className="form-error-text">{formErrors.contactNumber}</p>}
+                </div>
+                <div className="form-group">
+                    <label htmlFor="clientEmail">Client Email</label>
+                    <input id="clientEmail" name="clientEmail" type="email" className={`form-input ${formErrors.clientEmail ? 'error' : ''}`} value={clientDetails.clientEmail} onChange={handleInputChange} placeholder="e.g., john.doe@example.com" />
+                    {formErrors.clientEmail && <p className="form-error-text">{formErrors.clientEmail}</p>}
+                </div>
             </div>
-          </div>
-        )}
+        </div>
+    );
 
-        {/* Step 2: Build Menu */}
-        {currentStep === 2 && (
-          <div className="bg-[#1a1a1a] rounded-lg w-full max-w-none mx-auto overflow-hidden flex flex-col" style={{ height: '88vh' }}>
-            {/* Header */}
-            <div className="flex justify-between items-center px-4 py-3 border-b border-gray-700">
-              <h2 className="text-xl font-bold">{editingMenuId ? 'Edit Menu - Selected Dishes' : 'Build Menu - Selected Dishes'}</h2>
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="bg-[#f59e0b] text-black px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-[#d97706] transition"
-              >
-                + Add from Library
-              </button>
-            </div>
-
-            {/* Selected Dishes List */}
-            {selectedDishes.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
-                <div className="text-6xl mb-4">🍴</div>
-                <p className="text-lg">No dishes added yet.</p>
-                <p className="text-sm">Click "Add from Library" to select dishes.</p>
-              </div>
-            ) : (
-              <div className="flex-1 overflow-y-auto p-4">
-                <div className="space-y-3">
-                  {selectedDishes.map(dish => (
-                    <div key={dish.id} className="bg-[#2a2a2a] rounded-lg p-3 flex gap-3 items-start hover:bg-[#323232] transition">
-                      {dish.imageUrl && (
-                        <img
-                          src={`http://localhost:8080${dish.imageUrl}`}
-                          alt={dish.name}
-                          className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
-                        />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start gap-1.5">
-                          <div className="min-w-0 max-w-[52%]">
-                            <h4 className="font-semibold text-base leading-tight truncate">{dish.name}</h4>
-                            <p className="text-xs text-gray-400">{dish.category}</p>
-                          </div>
-                          <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap pr-1 max-w-[48%]">
-                            <span className="px-2 py-0.5 bg-blue-600/30 text-blue-300 rounded text-[11px] font-medium shrink-0">
-                              {dish.menuCategory}
-                            </span>
-                            {dish.labels && dish.labels.split(',').map((label, i) => (
-                              <span key={i} className="text-[11px] bg-gray-700 px-1.5 py-0.5 rounded shrink-0">
-                                {label.trim()}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="mt-2 flex items-center gap-2">
-                          <label className="text-xs text-gray-400 shrink-0">Dish Note (optional)</label>
-                          <input
+    const Step2_BuildMenu = () => (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Side: Dish Library */}
+            <div className="surface-card p-4 md:p-6">
+                <h3 className="text-lg font-bold text-slate-800 mb-4">Dish Library</h3>
+                <div className="space-y-4">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <input
                             type="text"
-                            value={dish.note || ''}
-                            onChange={(e) => handleDishNoteChange(dish.id, e.target.value)}
-                            placeholder="e.g., Less spicy, serve hot"
-                            className="w-full max-w-md bg-[#1f1f1f] border border-gray-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#f59e0b]"
-                          />
+                            placeholder="Search dishes..."
+                            className="form-input pl-10"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                    <div className="flex gap-4">
+                        <select className="form-select flex-grow" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+                            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                    <div className="filter-pills small">
+                        {labels.map(label => (
+                            <button
+                                key={label}
+                                className={`filter-pill ${selectedLabels.includes(label) ? 'active' : ''}`}
+                                onClick={() => toggleLabel(label)}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div className="mt-4 h-[400px] overflow-y-auto pr-2 -mr-2">
+                    <ul className="space-y-2">
+                        {filteredDishes.map(dish => (
+                            <li key={dish.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50">
+                                <img src={dish.imageUrl || 'https://via.placeholder.com/100'} alt={dish.name} className="w-12 h-12 object-cover rounded-md" />
+                                <div className="flex-grow">
+                                    <p className="font-semibold text-slate-700">{dish.name}</p>
+                                    <p className="text-sm text-slate-500">{dish.category}</p>
+                                </div>
+                                <button className="add-dish-button" onClick={() => addDishToMenu(dish)}>
+                                    <Plus size={16} />
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            </div>
+
+            {/* Right Side: Selected Dishes */}
+            <div className="surface-card p-4 md:p-6">
+                <h3 className="text-lg font-bold text-slate-800 mb-4">Selected Menu ({selectedDishes.length})</h3>
+                <div className="h-[550px] overflow-y-auto pr-2 -mr-2">
+                    {selectedDishes.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                            <Utensils size={40} className="mb-2" />
+                            <p>Add dishes from the library to build your menu.</p>
                         </div>
-                      </div>
-                      <button
-                        onClick={() => handleRemoveDish(dish.id)}
-                        className="px-3 py-1 rounded-lg font-semibold text-xs bg-green-600 text-white hover:bg-green-700 transition self-center"
-                        title="Click to remove from menu"
-                      >
-                        ✓ Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Footer */}
-            <div className="px-4 py-3 border-t border-gray-700 flex gap-3">
-              <button
-                onClick={handleBack}
-                className="flex-1 bg-gray-700 text-white py-2 rounded-lg text-sm hover:bg-gray-600 transition"
-              >
-                ← Back
-              </button>
-              <button
-                onClick={resetForm}
-                className="flex-1 bg-[#3a3a3a] text-white py-2 rounded-lg text-sm hover:bg-[#2a2a2a] transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => setCurrentStep(3)}
-                className="flex-1 bg-[#a67c52] text-white py-2 rounded-lg text-sm hover:bg-[#8b6642] transition"
-              >
-                Review Menu →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Review & Send */}
-        {currentStep === 3 && (
-          <div className="bg-[#1a1a1a] rounded-lg p-8">
-            <h2 className="text-2xl font-bold mb-6">{editingMenuId ? 'Review & Update Menu' : 'Review Menu'}</h2>
-
-            {/* Client Info Summary */}
-            <div className="bg-[#2a2a2a] rounded-lg p-6 mb-6">
-              <p className="mb-2"><span className="font-semibold">Client:</span> {clientDetails.clientName}</p>
-              <p className="mb-2"><span className="font-semibold">Event Type:</span> {clientDetails.eventType}</p>
-              <p className="mb-2"><span className="font-semibold">Event:</span> {clientDetails.eventDate} at {clientDetails.eventLocation}</p>
-              <p className="mb-2"><span className="font-semibold">Guests:</span> {clientDetails.numberOfGuests}</p>
-              <p><span className="font-semibold">Contact:</span> {clientDetails.contactNumber}</p>
-            </div>
-
-            {/* Dishes by Category */}
-            <div className="space-y-6 mb-8">
-              {orderedCategories.map(category => (
-                <div key={category}>
-                  <h3 className="text-xl font-semibold mb-3">{category}</h3>
-                  <ul className="list-disc list-inside pl-4 space-y-1">
-                    {dishesByCategory[category].map(dish => (
-                      <li key={dish.id}>
-                        {dish.name}
-                        {dish.note ? <span className="text-gray-400"> - Note: {dish.note}</span> : null}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-
-            <div className="space-y-4">
-              <button
-                onClick={handleBack}
-                className="w-full bg-gray-700 text-white py-3 rounded-lg hover:bg-gray-600 transition flex items-center justify-center gap-2"
-              >
-                ← Back
-              </button>
-
-              <button
-                onClick={handleSaveDraft}
-                disabled={loading}
-                className="w-full bg-[#4a4a4a] text-white py-3 rounded-lg hover:bg-[#3a3a3a] transition flex items-center justify-center gap-2"
-              >
-                💾 Save Draft
-              </button>
-
-              <button
-                onClick={handleSendToClient}
-                disabled={loading}
-                className="w-full bg-[#f59e0b] text-black font-semibold py-3 rounded-lg hover:bg-[#d97706] transition flex items-center justify-center gap-2"
-              >
-                📤 Send to Client
-              </button>
-
-              <button
-                onClick={resetForm}
-                className="w-full bg-[#3a3a3a] text-white py-3 rounded-lg hover:bg-[#2a2a2a] transition flex items-center justify-center gap-2"
-              >
-                ✕ Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Modal: Select Dishes from Library */}
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#1a1a1a] rounded-lg w-[97vw] h-[95vh] overflow-hidden flex flex-col">
-              {/* Modal Header */}
-              <div className="flex justify-between items-center px-4 py-3 border-b border-gray-700">
-                <h3 className="text-xl font-bold">Select Dishes from Library</h3>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="text-xl hover:text-gray-400"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Search and Filters */}
-              <div className="px-4 py-3 border-b border-gray-700">
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder="Search dishes..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-52 sm:w-64 bg-[#2a2a2a] border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#f59e0b]"
-                  />
-
-                  <select
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                    className="w-40 sm:w-48 bg-[#2a2a2a] border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#f59e0b]"
-                  >
-                    {categories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-
-                  <details className="relative">
-                    <summary className="list-none cursor-pointer w-40 sm:w-48 bg-[#2a2a2a] border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 hover:border-[#f59e0b]">
-                      {selectedLabels.length > 0 ? `Labels (${selectedLabels.length})` : 'Labels'}
-                    </summary>
-                    <div className="absolute z-20 mt-2 w-56 max-h-56 overflow-y-auto bg-[#1f1f1f] border border-gray-700 rounded-lg p-2 shadow-xl">
-                      {labels.length === 0 && (
-                        <div className="text-xs text-gray-400 px-2 py-1">No labels available</div>
-                      )}
-                      {labels.map(label => (
-                        <label key={label} className="flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-[#2a2a2a]">
-                          <input
-                            type="checkbox"
-                            checked={selectedLabels.includes(label)}
-                            onChange={() => toggleLabel(label)}
-                          />
-                          <span>{label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </details>
-
-                  {selectedLabels.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedLabels([])}
-                      className="px-2.5 py-2 text-xs rounded-lg border border-gray-700 hover:border-[#f59e0b] text-gray-300"
-                    >
-                      Clear Labels
-                    </button>
-                  )}
-                </div>
-                <div className="text-[11px] text-gray-400 mt-2">Label filter matches all selected labels</div>
-              </div>
-
-              {/* Dishes List */}
-              <div className="flex-1 overflow-y-auto px-4 py-3">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                  {filteredDishes.map(dish => (
-                    <div key={dish.id} className="bg-[#2a2a2a] rounded-lg p-3 border border-gray-700 hover:border-[#f59e0b] transition flex flex-col h-full min-h-[260px]">
-                      <div className="w-full h-24 rounded-lg overflow-hidden bg-[#1f1f1f] mb-2 flex items-center justify-center">
-                        {dish.imageUrl ? (
-                          <img
-                            src={`http://localhost:8080${dish.imageUrl}`}
-                            alt={dish.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-2xl">🍽️</span>
-                        )}
-                      </div>
-                      <div className="flex items-start gap-1 mt-0.5 min-h-[2.4rem]">
-                        <h4 className="font-semibold text-sm leading-tight line-clamp-2 max-w-[52%]">{dish.name}</h4>
-                        {dish.labels && (
-                          <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap pr-1 max-w-[45%]">
-                            {dish.labels.split(',').map((label, i) => (
-                              <span key={i} className="text-[10px] bg-gray-700 px-1.5 py-0.5 rounded shrink-0">
-                                {label.trim()}
-                              </span>
+                    ) : (
+                        <ul className="space-y-3">
+                            {selectedDishes.map((dish, index) => (
+                                <li key={`${dish.id}-${index}`} className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                                    <img src={dish.imageUrl || 'https://via.placeholder.com/100'} alt={dish.name} className="w-14 h-14 object-cover rounded-md" />
+                                    <div className="flex-grow space-y-2">
+                                        <p className="font-bold text-slate-800">{dish.name}</p>
+                                        <div className="flex items-center gap-2">
+                                            <label className="text-xs font-medium text-slate-500">Category:</label>
+                                            <input
+                                                type="text"
+                                                value={dish.menuCategory}
+                                                onChange={(e) => updateSelectedDish(index, 'menuCategory', e.target.value)}
+                                                className="form-input form-input-sm"
+                                                placeholder="e.g., Starters"
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <label className="text-xs font-medium text-slate-500">Note:</label>
+                                            <input
+                                                type="text"
+                                                value={dish.note}
+                                                onChange={(e) => updateSelectedDish(index, 'note', e.target.value)}
+                                                className="form-input form-input-sm"
+                                                placeholder="Optional note (e.g., less spicy)"
+                                            />
+                                        </div>
+                                    </div>
+                                    <button className="table-icon-button danger" onClick={() => removeDishFromMenu(dish.id, index)}>
+                                        <Trash2 size={16} />
+                                    </button>
+                                </li>
                             ))}
-                          </div>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-400 mt-1">{dish.category}</p>
-                      <button
-                        onClick={() => {
-                          const isAdded = selectedDishes.find(d => d.id === dish.id);
-                          if (isAdded) {
-                            handleRemoveDish(dish.id);
-                          } else {
-                            handleAddDish(dish);
-                          }
-                        }}
-                        className={`w-full mt-auto px-3 py-1.5 rounded-lg text-sm font-semibold transition ${
-                          selectedDishes.find(d => d.id === dish.id)
-                            ? 'bg-green-600 text-white hover:bg-green-700'
-                            : 'bg-[#f59e0b] text-black hover:bg-[#d97706]'
-                        }`}
-                        title={selectedDishes.find(d => d.id === dish.id) ? 'Click to remove from menu' : 'Click to add to menu'}
-                      >
-                        {selectedDishes.find(d => d.id === dish.id) ? '✓ Remove' : '+ Add'}
-                      </button>
-                    </div>
-                  ))}
-
-                  {filteredDishes.length === 0 && (
-                    <div className="text-center py-8 text-gray-400 col-span-full">
-                      No dishes found
-                    </div>
-                  )}
+                        </ul>
+                    )}
                 </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="px-4 py-3 border-t border-gray-700">
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="w-full bg-[#f59e0b] text-black font-semibold py-2.5 rounded-lg hover:bg-[#d97706] transition"
-                >
-                  Done ({selectedDishes.length} dishes selected)
-                </button>
-              </div>
             </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+        </div>
+    );
+
+    const Step3_ReviewSend = () => {
+        const dishesByCategory = selectedDishes.reduce((acc, dish) => {
+            const category = dish.menuCategory || 'Uncategorized';
+            if (!acc[category]) acc[category] = [];
+            acc[category].push(dish);
+            return acc;
+        }, {});
+
+        return (
+            <div className="surface-card p-6 md:p-8">
+                <div className="flex justify-between items-start">
+                    <h2 className="text-xl font-bold text-slate-800 mb-6">Step 3: Review & Send</h2>
+                    <button className="secondary-button-sm" onClick={() => setCurrentStep(1)}>
+                        <Edit3 size={14} className="mr-2" /> Edit Details
+                    </button>
+                </div>
+
+                {/* Client Details Review */}
+                <div className="mb-8 p-4 border border-slate-200 rounded-lg bg-slate-50/50">
+                    <h3 className="font-bold text-lg text-slate-700 mb-3">Event Information</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                        <div className="flex items-start gap-2"><Users size={16} className="text-slate-500 mt-0.5" /><p><strong className="font-semibold text-slate-600">Client:</strong> {clientDetails.clientName}</p></div>
+                        <div className="flex items-start gap-2"><Info size={16} className="text-slate-500 mt-0.5" /><p><strong className="font-semibold text-slate-600">Event:</strong> {clientDetails.eventType}</p></div>
+                        <div className="flex items-start gap-2"><Calendar size={16} className="text-slate-500 mt-0.5" /><p><strong className="font-semibold text-slate-600">Date:</strong> {clientDetails.eventDate}</p></div>
+                        <div className="flex items-start gap-2"><Users size={16} className="text-slate-500 mt-0.5" /><p><strong className="font-semibold text-slate-600">Guests:</strong> {clientDetails.numberOfGuests}</p></div>
+                        <div className="flex items-start gap-2"><Building size={16} className="text-slate-500 mt-0.5" /><p><strong className="font-semibold text-slate-600">Venue:</strong> {clientDetails.venueName}</p></div>
+                        <div className="flex items-start gap-2"><Mail size={16} className="text-slate-500 mt-0.5" /><p><strong className="font-semibold text-slate-600">Email:</strong> {clientDetails.clientEmail}</p></div>
+                        <div className="flex items-start gap-2"><Phone size={16} className="text-slate-500 mt-0.5" /><p><strong className="font-semibold text-slate-600">Phone:</strong> {clientDetails.contactNumber}</p></div>
+                    </div>
+                </div>
+
+                {/* Menu Review */}
+                <div>
+                    <h3 className="font-bold text-lg text-slate-700 mb-4">Final Menu</h3>
+                    <div className="space-y-6">
+                        {Object.entries(dishesByCategory).map(([category, dishes]) => (
+                            <div key={category}>
+                                <h4 className="font-bold text-slate-600 text-md mb-3 pb-2 border-b-2 border-slate-200">{category}</h4>
+                                <ul className="space-y-3">
+                                    {dishes.map((dish, index) => (
+                                        <li key={`${dish.id}-${index}`} className="flex items-center gap-4">
+                                            <img src={dish.imageUrl || 'https://via.placeholder.com/100'} alt={dish.name} className="w-16 h-16 object-cover rounded-lg" />
+                                            <div>
+                                                <p className="font-semibold text-slate-800">{dish.name}</p>
+                                                {dish.note && <p className="text-sm text-slate-500 italic">Note: {dish.note}</p>}
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+
+    return (
+        <div className="page-shell py-8">
+            <h1 className="text-3xl font-extrabold text-slate-800 text-center mb-2">Menu Builder</h1>
+            <p className="text-center text-slate-500 mb-8">{editingMenuId ? `You are editing a menu.` : 'Create a new menu for your client.'}</p>
+
+            <Stepper />
+
+            {currentStep === 1 && <Step1_ClientDetails />}
+            {currentStep === 2 && <Step2_BuildMenu />}
+            {currentStep === 3 && <Step3_ReviewSend />}
+
+            {/* Navigation Buttons */}
+            <div className="mt-8 flex justify-between items-center gap-4">
+                <div>
+                    {currentStep > 1 && (
+                        <button className="secondary-button" onClick={handlePrevStep}>
+                            <ChevronLeft size={16} className="mr-2" /> Previous
+                        </button>
+                    )}
+                </div>
+                <div className="flex gap-4">
+                    {currentStep === 3 && (
+                        <button className="secondary-button" onClick={() => handleSaveMenu('DRAFT')} disabled={loading}>
+                            <Save size={16} className="mr-2" /> Save as Draft
+                        </button>
+                    )}
+                    {currentStep < 3 ? (
+                        <button className="primary-button" onClick={handleNextStep}>
+                            Next <ChevronRight size={16} className="ml-2" />
+                        </button>
+                    ) : (
+                        <button className="primary-button" onClick={() => handleSaveMenu('SENT')} disabled={loading}>
+                            <Send size={16} className="mr-2" /> {loading ? 'Sending...' : 'Save & Send to Client'}
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
 }
 
 export default MenuBuilder;

@@ -10,8 +10,18 @@ import {
     ArrowUpDown,
     Scale,
     X,
+    Utensils,
+    Building,
+    Sparkles,
+    Award,
+    Compass
 } from 'lucide-react';
-import { profileAPI, fileAPI, discoveryAPI } from '../services/api';
+import { profileAPI, discoveryAPI, fileAPI } from '../services/api';
+import '../styles/Table.css'; // For buttons, modals
+import '../styles/Contacts.css'; // For filter pills
+import Modal from '../components/Modal';
+
+const CATERER_FALLBACK_IMAGE = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="%23e0f2fe"/><stop offset="100%" stop-color="%23f8fafc"/></linearGradient></defs><rect width="800" height="500" fill="url(%23g)"/><circle cx="140" cy="110" r="54" fill="%23bae6fd"/><circle cx="710" cy="420" r="82" fill="%23e2e8f0"/><text x="50%" y="52%" dominant-baseline="middle" text-anchor="middle" fill="%230f172a" font-family="Arial,sans-serif" font-size="34" font-weight="700">CaterFind</text><text x="50%" y="61%" dominant-baseline="middle" text-anchor="middle" fill="%23475569" font-family="Arial,sans-serif" font-size="18">Caterer Profile Image</text></svg>';
 
 const ClientHome = ({ user }) => {
     const [caterers, setCaterers] = useState([]);
@@ -19,6 +29,7 @@ const ClientHome = ({ user }) => {
     const [loading, setLoading] = useState(true);
     const [searching, setSearching] = useState(false);
     const [searchError, setSearchError] = useState('');
+    const [locationNotice, setLocationNotice] = useState('');
     const [locatingPosition, setLocatingPosition] = useState(false);
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -199,29 +210,70 @@ const ClientHome = ({ user }) => {
 
             setShortlistedIds(nextIds);
 
-            setCaterers((prev) => prev.map((item) => {
-                const itemId = getCatererId(item);
-                return { ...item, isShortlisted: nextSet.has(itemId) };
+            // Update caterer list in-place for instant UI feedback
+            setCaterers(prev => prev.map(c => {
+                if (getCatererId(c) === catererId) {
+                    return { ...c, isShortlisted: nextSet.has(catererId) };
+                }
+                return c;
             }));
-        } catch (error) {
-            alert(error.message || 'Failed to update shortlist');
+        } catch (e) {
+            alert('Failed to update shortlist.');
         }
     };
 
     const toggleCompare = (catererId) => {
-        setCompareIds((prev) => {
-            if (prev.includes(catererId)) {
-                return prev.filter(id => id !== catererId);
+        setCompareIds(prev => {
+            const next = new Set(prev);
+            if (next.has(catererId)) {
+                next.delete(catererId);
+            } else {
+                if (next.size < 4) {
+                    next.add(catererId);
+                } else {
+                    alert('You can compare up to 4 caterers at a time.');
+                }
             }
-            if (prev.length >= 3) {
-                alert('You can compare up to 3 caterers at a time.');
-                return prev;
-            }
-            return [...prev, catererId];
+            return [...next];
         });
     };
 
-    const clearFilters = () => {
+    const handleLocateMe = () => {
+        setLocationNotice('');
+        if (!navigator.geolocation) {
+            setLocationNotice('Geolocation is not supported by this browser.');
+            return;
+        }
+        setLocatingPosition(true);
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                setClientCoordinates({ lat: latitude, lng: longitude });
+                setCurrentLocation('Your Current Location');
+                localStorage.setItem('clientLocation', 'Your Current Location');
+                localStorage.setItem('clientCoordinates', JSON.stringify({ lat: latitude, lng: longitude }));
+                setLocationNotice('Location updated. Showing nearby caterers.');
+                setLocatingPosition(false);
+            },
+            (error) => {
+                if (error?.code === error.PERMISSION_DENIED) {
+                    setLocationNotice('Location permission denied. Please allow location access.');
+                } else if (error?.code === error.TIMEOUT) {
+                    setLocationNotice('Location request timed out. Please try again.');
+                } else {
+                    setLocationNotice('Unable to retrieve your location right now.');
+                }
+                setLocatingPosition(false);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 12000,
+                maximumAge: 0,
+            }
+        );
+    };
+
+    const handleClearFilters = () => {
         setSearchTerm('');
         setSelectedCity('all');
         setSelectedArea('all');
@@ -229,447 +281,258 @@ const ClientHome = ({ user }) => {
         setMinServiceRadius(0);
         setSortBy('relevance');
         setShortlistOnly(false);
+        setCompareIds([]);
+        setSearchError('');
     };
 
-    const handleChangeLocation = () => {
-        const newLoc = window.prompt('Enter preferred location (e.g. Delhi NCR)', currentLocation || '');
-        if (newLoc && newLoc.trim()) {
-            const loc = newLoc.trim();
-            setCurrentLocation(loc);
-            try {
-                localStorage.setItem('clientLocation', loc);
-            } catch (e) {
-                // ignore localStorage errors
-            }
-        }
+    const getCatererImage = (caterer) => {
+        const candidate =
+            caterer.imageUrl ||
+            caterer.profileImageUrl ||
+            caterer.profileImage ||
+            caterer.logoUrl ||
+            caterer.businessImageUrl ||
+            caterer.coverImageUrl ||
+            '';
+
+        const resolved = fileAPI.getImageUrl(candidate);
+        return resolved || CATERER_FALLBACK_IMAGE;
     };
 
-    const handleUseCurrentLocation = () => {
-        if (!navigator.geolocation) {
-            alert('Geolocation is not supported in this browser.');
-            return;
-        }
+    const CatererCard = ({ caterer }) => {
+        const catererId = getCatererId(caterer);
+        const isShortlisted = shortlistedSet.has(catererId);
+        const isComparing = compareIds.includes(catererId);
 
-        setLocatingPosition(true);
-
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const nextCoords = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude,
-                };
-
-                setClientCoordinates(nextCoords);
-                setCurrentLocation('Current location');
-
-                if (sortBy === 'relevance') {
-                    setSortBy('distance');
-                }
-
-                try {
-                    localStorage.setItem('clientLocation', 'Current location');
-                    localStorage.setItem('clientCoordinates', JSON.stringify(nextCoords));
-                } catch (e) {
-                    // ignore localStorage errors
-                }
-
-                setLocatingPosition(false);
-            },
-            (error) => {
-                setLocatingPosition(false);
-                alert(error.message || 'Unable to fetch your current location.');
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 300000,
-            }
+        return (
+            <div className="surface-card overflow-hidden flex flex-col group hover:shadow-lg hover:-translate-y-0.5 duration-300">
+                <div className="relative">
+                    <img
+                        src={getCatererImage(caterer)}
+                        alt={caterer.businessName}
+                        className="w-full h-40 object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                            e.currentTarget.src = CATERER_FALLBACK_IMAGE;
+                        }}
+                    />
+                    <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/40 to-transparent" />
+                    <div className="absolute top-2 right-2 flex gap-2">
+                        <button
+                            onClick={() => toggleShortlist(catererId)}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-200 ${
+                                isShortlisted ? 'bg-red-500 text-white' : 'bg-white/80 backdrop-blur-sm text-slate-600 hover:bg-white'
+                            }`}
+                        >
+                            <Heart size={16} fill={isShortlisted ? 'currentColor' : 'none'} />
+                        </button>
+                    </div>
+                    <div className="absolute bottom-2 left-2 bg-black/55 text-white px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1">
+                        <Star size={12} fill="currentColor" />
+                        <span>{caterer.averageRating?.toFixed(1) || 'New'}</span>
+                    </div>
+                </div>
+                <div className="p-4 flex-grow flex flex-col">
+                    <h3 className="font-bold text-slate-800 text-lg truncate">{caterer.businessName}</h3>
+                    <p className="text-sm text-slate-500 flex items-center gap-1 mb-2">
+                        <MapPin size={12} /> {caterer.area}, {caterer.city}
+                    </p>
+                    <p className="text-sm text-slate-600 line-clamp-2 flex-grow">{caterer.description}</p>
+                    <div className="mt-3 pt-3 border-t border-slate-200 flex justify-between items-center">
+                        <button
+                            onClick={() => toggleCompare(catererId)}
+                            className={`text-sm font-semibold flex items-center gap-2 transition-colors ${
+                                isComparing ? 'text-sky-600' : 'text-slate-500 hover:text-sky-500'
+                            }`}
+                        >
+                            <Scale size={14} /> {isComparing ? 'Comparing' : 'Compare'}
+                        </button>
+                        <button
+                            onClick={() => navigate(`/client/caterer/${catererId}`)}
+                            className="primary-button-sm"
+                        >
+                            View Profile
+                        </button>
+                    </div>
+                </div>
+            </div>
         );
     };
 
-    const clearCurrentCoordinates = () => {
-        setClientCoordinates({ lat: null, lng: null });
-        try {
-            localStorage.removeItem('clientCoordinates');
-        } catch (e) {
-            // ignore localStorage errors
-        }
-    };
-
-    const handleCatererClick = (caterer) => {
-        const catererId = getCatererId(caterer);
-        navigate(`/client/caterer/${catererId}`);
-    };
-
-    return (
-        <div className="pb-4">
-            {/* Header / Search Section */}
-            <div className="mb-8">
-                <div className="flex items-center gap-2 text-yellow-500 mb-4">
-                    <MapPin size={18} />
-                    <span>
-                        {currentLocation}{' '}
-                        <span className="text-orange-400 cursor-pointer" onClick={handleChangeLocation}>
-                            Change
-                        </span>
-                    </span>
-                    <button
-                        type="button"
-                        onClick={handleUseCurrentLocation}
-                        className="ml-2 inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-card border border-border text-foreground hover:bg-secondary"
-                        disabled={locatingPosition}
-                    >
-                        <LocateFixed size={12} />
-                        {locatingPosition ? 'Locating...' : 'Use current location'}
-                    </button>
-                    {(typeof clientCoordinates.lat === 'number' && typeof clientCoordinates.lng === 'number') && (
-                        <button
-                            type="button"
-                            onClick={clearCurrentCoordinates}
-                            className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-card border border-border text-muted-foreground hover:bg-secondary"
-                        >
-                            Clear nearby
+    const Filters = () => (
+        <div className="p-4 pb-8 space-y-4">
+            <h3 className="font-bold text-lg flex items-center gap-2 text-slate-900"><SlidersHorizontal size={18} className="text-sky-600" /> Filters</h3>
+            <div className="form-group">
+                <label>City</label>
+                <select className="form-select border-slate-200 focus:border-sky-500 focus:ring-sky-500" value={selectedCity} onChange={e => setSelectedCity(e.target.value)}>
+                    <option value="all">All Cities</option>
+                    {cityOptions.map(city => <option key={city} value={city}>{city}</option>)}
+                </select>
+            </div>
+            <div className="form-group">
+                <label>Area</label>
+                <select className="form-select border-slate-200 focus:border-sky-500 focus:ring-sky-500" value={selectedArea} onChange={e => setSelectedArea(e.target.value)} disabled={selectedCity === 'all'}>
+                    <option value="all">All Areas</option>
+                    {areaOptions.map(area => <option key={area} value={area}>{area}</option>)}
+                </select>
+            </div>
+            <div className="form-group">
+                <label>Minimum Rating</label>
+                <div className="flex items-center justify-between">
+                    {[1, 2, 3, 4, 5].map(r => (
+                        <button key={r} onClick={() => setMinRating(r)} className={`flex items-center gap-1 text-sm ${minRating >= r ? 'text-sky-500 font-bold' : 'text-slate-500'}`}>
+                            {r} <Star size={14} fill={minRating >= r ? 'currentColor' : 'none'} />
                         </button>
-                    )}
-                </div>
-
-                <div className="relative mb-6">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Search by name, city, area or keyword..."
-                        className="w-full bg-input border border-border rounded-xl py-3 pl-12 pr-4 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-
-                <div className="bg-card border border-border rounded-xl p-4 mb-4">
-                    <div className="flex items-center gap-2 text-foreground font-semibold mb-4">
-                        <SlidersHorizontal size={16} />
-                        Advanced Filters
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-                        <select
-                            className="bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground"
-                            value={selectedCity}
-                            onChange={(e) => {
-                                setSelectedCity(e.target.value);
-                                setSelectedArea('all');
-                            }}
-                        >
-                            <option value="all">All cities</option>
-                            {cityOptions.map(city => (
-                                <option key={city} value={city}>{city}</option>
-                            ))}
-                        </select>
-
-                        <select
-                            className="bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground"
-                            value={selectedArea}
-                            onChange={(e) => setSelectedArea(e.target.value)}
-                        >
-                            <option value="all">All areas</option>
-                            {areaOptions.map(area => (
-                                <option key={area} value={area}>{area}</option>
-                            ))}
-                        </select>
-
-                        <select
-                            className="bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground"
-                            value={minRating}
-                            onChange={(e) => setMinRating(Number(e.target.value))}
-                        >
-                            <option value={0}>Any rating</option>
-                            <option value={3}>3.0+ rating</option>
-                            <option value={4}>4.0+ rating</option>
-                            <option value={4.5}>4.5+ rating</option>
-                        </select>
-
-                        <select
-                            className="bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground"
-                            value={minServiceRadius}
-                            onChange={(e) => setMinServiceRadius(Number(e.target.value))}
-                        >
-                            <option value={0}>Any service radius</option>
-                            <option value={5}>5+ km radius</option>
-                            <option value={10}>10+ km radius</option>
-                            <option value={20}>20+ km radius</option>
-                            <option value={30}>30+ km radius</option>
-                        </select>
-
-                        <button
-                            type="button"
-                            className="bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground hover:bg-secondary/80"
-                            onClick={clearFilters}
-                        >
-                            Clear filters
-                        </button>
-                    </div>
-                </div>
-
-                <div className="flex flex-wrap gap-3 items-center">
-                    <div className="flex items-center gap-2">
-                        <ArrowUpDown size={14} className="text-muted-foreground" />
-                        <select
-                            className="bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground"
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value)}
-                        >
-                            <option value="relevance">Sort: Relevance</option>
-                            <option value="rating_high">Sort: Rating high to low</option>
-                            <option value="rating_low">Sort: Rating low to high</option>
-                            <option value="name_asc">Sort: Name A-Z</option>
-                            <option value="name_desc">Sort: Name Z-A</option>
-                            <option value="distance">Sort: Distance (nearest first)</option>
-                        </select>
-                    </div>
-
-                    <button
-                        type="button"
-                        className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-                            shortlistOnly
-                                ? 'bg-primary text-primary-foreground font-medium'
-                                : 'bg-card border border-border text-muted-foreground hover:bg-secondary'
-                        }`}
-                        onClick={() => setShortlistOnly(prev => !prev)}
-                    >
-                        <Heart size={14} fill={shortlistOnly ? 'currentColor' : 'none'} />
-                        Shortlist only
-                    </button>
-
-                    <button
-                        type="button"
-                        className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-                            compareIds.length > 0
-                                ? 'bg-primary text-primary-foreground font-medium'
-                                : 'bg-card border border-border text-muted-foreground hover:bg-secondary'
-                        }`}
-                        onClick={() => setShowCompareModal(true)}
-                        disabled={compareIds.length < 2}
-                    >
-                        <Scale size={14} />
-                        Compare ({compareIds.length}/3)
-                    </button>
-
-                    <span className="text-sm text-muted-foreground">{filteredCaterers.length} caterers found</span>
-                    {searching && <span className="text-xs text-muted-foreground">Updating...</span>}
-                    {searchError && <span className="text-xs text-destructive">{searchError}</span>}
+                    ))}
                 </div>
             </div>
+            <div className="form-group">
+                <label>Service Radius ({minServiceRadius} km)</label>
+                <input type="range" min="0" max="100" step="5" value={minServiceRadius} onChange={e => setMinServiceRadius(e.target.value)} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer" />
+            </div>
+            <div className="form-group">
+                <label>Sort By</label>
+                <select className="form-select border-slate-200 focus:border-sky-500 focus:ring-sky-500" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                    <option value="relevance">Relevance</option>
+                    <option value="rating">Rating</option>
+                    <option value="distance">Distance</option>
+                </select>
+            </div>
 
-            {/* Caterer Grid */}
-            {loading ? (
-                <div className="text-center py-10 text-muted-foreground">Loading caterers...</div>
-            ) : filteredCaterers.length === 0 ? (
-                <div className="text-center py-10 text-muted-foreground">
-                    No caterers match your current filters.
+            <button
+                type="button"
+                onClick={handleClearFilters}
+                className="w-full secondary-button"
+            >
+                Clear Filters
+            </button>
+
+            <div className="pt-4 border-t border-slate-200">
+                <div className={`label-checkbox !w-full ${shortlistOnly ? 'selected' : ''}`} onClick={() => setShortlistOnly(!shortlistOnly)}>
+                    <Heart size={16} className="mr-2" /> Show My Shortlist Only
                 </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-4">
-                    {filteredCaterers.map((caterer) => {
-                        const catererId = getCatererId(caterer);
-                        const isShortlisted = shortlistedSet.has(catererId) || caterer.isShortlisted;
-                        const isInCompare = compareIds.includes(catererId);
-                        const distanceKm = typeof caterer.distanceKm === 'number' ? caterer.distanceKm : null;
+            </div>
+        </div>
+    );
 
-                        return (
-                            <div
-                                key={catererId}
-                                onClick={() => handleCatererClick(caterer)}
-                                className="bg-card border border-border rounded-xl overflow-hidden hover:transform hover:scale-[1.02] hover:border-primary/50 transition-all duration-300 shadow-lg cursor-pointer"
-                            >
-                                <div className="h-48 bg-secondary relative">
-                                    <img
-                                        src={
-                                            caterer.imageUrl
-                                                ? fileAPI.getImageUrl(caterer.imageUrl)
-                                                : 'https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=800&q=80'
-                                        }
-                                        alt={caterer.businessName}
-                                        className="w-full h-full object-cover"
-                                    />
+    return (
+        <div className="page-shell py-8 pb-32">
+            <header className="text-center mb-8">
+                <h1 className="text-4xl font-extrabold text-slate-800 mb-2">Find the Perfect Caterer</h1>
+                <p className="text-lg text-slate-500">Discover top-rated caterers for your next event in <span className="font-semibold text-sky-600">{currentLocation}</span>.</p>
+            </header>
 
-                                    <div className="absolute top-3 right-3 flex gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleShortlist(catererId);
-                                            }}
-                                            className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                                                isShortlisted
-                                                    ? 'bg-primary text-primary-foreground'
-                                                    : 'bg-black/50 text-white hover:bg-black/70'
-                                            }`}
-                                            title={isShortlisted ? 'Remove from shortlist' : 'Add to shortlist'}
-                                        >
-                                            <Heart size={16} fill={isShortlisted ? 'currentColor' : 'none'} />
-                                        </button>
+            {/* Search and Location Bar */}
+            <div className="max-w-3xl mx-auto mb-8 p-2 bg-white rounded-full shadow-lg border border-slate-200 flex items-center gap-2">
+                <div className="relative flex-grow">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Search by name, cuisine, or specialty..."
+                        className="w-full bg-transparent pl-11 pr-4 py-3 rounded-full focus:outline-none text-slate-800"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <button onClick={handleLocateMe} className="secondary-button rounded-full !px-4">
+                    {locatingPosition ? <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div> : <LocateFixed size={20} />}
+                </button>
+            </div>
 
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleCompare(catererId);
-                                            }}
-                                            className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                                                isInCompare
-                                                    ? 'bg-primary text-primary-foreground'
-                                                    : 'bg-black/50 text-white hover:bg-black/70'
-                                            }`}
-                                            title={isInCompare ? 'Remove from compare' : 'Add to compare'}
-                                        >
-                                            <Scale size={16} />
-                                        </button>
+            {locationNotice && (
+                <div className="max-w-3xl mx-auto mb-6 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700">
+                    {locationNotice}
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                {/* Filters Sidebar */}
+                <aside className="lg:col-span-1 lg:self-start">
+                    <div className="surface-card lg:sticky lg:top-4 max-h-[calc(100dvh-7rem)] overflow-y-auto pr-1">
+                        <Filters />
+                    </div>
+                </aside>
+
+                {/* Caterer Grid */}
+                <main className="lg:col-span-3">
+                    {loading ? (
+                        <div className="dense-grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                            {[1, 2, 3, 4, 5, 6].map((skeleton) => (
+                                <div key={skeleton} className="surface-card overflow-hidden animate-pulse">
+                                    <div className="h-40 bg-slate-100" />
+                                    <div className="p-4 space-y-3">
+                                        <div className="h-5 w-2/3 rounded bg-slate-100" />
+                                        <div className="h-4 w-1/2 rounded bg-slate-100" />
+                                        <div className="h-4 w-full rounded bg-slate-100" />
+                                        <div className="h-4 w-5/6 rounded bg-slate-100" />
                                     </div>
                                 </div>
+                            ))}
+                        </div>
+                    ) : searchError ? (
+                        <div className="surface-card p-8 text-center text-red-600">{searchError}</div>
+                    ) : filteredCaterers.length === 0 ? (
+                        <div className="surface-card p-8 text-center text-slate-500">
+                            <h3 className="font-bold text-xl mb-2">No Caterers Found</h3>
+                            <p>Try adjusting your search or filter criteria.</p>
+                        </div>
+                    ) : (
+                        <div className="dense-grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                            {filteredCaterers.map((caterer, index) => (
+                                <CatererCard key={getCatererId(caterer) || index} caterer={caterer} />
+                            ))}
+                        </div>
+                    )}
+                </main>
+            </div>
 
-                                <div className="p-4">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h3 className="text-xl font-bold text-foreground">{caterer.businessName}</h3>
-                                        <div className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-md">
-                                            <Star size={14} fill="currentColor" />
-                                            <span className="font-bold text-sm">{caterer.rating || 'New'}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-1 text-muted-foreground text-sm mb-3">
-                                        <MapPin size={14} />
-                                        <span>
-                                            {[caterer.area, caterer.city].filter(Boolean).join(', ') || 'Location not specified'}
-                                        </span>
-                                    </div>
-
-                                    <div className="flex gap-2 flex-wrap">
-                                        <span className="text-xs bg-secondary text-muted-foreground px-2 py-1 rounded border border-border">
-                                            Radius: {caterer.serviceRadius || 0} km
-                                        </span>
-                                        {distanceKm !== null && (
-                                            <span className="text-xs bg-secondary text-muted-foreground px-2 py-1 rounded border border-border">
-                                                Distance: {distanceKm.toFixed(1)} km
-                                            </span>
-                                        )}
-                                        {isShortlisted && (
-                                            <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded border border-primary/30">
-                                                Shortlisted
-                                            </span>
-                                        )}
-                                        {isInCompare && (
-                                            <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded border border-primary/30">
-                                                Compare
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
+            {/* Compare Bar */}
+            {compareIds.length > 0 && (
+                <div className="fixed bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 w-full max-w-md px-3 md:px-0">
+                    <div className="bg-slate-800 text-white rounded-lg shadow-2xl p-4 flex items-center justify-between">
+                        <p className="font-semibold">{compareIds.length} caterer(s) selected</p>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setCompareIds([])} className="text-sm text-slate-300 hover:text-white">Clear</button>
+                            <button onClick={() => setShowCompareModal(true)} className="primary-button-sm">Compare</button>
+                        </div>
+                    </div>
                 </div>
             )}
 
             {/* Compare Modal */}
-            {showCompareModal && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-                    <div className="w-full max-w-5xl bg-card border border-border rounded-xl shadow-2xl overflow-hidden">
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                            <h3 className="text-lg font-bold text-foreground">Compare Caterers</h3>
-                            <button
-                                type="button"
-                                onClick={() => setShowCompareModal(false)}
-                                className="w-8 h-8 rounded-full hover:bg-secondary flex items-center justify-center text-muted-foreground"
-                            >
-                                <X size={16} />
-                            </button>
-                        </div>
-
-                        <div className="p-4 overflow-x-auto">
-                            {compareCaterers.length < 2 ? (
-                                <div className="text-center py-8 text-muted-foreground">
-                                    Select at least 2 caterers to compare.
-                                </div>
-                            ) : (
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b border-border">
-                                            <th className="text-left py-2 pr-4 text-muted-foreground">Field</th>
+            <Modal isOpen={showCompareModal} onClose={() => setShowCompareModal(false)} title={'Compare Caterers'} className={'!max-w-5xl'}>
+                <div className="p-4 overflow-x-auto">
+                    <table className="w-full border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th className="p-2 border-b border-slate-200 text-left">Feature</th>
+                                        {compareCaterers.map(c => (
+                                            <th key={getCatererId(c)} className="p-2 border-b border-slate-200 text-center">
+                                                {c.businessName}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {([
+                                        { label: 'Rating', icon: <Star size={14} />, key: 'averageRating', format: (v) => v?.toFixed(1) || 'N/A' },
+                                        { label: 'City', icon: <Building size={14} />, key: 'city' },
+                                        { label: 'Area', icon: <MapPin size={14} />, key: 'area' },
+                                        { label: 'Service Radius', icon: <Compass size={14} />, key: 'serviceRadius', format: (v) => `${v} km` },
+                                    ]).map(feature => (
+                                        <tr key={feature.key}>
+                                            <td className="p-2 border-b border-slate-100 font-semibold flex items-center gap-2">{feature.icon} {feature.label}</td>
                                             {compareCaterers.map(c => (
-                                                <th
-                                                    key={getCatererId(c)}
-                                                    className="text-left py-2 pr-4 text-foreground min-w-[180px]"
-                                                >
-                                                    {c.businessName}
-                                                </th>
-                                            ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr className="border-b border-border/60">
-                                            <td className="py-2 pr-4 text-muted-foreground">Rating</td>
-                                            {compareCaterers.map(c => (
-                                                <td key={`rating-${getCatererId(c)}`} className="py-2 pr-4">
-                                                    {c.rating || 'New'}
+                                                <td key={getCatererId(c)} className="p-2 border-b border-slate-100 text-center">
+                                                    {feature.format ? feature.format(c[feature.key]) : c[feature.key] || 'N/A'}
                                                 </td>
                                             ))}
                                         </tr>
-                                        <tr className="border-b border-border/60">
-                                            <td className="py-2 pr-4 text-muted-foreground">City</td>
-                                            {compareCaterers.map(c => (
-                                                <td key={`city-${getCatererId(c)}`} className="py-2 pr-4">
-                                                    {c.city || 'N/A'}
-                                                </td>
-                                            ))}
-                                        </tr>
-                                        <tr className="border-b border-border/60">
-                                            <td className="py-2 pr-4 text-muted-foreground">Area</td>
-                                            {compareCaterers.map(c => (
-                                                <td key={`area-${getCatererId(c)}`} className="py-2 pr-4">
-                                                    {c.area || 'N/A'}
-                                                </td>
-                                            ))}
-                                        </tr>
-                                        <tr className="border-b border-border/60">
-                                            <td className="py-2 pr-4 text-muted-foreground">Service Radius</td>
-                                            {compareCaterers.map(c => (
-                                                <td key={`radius-${getCatererId(c)}`} className="py-2 pr-4">
-                                                    {c.serviceRadius || 0} km
-                                                </td>
-                                            ))}
-                                        </tr>
-                                        <tr>
-                                            <td className="py-2 pr-4 text-muted-foreground">Description</td>
-                                            {compareCaterers.map(c => (
-                                                <td key={`desc-${getCatererId(c)}`} className="py-2 pr-4">
-                                                    {(c.description || 'N/A').slice(0, 120)}
-                                                    {(c.description || '').length > 120 ? '...' : ''}
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            )}
-                        </div>
-
-                        <div className="px-4 py-3 border-t border-border flex justify-end gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setCompareIds([])}
-                                className="px-3 py-2 rounded-lg bg-secondary text-foreground hover:bg-secondary/80"
-                            >
-                                Clear compare list
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setShowCompareModal(false)}
-                                className="px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
-                            >
-                                Done
-                            </button>
-                        </div>
-                    </div>
+                                    ))}
+                                </tbody>
+                    </table>
                 </div>
-            )}
+            </Modal>
         </div>
     );
 };

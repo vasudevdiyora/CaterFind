@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Eye, XCircle, MapPin, Calendar, MessageSquare } from 'lucide-react';
 import { adminAPI } from '../services/api';
+import Modal from '../components/Modal';
 
 const AdminClients = () => {
     const [clients, setClients] = useState([]);
@@ -142,8 +143,8 @@ const AdminClients = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {filteredClients.map((client) => (
-                                <tr key={client.id} className="hover:bg-secondary/50">
+                            {filteredClients.map((client, index) => (
+                                <tr key={client.id || index} className="hover:bg-secondary/50">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm font-medium text-foreground">
                                             {client.name}
@@ -199,55 +200,49 @@ const AdminClients = () => {
             </div>
 
             {/* Details Modal */}
-            {selectedClient && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-auto">
-                        <div className="p-6 border-b border-border flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-foreground">Client Details</h2>
-                            <button
-                                onClick={() => setSelectedClient(null)}
-                                className="text-muted-foreground hover:text-foreground"
-                            >
-                                <XCircle size={24} />
-                            </button>
+            <Modal
+                isOpen={!!selectedClient}
+                onClose={() => setSelectedClient(null)}
+                title={<h2 className="text-xl font-bold text-foreground">Client Details</h2>}
+                className="bg-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-auto"
+            >
+                {selectedClient && (
+                    <div className="p-6 space-y-4">
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">Name</label>
+                            <p className="text-foreground">{selectedClient.name}</p>
                         </div>
-                        <div className="p-6 space-y-4">
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">Name</label>
-                                <p className="text-foreground">{selectedClient.name}</p>
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">Email</label>
-                                <p className="text-foreground">{selectedClient.email}</p>
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">Phone</label>
-                                <p className="text-foreground">{selectedClient.phone}</p>
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">Location</label>
-                                <p className="text-foreground">{selectedClient.location}</p>
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">Joined Date</label>
-                                <p className="text-foreground">{toDate(selectedClient.joinedDate)?.toLocaleDateString() || 'N/A'}</p>
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">Total Trials</label>
-                                <p className="text-foreground">{selectedClient.totalTrials}</p>
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">Active Conversations</label>
-                                <p className="text-foreground">{selectedClient.activeConversations}</p>
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-muted-foreground">Last Active</label>
-                                <p className="text-foreground">{toDate(selectedClient.lastActive)?.toLocaleDateString() || 'N/A'}</p>
-                            </div>
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">Email</label>
+                            <p className="text-foreground">{selectedClient.email}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">Phone</label>
+                            <p className="text-foreground">{selectedClient.phone}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">Location</label>
+                            <p className="text-foreground">{selectedClient.location}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">Joined Date</label>
+                            <p className="text-foreground">{toDate(selectedClient.joinedDate)?.toLocaleDateString() || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">Total Trials</label>
+                            <p className="text-foreground">{selectedClient.totalTrials}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">Active Conversations</label>
+                            <p className="text-foreground">{selectedClient.activeConversations}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-muted-foreground">Last Active</label>
+                            <p className="text-foreground">{toDate(selectedClient.lastActive)?.toLocaleDateString() || 'N/A'}</p>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </Modal>
         </div>
     );
 };

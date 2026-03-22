@@ -211,6 +211,8 @@ CREATE TABLE menus (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     caterer_id BIGINT NOT NULL,
     client_name VARCHAR(255) NOT NULL,
+    event_type VARCHAR(100),
+    meal_time VARCHAR(50), -- Breakfast, Brunch, Lunch, Evening Snack, Dinner, Late Night Snack
     event_location VARCHAR(500) NOT NULL,
     event_date DATE NOT NULL,
     number_of_guests INT NOT NULL,

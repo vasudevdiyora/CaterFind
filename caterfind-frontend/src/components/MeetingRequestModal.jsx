@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, Calendar, Users, MapPin, MessageCircle } from 'lucide-react';
+import { Calendar, Users, MapPin, MessageCircle } from 'lucide-react';
+import Modal from './Modal';
 import { meetingRequestAPI } from '../services/api';
 
 /**
@@ -74,26 +75,8 @@ const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-card rounded-xl border border-border max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-border">
-                    <div>
-                        <h2 className="text-2xl font-bold text-foreground">Fix Meeting</h2>
-                        <p className="text-sm text-muted-foreground mt-1">
-                            Send a request to {catererName}
-                        </p>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="p-2 hover:bg-secondary rounded-lg transition-colors"
-                    >
-                        <X size={24} className="text-muted-foreground" />
-                    </button>
-                </div>
-
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <Modal isOpen={isOpen} onClose={onClose} title={<div><h2 className="text-2xl font-bold text-foreground">Fix Meeting</h2><p className="text-sm text-muted-foreground mt-1">Send a request to {catererName}</p></div>} className="max-w-2xl">
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
                     {/* Error Message */}
                     {error && (
                         <div className="bg-red-500/10 border border-red-500 rounded-lg p-3">
@@ -202,8 +185,7 @@ const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId }) => {
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+        </Modal>
     );
 };
 

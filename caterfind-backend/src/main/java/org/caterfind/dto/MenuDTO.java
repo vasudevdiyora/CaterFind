@@ -16,6 +16,7 @@ public class MenuDTO {
     private Long catererId;
     private String clientName;
     private String eventType;
+    private String mealTime;
     private String eventLocation;
     private LocalDate eventDate;
     private Integer numberOfGuests;
@@ -36,6 +37,7 @@ public class MenuDTO {
         this.catererId = menu.getCaterer().getId();
         this.clientName = menu.getClientName();
         this.eventType = menu.getEventType();
+        this.mealTime = menu.getMealTime();
         this.eventLocation = menu.getEventLocation();
         this.eventDate = menu.getEventDate();
         this.numberOfGuests = menu.getNumberOfGuests();
@@ -85,6 +87,14 @@ public class MenuDTO {
 
     public void setEventType(String eventType) {
         this.eventType = eventType;
+    }
+
+    public String getMealTime() {
+        return mealTime;
+    }
+
+    public void setMealTime(String mealTime) {
+        this.mealTime = mealTime;
     }
 
     public String getEventLocation() {

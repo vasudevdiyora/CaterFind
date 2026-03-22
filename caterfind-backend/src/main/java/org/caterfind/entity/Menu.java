@@ -45,6 +45,9 @@ public class Menu {
     @Column(name = "event_type", length = 100)
     private String eventType;
 
+    @Column(name = "meal_time", length = 50)
+    private String mealTime;
+
     @Column(name = "event_date", nullable = false)
     private LocalDate eventDate;
 
@@ -137,6 +140,14 @@ public class Menu {
 
     public void setEventType(String eventType) {
         this.eventType = eventType;
+    }
+
+    public String getMealTime() {
+        return mealTime;
+    }
+
+    public void setMealTime(String mealTime) {
+        this.mealTime = mealTime;
     }
 
     public LocalDate getEventDate() {

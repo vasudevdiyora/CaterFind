@@ -160,24 +160,37 @@ function DishLibrary({ user }) {
 
     const toggleLabel = (label) => {
         setFormData(prev => {
-            const labels = prev.labels.includes(label)
-                ? prev.labels.filter(l => l !== label)
-                : [...prev.labels, label];
-            return { ...prev, labels };
+            const exists = prev.labels.includes(label);
+            return {
+                ...prev,
+                labels: exists
+                    ? prev.labels.filter(l => l !== label)
+                    : [...prev.labels, label]
+            };
         });
     };
 
     const addCustomLabel = () => {
-        if (formData.customLabel && !formData.labels.includes(formData.customLabel)) {
-            setFormData(prev => ({
-                ...prev,
-                labels: [...prev.labels, prev.customLabel],
-                customLabel: ''
-            }));
-            // Update available labels for the session
-            if (!availableLabels.includes(formData.customLabel)) {
-                setAvailableLabels(prev => [...prev, formData.customLabel]);
-            }
+        const raw = (formData.customLabel || '').trim();
+        if (!raw) return;
+
+        const labelToAdd = raw;
+
+        const existsInDish = formData.labels.some(
+            l => l.trim().toLowerCase() === labelToAdd.toLowerCase()
+        );
+        const existsInOptions = availableLabels.some(
+            l => l.trim().toLowerCase() === labelToAdd.toLowerCase()
+        );
+
+        setFormData(prev => ({
+            ...prev,
+            labels: existsInDish ? prev.labels : [...prev.labels, labelToAdd],
+            customLabel: ''
+        }));
+
+        if (!existsInOptions) {
+            setAvailableLabels(prev => [...prev, labelToAdd]);
         }
     };
 
@@ -360,7 +373,11 @@ function DishLibrary({ user }) {
                                 <label>Labels</label>
                                 <div className="flex flex-wrap gap-2 p-2 border border-slate-200 rounded-lg bg-slate-50/50">
                                     {availableLabels.map(label => (
-                                        <div key={label} className={`label-checkbox ${formData.labels.includes(label) ? 'selected' : ''}`} onClick={() => toggleLabel(label)}>
+                                        <div
+                                            key={label}
+                                            className={`label-checkbox ${formData.labels.includes(label) ? 'selected' : ''}`}
+                                            onClick={() => toggleLabel(label)}
+                                        >
                                             {label}
                                         </div>
                                     ))}
@@ -372,6 +389,12 @@ function DishLibrary({ user }) {
                                         className="form-input flex-grow"
                                         value={formData.customLabel}
                                         onChange={(e) => setFormData({ ...formData, customLabel: e.target.value })}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                addCustomLabel();
+                                            }
+                                        }}
                                     />
                                     <button type="button" className="secondary-button" onClick={addCustomLabel}>Add</button>
                                 </div>

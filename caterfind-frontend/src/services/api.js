@@ -772,7 +772,11 @@ export const menuAPI = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(menuData)
     });
-    return response.json();
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || data.error || 'Failed to create menu');
+    }
+    return data;
   },
 
   /**
@@ -788,7 +792,11 @@ export const menuAPI = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(menuData)
     });
-    return response.json();
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || data.error || 'Failed to update menu');
+    }
+    return data;
   },
 
   /**
@@ -801,7 +809,11 @@ export const menuAPI = {
     const response = await authFetch(`${API_BASE_URL}/menus/${id}/send`, {
       method: 'POST'
     });
-    return response.json();
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || data.error || 'Failed to send menu to client');
+    }
+    return data;
   },
 
   /**

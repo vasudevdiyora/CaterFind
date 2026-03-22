@@ -180,25 +180,24 @@ public class MenuService {
         Menu menu = menuRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Menu not found with id: " + id));
 
+        String recipientEmail = normalizeClientEmail(menu.getClientEmail());
+
+        try {
+            String subject = "Menu Proposal for " + menu.getEventLocation();
+            String body = buildMenuEmailBody(menu);
+            emailService.sendEmail(recipientEmail, subject, body);
+            System.out.println("✅ Menu email sent to: " + recipientEmail);
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to send menu email: " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to send menu email to client. Please verify email configuration and try again.");
+        }
+
         menu.setStatus(Menu.MenuStatus.SENT);
         menu.setSentAt(LocalDateTime.now());
 
         Menu updatedMenu = menuRepository.save(menu);
         calendarEventService.syncMenuEvent(updatedMenu);
-
-        // Send email if client email is provided
-        if (menu.getClientEmail() != null && !menu.getClientEmail().isEmpty()) {
-            try {
-                String subject = "Menu Proposal for " + menu.getEventLocation();
-                String body = buildMenuEmailBody(menu);
-                emailService.sendEmail(menu.getClientEmail(), subject, body);
-                System.out.println("✅ Menu email sent to: " + menu.getClientEmail());
-            } catch (Exception e) {
-                System.err.println("⚠️ Failed to send menu email: " + e.getMessage());
-                // Don't fail the transaction if email fails
-            }
-        }
-
         return new MenuDTO(updatedMenu);
     }
 

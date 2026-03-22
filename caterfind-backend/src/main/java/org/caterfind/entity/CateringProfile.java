@@ -85,6 +85,15 @@ public class CateringProfile {
 
     @Column(name = "aadhar_number", length = 50)
     private String aadharNumber;
+    
+    @Column(name = "pan_number", length = 50)
+    private String panNumber;
+
+    @Column(name = "pan_document_url", length = 255)
+    private String panDocumentUrl;
+
+    @Column(name = "aadhar_document_url", length = 255)
+    private String aadharDocumentUrl;
 
     @Column(name = "business_photos", columnDefinition = "TEXT")
     private String businessPhotos; // Comma-separated URLs of business photos for gallery
@@ -290,6 +299,30 @@ public class CateringProfile {
 
     public void setAadharNumber(String aadharNumber) {
         this.aadharNumber = aadharNumber;
+    }
+
+    public String getPanNumber() {
+        return panNumber;
+    }
+
+    public void setPanNumber(String panNumber) {
+        this.panNumber = panNumber;
+    }
+
+    public String getPanDocumentUrl() {
+        return panDocumentUrl;
+    }
+
+    public void setPanDocumentUrl(String panDocumentUrl) {
+        this.panDocumentUrl = panDocumentUrl;
+    }
+
+    public String getAadharDocumentUrl() {
+        return aadharDocumentUrl;
+    }
+
+    public void setAadharDocumentUrl(String aadharDocumentUrl) {
+        this.aadharDocumentUrl = aadharDocumentUrl;
     }
 
     public void setAddress(String address) {

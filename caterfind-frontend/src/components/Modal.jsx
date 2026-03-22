@@ -14,7 +14,8 @@ const Modal = ({ isOpen = true, onClose = () => {}, title = null, children, clas
         return () => window.removeEventListener('keydown', onKey);
     }, [onClose]);
 
-    if (!isOpen) return null;
+    // NOTE: hooks must be called in the same order every render.
+    // Don't early-return before all hooks are declared — check `isOpen` after hooks.
 
     // Side panel variant (used for slide-in sidebars)
     const [isMobile, setIsMobile] = useState(() => {
@@ -47,6 +48,8 @@ const Modal = ({ isOpen = true, onClose = () => {}, title = null, children, clas
             setOverlayStyle({ left: '256px' });
         }
     }, [isMobile]);
+
+    if (!isOpen) return null;
 
     // Side panels are intended for mobile; don't render overlay/panel on desktop
     if (side === 'left' || side === 'right') {

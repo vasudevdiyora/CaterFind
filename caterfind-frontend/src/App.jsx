@@ -67,6 +67,7 @@ function App() {
       id: loginResponse.userId,
       email: loginResponse.email,
       role: loginResponse.role
+      ,accountStatus: loginResponse.accountStatus || 'ACTIVE'
     };
 
     if (loginResponse.token) {

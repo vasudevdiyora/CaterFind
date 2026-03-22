@@ -218,6 +218,33 @@
     font-style: italic;
 }
 
+/* Clickable label pills used in Contacts and Dish Library */
+.label-checkbox {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-subtle);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+
+.label-checkbox:hover {
+    background: var(--bg-hover);
+}
+
+.label-checkbox.selected {
+    background: var(--primary-soft);
+    border-color: var(--primary-color);
+    color: var(--primary-strong);
+    transform: translateY(-1px);
+}
+
 /* Preferred Method */
 .preferred-method {
     display: inline-flex;

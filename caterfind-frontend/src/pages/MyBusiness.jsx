@@ -58,6 +58,17 @@ function LocationSelectorMarker({ position, onPositionSelect }) {
     );
 }
 
+function FormSection({ title, icon, children }) {
+    return (
+        <div className="surface-card p-6">
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-3 mb-4">
+                {icon} {title}
+            </h2>
+            <div className="space-y-4">{children}</div>
+        </div>
+    );
+}
+
 /**
  * My Business Page Component (Dense Light Theme)
  */
@@ -86,6 +97,10 @@ function MyBusiness({ user }) {
     const [businessPhotos, setBusinessPhotos] = useState([]);
     const [businessVideos, setBusinessVideos] = useState([]);
     const [mapPosition, setMapPosition] = useState(null);
+
+    // Ref to Description / Bio textarea so we can read
+    // the latest value on save without controlling it.
+    const descriptionRef = useRef(null);
 
     // Email-change OTP state
     const [originalEmail, setOriginalEmail] = useState('');
@@ -182,9 +197,11 @@ function MyBusiness({ user }) {
         setSaving(true);
         const catererId = user?.userId || user?.id;
         const photoUrls = businessPhotos.map(p => p.url).join(',');
+        const currentDescription = descriptionRef.current?.value ?? formData.description;
         const payload = {
             ...formData,
             email: finalEmail || formData.email,
+            description: currentDescription,
             businessPhotos: photoUrls
         };
 
@@ -268,15 +285,6 @@ function MyBusiness({ user }) {
         );
     };
 
-    const FormSection = ({ title, icon, children }) => (
-        <div className="surface-card p-6">
-            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-3 mb-4">
-                {icon} {title}
-            </h2>
-            <div className="space-y-4">{children}</div>
-        </div>
-    );
-
     if (loading) {
         return <div className="page-shell text-center p-10">Loading business profile...</div>;
     }
@@ -301,7 +309,15 @@ function MyBusiness({ user }) {
                             </div>
                             <div className="form-group">
                                 <label htmlFor="description">Description / Bio</label>
-                                <textarea id="description" className="form-input" rows="4" value={formData.description} onChange={e => handleChange('description', e.target.value)} placeholder="Tell clients about your business, your specialty, and what makes you unique."></textarea>
+                                <textarea
+                                    id="description"
+                                    ref={descriptionRef}
+                                    className="form-input"
+                                    rows="4"
+                                    defaultValue={formData.description}
+                                    onBlur={e => handleChange('description', e.target.value)}
+                                    placeholder="Tell clients about your business, your specialty, and what makes you unique."
+                                ></textarea>
                             </div>
                         </FormSection>
 

@@ -22,13 +22,55 @@ function MenuHistory({ user }) {
     const loadMenus = async () => {
         try {
             setLoading(true);
-            const [upcoming, past] = await Promise.all([
-                menuAPI.getUpcoming(user.userId),
-                menuAPI.getPast(user.userId, 30)
-            ]);
+            const allMenus = await menuAPI.getAll(user.userId);
+            const menus = Array.isArray(allMenus) ? allMenus : [];
 
-            setUpcomingMenus(Array.isArray(upcoming) ? upcoming : []);
-            setPastMenus(Array.isArray(past) ? past : []);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const pastWindowStart = new Date(today);
+            pastWindowStart.setDate(today.getDate() - 30);
+
+            const upcoming = [];
+            const past = [];
+
+            menus.forEach((menu) => {
+                const eventDateValue = menu?.eventDate;
+                if (!eventDateValue) {
+                    // If event date is missing, keep it visible in upcoming tab.
+                    upcoming.push(menu);
+                    return;
+                }
+
+                const eventDate = new Date(eventDateValue);
+                eventDate.setHours(0, 0, 0, 0);
+
+                if (Number.isNaN(eventDate.getTime())) {
+                    upcoming.push(menu);
+                    return;
+                }
+
+                if (eventDate >= today) {
+                    upcoming.push(menu);
+                    return;
+                }
+
+                if (eventDate >= pastWindowStart) {
+                    past.push(menu);
+                }
+            });
+
+            const sortByNearestDate = (a, b) => {
+                const dateA = new Date(a?.eventDate || 0).getTime();
+                const dateB = new Date(b?.eventDate || 0).getTime();
+                return dateA - dateB;
+            };
+
+            upcoming.sort(sortByNearestDate);
+            past.sort((a, b) => sortByNearestDate(b, a));
+
+            setUpcomingMenus(upcoming);
+            setPastMenus(past);
         } catch (error) {
             console.error('Error loading menu history:', error);
             alert('Failed to load menu history');

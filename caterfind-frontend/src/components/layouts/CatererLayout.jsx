@@ -17,6 +17,7 @@ import { authAPI, profileAPI } from '@/services/api';
 const CatererLayout = ({ children, user, onLogout }) => {
     // Mobile sidebar toggle state
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const fallbackCateringName = user?.displayName || user?.name || (user?.email ? user.email.split('@')[0] : 'Caterer');
     const [cateringName, setCateringName] = useState(fallbackCateringName);
     const location = useLocation();
@@ -61,6 +62,17 @@ const CatererLayout = ({ children, user, onLogout }) => {
         if (onLogout) onLogout();
     };
 
+    // Handle menu button click (desktop vs mobile behavior)
+    const handleMenuClick = () => {
+        if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+            // Desktop: toggle collapsed / expanded sidebar like YouTube
+            setSidebarCollapsed((prev) => !prev);
+        } else {
+            // Mobile / tablet: open slide-in sidebar
+            setSidebarOpen(true);
+        }
+    };
+
     // Navigation menu items
     const navItems = [
         { path: '/owner/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -95,7 +107,8 @@ const CatererLayout = ({ children, user, onLogout }) => {
                 <>
                     {/* Desktop Sidebar (visible on lg and up) */}
                     <aside style={{ zIndex: 1200 }} className={cn(
-                        "hidden lg:flex fixed inset-y-0 left-0 w-64 bg-white border-r border-slate-200",
+                        "hidden lg:flex fixed inset-y-0 left-0 bg-white border-r border-slate-200",
+                        sidebarCollapsed ? "w-16" : "w-64",
                         "flex-col h-full"
                     )}>
                         <div className="flex flex-col h-full">
@@ -105,11 +118,25 @@ const CatererLayout = ({ children, user, onLogout }) => {
                                     <div className="w-8 h-8 rounded-lg bg-sky-500 text-white flex items-center justify-center shadow-sm">
                                         <UtensilsCrossed className="w-5 h-5" />
                                     </div>
-                                    <div>
-                                        <p className="font-bold text-slate-900 text-sm">{cateringName}</p>
-                                        <p className="text-xs text-slate-500 font-medium tracking-wide uppercase">Caterer</p>
-                                    </div>
+                                    {!sidebarCollapsed && (
+                                        <div>
+                                            <p className="font-bold text-slate-900 text-sm">{cateringName}</p>
+                                            <p className="text-xs text-slate-500 font-medium tracking-wide uppercase">Caterer</p>
+                                        </div>
+                                    )}
                                 </div>
+                            </div>
+
+                            {/* Collapse / expand arrow, below logo and above menu */}
+                            <div className="hidden lg:flex px-3 pt-2 pb-1 border-b border-slate-100 justify-center">
+                                <button
+                                    type="button"
+                                    className="inline-flex items-center justify-center h-7 w-10 rounded-full border border-slate-200 bg-slate-50 text-slate-500 text-xs font-semibold hover:bg-slate-100 hover:text-slate-700"
+                                    onClick={() => setSidebarCollapsed(prev => !prev)}
+                                    aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                                >
+                                    {sidebarCollapsed ? '>' : '<'}
+                                </button>
                             </div>
 
                             {/* Navigation Links */}
@@ -129,7 +156,7 @@ const CatererLayout = ({ children, user, onLogout }) => {
                                         {({ isActive }) => (
                                             <>
                                                 <Icon className={cn("w-4 h-4 transition-colors", isActive ? "text-sky-600" : "text-slate-400 group-hover:text-slate-600")} />
-                                                <span>{label}</span>
+                                                {!sidebarCollapsed && <span>{label}</span>}
                                             </>
                                         )}
                                     </RouterNavLink>
@@ -143,7 +170,7 @@ const CatererLayout = ({ children, user, onLogout }) => {
                                     className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-red-600 transition-colors"
                                 >
                                     <LogOut className="w-4 h-4" />
-                                    <span>Logout</span>
+                                    {!sidebarCollapsed && <span>Logout</span>}
                                 </button>
                             </div>
                         </div>
@@ -213,11 +240,14 @@ const CatererLayout = ({ children, user, onLogout }) => {
                     </Modal>
 
                     {/* Main Content Area */}
-                    <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
+                    <div className={cn(
+                        "flex-1 flex flex-col min-w-0",
+                        sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"
+                    )}>
                         {/* Top Header */}
                         <header className="sticky top-0 z-30 bg-card/90 backdrop-blur border-b border-border px-4 lg:px-6 py-3">
                             <div className="flex items-center gap-4">
-                                <button onClick={() => setSidebarOpen(true)} className="p-2 -ml-2 lg:hidden">
+                                <button onClick={handleMenuClick} className="p-2 -ml-2">
                                     <Menu className="w-6 h-6" />
                                 </button>
                                 <div className="min-w-0">

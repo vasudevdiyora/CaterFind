@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -42,11 +42,19 @@ import { AUTH_EXPIRED_EVENT, authSession } from './services/api';
  * - /client/* - Client routes
  */
 function App() {
+  const location = useLocation();
+
   // Authentication state
   const [user, setUser] = useState(() => {
     const session = authSession.get();
     return session?.token && session?.user ? session.user : null;
   });
+
+  const roleFromLoginQuery = (() => {
+    const params = new URLSearchParams(location.search);
+    return (params.get('role') || '').toUpperCase();
+  })();
+  const isValidLoginRole = ['CLIENT', 'CATERER', 'ADMIN'].includes(roleFromLoginQuery);
 
   useEffect(() => {
     const handleAuthExpired = () => {
@@ -106,19 +114,19 @@ function App() {
         user ? <Navigate to={
           user.role === 'ADMIN' ? '/admin/dashboard' :
           user.role === 'CATERER' ? '/owner/dashboard' : '/client/home'
-        } /> : <Login onLogin={handleLogin} />
+        } /> : (isValidLoginRole ? <Login onLogin={handleLogin} /> : <Navigate to="/" replace />)
       } />
       <Route path="/register" element={
         user ? <Navigate to={
           user.role === 'ADMIN' ? '/admin/dashboard' :
           user.role === 'CATERER' ? '/owner/dashboard' : '/client/home'
-        } /> : <Register onLogin={handleLogin} />
+        } /> : (isValidLoginRole ? <Register onLogin={handleLogin} /> : <Navigate to="/" replace />)
       } />
       <Route path="/forgot-password" element={user ? <Navigate to="/" /> : <ForgotPassword />} />
 
       {/* Caterer Routes */}
       <Route path="/owner/*" element={
-        !user ? <Navigate to="/" /> :
+        !user ? <Navigate to="/login?role=caterer" replace /> :
         user.role !== 'CATERER' ? <Navigate to="/client/home" /> :
         <CatererLayout user={user} onLogout={handleLogout}>
           <Routes>
@@ -140,7 +148,7 @@ function App() {
 
       {/* Client Routes */}
       <Route path="/client/*" element={
-        !user ? <Navigate to="/" /> :
+        !user ? <Navigate to="/login?role=client" replace /> :
         user.role !== 'CLIENT' ? <Navigate to="/owner/dashboard" /> :
         <ClientLayout user={user} onLogout={handleLogout}>
           <Routes>
@@ -157,7 +165,7 @@ function App() {
 
       {/* Admin Routes */}
       <Route path="/admin/*" element={
-        !user ? <Navigate to="/" /> :
+        !user ? <Navigate to="/login?role=admin" replace /> :
         user.role !== 'ADMIN' ? <Navigate to="/" /> :
         <AdminLayout user={user} onLogout={handleLogout}>
           <Routes>

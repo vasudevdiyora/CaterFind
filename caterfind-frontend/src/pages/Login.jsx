@@ -15,7 +15,8 @@ const Login = ({ onLogin }) => {
 
     const getRoleFromQuery = () => {
         const params = new URLSearchParams(location.search);
-        return params.get('role')?.toUpperCase() || 'CLIENT';
+        const roleValue = params.get('role')?.toUpperCase();
+        return ['CLIENT', 'CATERER', 'ADMIN'].includes(roleValue) ? roleValue : null;
     };
 
     const [role, setRole] = useState(getRoleFromQuery());
@@ -24,6 +25,12 @@ const Login = ({ onLogin }) => {
         setRole(getRoleFromQuery());
     }, [location.search]);
 
+    useEffect(() => {
+        if (!role) {
+            navigate('/', { replace: true });
+        }
+    }, [role, navigate]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -31,6 +38,12 @@ const Login = ({ onLogin }) => {
 
         try {
             const response = await authAPI.login(email, password);
+
+            if (role && response?.role && response.role.toUpperCase() !== role) {
+                setError(`This account is not allowed in the ${role.toLowerCase()} login.`);
+                return;
+            }
+
             onLogin(response);
             // Navigation is handled by App.jsx redirects
         } catch (err) {

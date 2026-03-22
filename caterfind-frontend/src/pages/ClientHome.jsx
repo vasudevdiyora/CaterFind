@@ -299,13 +299,13 @@ const ClientHome = ({ user }) => {
         return resolved || CATERER_FALLBACK_IMAGE;
     };
 
-    const CatererCard = ({ caterer }) => {
+    const renderCatererCard = (caterer, index) => {
         const catererId = getCatererId(caterer);
         const isShortlisted = shortlistedSet.has(catererId);
         const isComparing = compareIds.includes(catererId);
 
         return (
-            <div className="surface-card overflow-hidden flex flex-col group hover:shadow-lg hover:-translate-y-0.5 duration-300">
+            <div key={catererId || index} className="surface-card overflow-hidden flex flex-col group hover:shadow-lg hover:-translate-y-0.5 duration-300">
                 <div className="relative">
                     <img
                         src={getCatererImage(caterer)}
@@ -359,7 +359,7 @@ const ClientHome = ({ user }) => {
         );
     };
 
-    const Filters = () => (
+    const renderFilters = () => (
         <div className="p-4 pb-8 space-y-4">
             <h3 className="font-bold text-lg flex items-center gap-2 text-slate-900"><SlidersHorizontal size={18} className="text-sky-600" /> Filters</h3>
             <div className="form-group">
@@ -449,7 +449,7 @@ const ClientHome = ({ user }) => {
                 {/* Filters Sidebar */}
                 <aside className="lg:col-span-1 lg:self-start">
                     <div className="surface-card lg:sticky lg:top-4 max-h-[calc(100dvh-7rem)] overflow-y-auto pr-1">
-                        <Filters />
+                        {renderFilters()}
                     </div>
                 </aside>
 
@@ -478,9 +478,7 @@ const ClientHome = ({ user }) => {
                         </div>
                     ) : (
                         <div className="dense-grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-                            {filteredCaterers.map((caterer, index) => (
-                                <CatererCard key={getCatererId(caterer) || index} caterer={caterer} />
-                            ))}
+                            {filteredCaterers.map((caterer, index) => renderCatererCard(caterer, index))}
                         </div>
                     )}
                 </main>

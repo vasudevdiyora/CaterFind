@@ -11,6 +11,8 @@ import org.caterfind.dto.VerifyOtpRequest;
 import org.caterfind.entity.User;
 import org.caterfind.repository.UserRepository;
 import org.caterfind.service.AuthService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +32,8 @@ public class AuthController {
     @Autowired
     private UserRepository userRepository;
 
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
+
     /**
      * Login endpoint.
      */
@@ -48,11 +52,17 @@ public class AuthController {
      */
     @PostMapping("/register")
     public ResponseEntity<LoginResponse> register(@RequestBody org.caterfind.dto.RegisterRequest request) {
-        LoginResponse response = authService.register(request);
-        if (response.isSuccess()) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.badRequest().body(response);
+        try {
+            LoginResponse response = authService.register(request);
+            if (response.isSuccess()) {
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.badRequest().body(response);
+            }
+        } catch (Exception e) {
+            logger.error("Registration error for {}: {}", request == null ? "<null>" : request.getEmail(), e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(LoginResponse.failure("Registration failed: " + e.getMessage()));
         }
     }
 

@@ -8,6 +8,10 @@ public class RegisterRequest {
     // Caterer-specific fields
     private String ownerName;
     private String aadharNumber;
+    private String panNumber;
+    private String profileImageUrl;
+    private String panDocumentUrl;
+    private String aadharDocumentUrl;
     private String primaryPhone;
     private String alternatePhone;
     private String streetAddress;
@@ -47,6 +51,18 @@ public class RegisterRequest {
 
     public String getAadharNumber() { return aadharNumber; }
     public void setAadharNumber(String aadharNumber) { this.aadharNumber = aadharNumber; }
+
+    public String getPanNumber() { return panNumber; }
+    public void setPanNumber(String panNumber) { this.panNumber = panNumber; }
+
+    public String getProfileImageUrl() { return profileImageUrl; }
+    public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
+
+    public String getPanDocumentUrl() { return panDocumentUrl; }
+    public void setPanDocumentUrl(String panDocumentUrl) { this.panDocumentUrl = panDocumentUrl; }
+
+    public String getAadharDocumentUrl() { return aadharDocumentUrl; }
+    public void setAadharDocumentUrl(String aadharDocumentUrl) { this.aadharDocumentUrl = aadharDocumentUrl; }
 
     public String getPrimaryPhone() { return primaryPhone; }
     public void setPrimaryPhone(String primaryPhone) { this.primaryPhone = primaryPhone; }

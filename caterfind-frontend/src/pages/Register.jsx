@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { authAPI, locationAPI } from '../services/api';
+import { authAPI, locationAPI, fileAPI } from '../services/api';
 import {
     UtensilsCrossed, Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff, ArrowLeft,
     User, Phone, Building, MapPin, Hash, ChefHat, Home, LocateFixed
@@ -24,6 +24,11 @@ const Register = ({ onLogin }) => {
     const [businessName, setBusinessName] = useState('');
     const [ownerName, setOwnerName] = useState('');
     const [primaryPhone, setPrimaryPhone] = useState('');
+    const [aadharNumber, setAadharNumber] = useState('');
+    const [panNumber, setPanNumber] = useState('');
+    const [profileImageUrl, setProfileImageUrl] = useState('');
+    const [panDocumentUrl, setPanDocumentUrl] = useState('');
+    const [aadharDocumentUrl, setAadharDocumentUrl] = useState('');
     const [streetAddress, setStreetAddress] = useState('');
     const [area, setArea] = useState('');
     const [city, setCity] = useState('');
@@ -46,26 +51,11 @@ const Register = ({ onLogin }) => {
         setRole(getRoleFromQuery());
     }, [location.search]);
 
-    const handlePincodeChange = async (e) => {
+    // Allow manual pincode entry — do not auto-lookup remote API
+    const handlePincodeChange = (e) => {
         const val = e.target.value.replace(/\D/g, '');
         setPincode(val);
         setPincodeError('');
-        if (val.length === 6) {
-            setPincodeLoading(true);
-            try {
-                const res = await locationAPI.lookupPincode(val);
-                if (res?.success) {
-                    if (res.state) setSelectedState(res.state);
-                    if (res.district) setCity(res.district);
-                } else {
-                    setPincodeError(res.message || 'Pincode not found');
-                }
-            } catch (err) {
-                setPincodeError(err.message || 'Pincode lookup failed');
-            } finally {
-                setPincodeLoading(false);
-            }
-        }
     };
 
     const handleUseCurrentLocation = () => {
@@ -105,6 +95,11 @@ const Register = ({ onLogin }) => {
                 address: `${streetAddress}, ${area}, ${city}`,
                 latitude: latitude ? Number(latitude) : undefined,
                 longitude: longitude ? Number(longitude) : undefined,
+                aadharNumber: aadharNumber,
+                panNumber,
+                profileImageUrl,
+                panDocumentUrl,
+                aadharDocumentUrl
             });
         } else {
             Object.assign(payload, { name: clientName, phone: primaryPhone });
@@ -119,6 +114,16 @@ const Register = ({ onLogin }) => {
             setError(err.message || 'Registration failed. Please try again.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleFileUpload = async (file, setter) => {
+        if (!file) return;
+        try {
+            const result = await fileAPI.upload(file);
+            if (result && result.url) setter(result.url);
+        } catch (err) {
+            setError('File upload failed: ' + (err.message || ''));
         }
     };
 
@@ -165,6 +170,32 @@ const Register = ({ onLogin }) => {
                             <FormInput id="clientName" label="Full Name" value={clientName} onChange={setClientName} icon={<User />} required />
                         )}
                         <FormInput id="primaryPhone" label="Contact Phone" type="tel" value={primaryPhone} onChange={setPrimaryPhone} icon={<Phone />} required />
+
+                        {role === 'CATERER' && (
+                            <>
+                                <FormInput id="panNumber" label="PAN Number" value={panNumber} onChange={setPanNumber} icon={<Hash />} />
+
+                                <FormInput id="aadharNumber" label="Aadhaar Number" value={aadharNumber} onChange={setAadharNumber} icon={<Hash />} />
+
+                                <div className="form-group">
+                                    <label>Profile Image</label>
+                                    <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e.target.files?.[0], setProfileImageUrl)} />
+                                    {profileImageUrl && <p className="text-xs text-slate-600 mt-1">Uploaded: {profileImageUrl}</p>}
+                                </div>
+
+                                <div className="form-group">
+                                    <label>PAN Document (optional)</label>
+                                    <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e.target.files?.[0], setPanDocumentUrl)} />
+                                    {panDocumentUrl && <p className="text-xs text-slate-600 mt-1">Uploaded: {panDocumentUrl}</p>}
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Aadhaar Document (optional)</label>
+                                    <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e.target.files?.[0], setAadharDocumentUrl)} />
+                                    {aadharDocumentUrl && <p className="text-xs text-slate-600 mt-1">Uploaded: {aadharDocumentUrl}</p>}
+                                </div>
+                            </>
+                        )}
 
                         <h3 className="col-span-full form-section-header pt-4">Location</h3>
                         <FormInput id="pincode" label="Pincode" value={pincode} onChangeRaw={handlePincodeChange} icon={<Hash />} maxLength={6} loading={pincodeLoading} error={pincodeError} />

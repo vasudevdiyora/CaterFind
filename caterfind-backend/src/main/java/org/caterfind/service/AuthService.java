@@ -86,6 +86,8 @@ public class AuthService {
             return LoginResponse.failure("Your account is suspended. Contact support.");
         }
 
+        // Note: frontend will handle non-ACTIVE accountStatus (PENDING/SUSPENDED)
+
         if (!isPasswordValid(user, request.getPassword())) {
             return LoginResponse.failure("Invalid email or password");
         }
@@ -93,11 +95,12 @@ public class AuthService {
         String token = jwtService.generateToken(user);
 
         return LoginResponse.success(
-                user.getId(),
-                user.getEmail(),
-                user.getRole().name(),
-                token,
-                jwtService.getExpirationSeconds());
+            user.getId(),
+            user.getEmail(),
+            user.getRole().name(),
+            user.getAccountStatus().name(),
+            token,
+            jwtService.getExpirationSeconds());
     }
 
     /**
@@ -196,6 +199,13 @@ public class AuthService {
             // Set defaults
             profile.setServiceRadius(50);
 
+            // Set optional fields from request
+            profile.setAadharNumber(request.getAadharNumber());
+            profile.setImageUrl(request.getProfileImageUrl());
+            profile.setPanNumber(request.getPanNumber());
+            profile.setPanDocumentUrl(request.getPanDocumentUrl());
+            profile.setAadharDocumentUrl(request.getAadharDocumentUrl());
+
             cateringProfileRepository.save(profile);
         }
 
@@ -212,11 +222,12 @@ public class AuthService {
         String token = jwtService.generateToken(savedUser);
 
         return LoginResponse.success(
-                savedUser.getId(),
-                savedUser.getEmail(),
-                savedUser.getRole().name(),
-                token,
-                jwtService.getExpirationSeconds());
+            savedUser.getId(),
+            savedUser.getEmail(),
+            savedUser.getRole().name(),
+            savedUser.getAccountStatus().name(),
+            token,
+            jwtService.getExpirationSeconds());
     }
 
     public String requestPasswordResetOtp(String email) {

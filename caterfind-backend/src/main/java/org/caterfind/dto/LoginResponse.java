@@ -14,6 +14,7 @@ public class LoginResponse {
     private Long userId;
     private String email;
     private String role; // "CATERER" or "CLIENT"
+    private String accountStatus; // ACTIVE, PENDING, SUSPENDED
     private String message; // Success or error message
     private boolean success;
     private String token;
@@ -24,10 +25,11 @@ public class LoginResponse {
     public LoginResponse() {
     }
 
-    public LoginResponse(Long userId, String email, String role, String message, boolean success, String token, String tokenType, Long expiresIn) {
+    public LoginResponse(Long userId, String email, String role, String accountStatus, String message, boolean success, String token, String tokenType, Long expiresIn) {
         this.userId = userId;
         this.email = email;
         this.role = role;
+        this.accountStatus = accountStatus;
         this.message = message;
         this.success = success;
         this.token = token;
@@ -36,12 +38,12 @@ public class LoginResponse {
     }
 
     // Static factory methods for convenience
-    public static LoginResponse success(Long userId, String email, String role, String token, long expiresIn) {
-        return new LoginResponse(userId, email, role, "Login successful", true, token, "Bearer", expiresIn);
+    public static LoginResponse success(Long userId, String email, String role, String accountStatus, String token, long expiresIn) {
+        return new LoginResponse(userId, email, role, accountStatus, "Login successful", true, token, "Bearer", expiresIn);
     }
 
     public static LoginResponse failure(String message) {
-        return new LoginResponse(null, null, null, message, false, null, null, null);
+        return new LoginResponse(null, null, null, null, message, false, null, null, null);
     }
 
     // Getters and Setters
@@ -103,6 +105,14 @@ public class LoginResponse {
 
     public Long getExpiresIn() {
         return expiresIn;
+    }
+
+    public String getAccountStatus() {
+        return accountStatus;
+    }
+
+    public void setAccountStatus(String accountStatus) {
+        this.accountStatus = accountStatus;
     }
 
     public void setExpiresIn(Long expiresIn) {

@@ -75,7 +75,7 @@ const AdminModeration = () => {
 
     const getReasonColor = (reason) => {
         const colors = {
-            'Spam': 'text-orange-500',
+            'Spam': 'text-sky-500',
             'Harassment': 'text-red-500',
             'Inappropriate Content': 'text-purple-500',
             'Fraud': 'text-red-600',

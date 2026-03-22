@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import '../styles/Sidebar.css';
+import Modal from './Modal';
 
 /**
  * Sidebar Navigation Component (Loveable Dark Theme - Responsive)
@@ -51,14 +52,9 @@ function Sidebar({ currentPage, onNavigate, onLogout }) {
                 <span className="mobile-menu-title">Caterer Panel</span>
             </button>
 
-            {/* Mobile Overlay */}
-            <div
-                className={`sidebar-overlay ${mobileOpen ? 'active' : ''}`}
-                onClick={() => setMobileOpen(false)}
-            />
-
-            {/* Sidebar */}
-            <div className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
+            {/* Mobile Sidebar (side-panel Modal) */}
+            <Modal isOpen={mobileOpen} onClose={() => setMobileOpen(false)} side="left" className="p-0 bg-transparent !max-w-none">
+                <div className={`sidebar mobile-open`}>
                 <div className="sidebar-header">
                     <div className="sidebar-logo">
                         🍴
@@ -90,7 +86,7 @@ function Sidebar({ currentPage, onNavigate, onLogout }) {
                         Logout
                     </button>
                 </div>
-            </div>
+            </Modal>
         </>
     );
 }

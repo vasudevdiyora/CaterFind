@@ -23,6 +23,7 @@ export const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL, 
 export const WS_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_WS_BASE_URL, API_BASE_URL);
 export const WS_ENDPOINT = `${WS_BASE_URL}/ws/chat`;
 const AUTH_SESSION_KEY = 'caterfind_auth_session';
+export const AUTH_EXPIRED_EVENT = 'caterfind:auth-expired';
 
 const readStoredSession = () => {
   try {
@@ -38,17 +39,26 @@ const getAuthToken = () => {
   return session?.token || null;
 };
 
-const authFetch = (url, options = {}) => {
+const authFetch = async (url, options = {}) => {
   const headers = new Headers(options.headers || {});
   const token = getAuthToken();
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  return window.fetch(url, {
+  const response = await window.fetch(url, {
     ...options,
     headers
   });
+
+  if (response.status === 401) {
+    localStorage.removeItem(AUTH_SESSION_KEY);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT, { detail: { url } }));
+    }
+  }
+
+  return response;
 };
 
 export const authSession = {
@@ -143,6 +153,64 @@ export const authAPI = {
     if (!response.ok) {
       throw new Error(data.message || 'Failed to reset password');
     }
+    return data;
+  },
+
+  /**
+   * Get the current logged-in user's profile (name, phone, location).
+   * @returns {Promise} User profile data
+   */
+  getProfile: async () => {
+    const response = await authFetch(`${API_BASE_URL}/auth/profile`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to load profile');
+    return data;
+  },
+
+  /**
+   * Update the current user's profile fields.
+   * @param {{ name?: string, phone?: string, location?: string }} payload
+   * @returns {Promise} Updated user data
+   */
+  updateProfile: async (payload) => {
+    const response = await authFetch(`${API_BASE_URL}/auth/profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to update profile');
+    return data;
+  },
+
+  /**
+   * Request an OTP to be sent to the new email address for verification.
+   * @param {string} newEmail - The new email the user wants to switch to
+   */
+  requestEmailChangeOtp: async (newEmail) => {
+    const response = await authFetch(`${API_BASE_URL}/auth/email-change/request-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newEmail })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to send OTP');
+    return data;
+  },
+
+  /**
+   * Verify the OTP and apply the email change.
+   * @param {string} newEmail - The new email address
+   * @param {string} otp - The 6-digit OTP entered by the user
+   */
+  verifyEmailChangeOtp: async (newEmail, otp) => {
+    const response = await authFetch(`${API_BASE_URL}/auth/email-change/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newEmail, otp })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Invalid OTP');
     return data;
   }
 
@@ -747,6 +815,31 @@ export const menuAPI = {
       method: 'DELETE'
     });
     return response;
+  },
+
+  /**
+   * Get upcoming menus for a caterer (event date >= today).
+   * 
+   * @param {number} catererId - Caterer user ID
+   * @returns {Promise} Array of upcoming menus
+   */
+  getUpcoming: async (catererId) => {
+    const response = await authFetch(`${API_BASE_URL}/menus/upcoming?catererId=${catererId}`);
+    if (!response.ok) return [];
+    return response.json();
+  },
+
+  /**
+   * Get past menus for a caterer within the last N days.
+   * 
+   * @param {number} catererId - Caterer user ID
+   * @param {number} days - Number of past days to look back (default 30)
+   * @returns {Promise} Array of past menus
+   */
+  getPast: async (catererId, days = 30) => {
+    const response = await authFetch(`${API_BASE_URL}/menus/past?catererId=${catererId}&days=${days}`);
+    if (!response.ok) return [];
+    return response.json();
   }
 };
 
@@ -996,6 +1089,31 @@ export const discoveryAPI = {
       method: 'DELETE'
     });
     return parseDiscoveryResponse(response, 'Failed to remove caterer from shortlist');
+  }
+};
+
+/**
+ * Chat API
+ */
+export const chatAPI = {
+  getConversations: async () => {
+    const response = await authFetch(`${API_BASE_URL}/api/chat/conversations`);
+    if (!response.ok) return [];
+    return response.json();
+  },
+  getMessages: async (partnerId) => {
+    const response = await authFetch(`${API_BASE_URL}/api/chat/messages/${partnerId}`);
+    if (!response.ok) return [];
+    return response.json();
+  },
+  sendMessage: async (messageData) => {
+    const response = await authFetch(`${API_BASE_URL}/api/chat/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(messageData)
+    });
+    if (!response.ok) throw new Error('Failed to send message');
+    return response.json();
   }
 };
 

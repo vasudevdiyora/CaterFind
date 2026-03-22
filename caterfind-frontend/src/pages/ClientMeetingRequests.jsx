@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
 import { meetingRequestAPI } from '../services/api';
+import '../styles/Table.css';
+import '../styles/Contacts.css'; // For filter pills
 
-/**
- * Client Meeting Requests Page - Client Side
- * Shows all meeting requests sent by the client with their status
- */
 const ClientMeetingRequests = ({ user }) => {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -24,14 +22,9 @@ const ClientMeetingRequests = ({ user }) => {
 
     const loadRequests = async (withLoader = true) => {
         try {
-            if (withLoader) {
-                setLoading(true);
-            }
+            if (withLoader) setLoading(true);
             setError('');
-            
-            if (!user || !user.userId) {
-                throw new Error('User not authenticated');
-            }
+            if (!user?.userId) throw new Error('User not authenticated');
             
             const data = await meetingRequestAPI.getClientRequests('all');
             setRequests(Array.isArray(data) ? data : []);
@@ -39,37 +32,37 @@ const ClientMeetingRequests = ({ user }) => {
             console.error('Error loading requests:', error);
             setError('Failed to load requests. Please try again.');
         } finally {
-            if (withLoader) {
-                setLoading(false);
-            }
+            if (withLoader) setLoading(false);
         }
     };
 
-    const getStatusIcon = (status) => {
-        const upperStatus = status.toUpperCase();
+    const getStatusInfo = (status) => {
+        const upperStatus = status?.toUpperCase();
         switch (upperStatus) {
             case 'PENDING':
-                return <AlertCircle className="text-yellow-500" size={24} />;
+                return {
+                    icon: <AlertTriangle className="text-sky-600" size={20} />,
+                    badgeClass: 'status-badge-pending',
+                    text: 'Pending'
+                };
             case 'ACCEPTED':
-                return <CheckCircle className="text-green-500" size={24} />;
+                return {
+                    icon: <CheckCircle className="text-emerald-600" size={20} />,
+                    badgeClass: 'status-badge-accepted',
+                    text: 'Accepted'
+                };
             case 'REJECTED':
-                return <XCircle className="text-red-500" size={24} />;
+                return {
+                    icon: <XCircle className="text-red-600" size={20} />,
+                    badgeClass: 'status-badge-rejected',
+                    text: 'Rejected'
+                };
             default:
-                return <Clock className="text-gray-400" size={24} />;
-        }
-    };
-
-    const getStatusBadge = (status) => {
-        const upperStatus = status.toUpperCase();
-        switch (upperStatus) {
-            case 'PENDING':
-                return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50';
-            case 'ACCEPTED':
-                return 'bg-green-500/20 text-green-400 border border-green-500/50';
-            case 'REJECTED':
-                return 'bg-red-500/20 text-red-400 border border-red-500/50';
-            default:
-                return 'bg-gray-500/20 text-gray-400 border border-gray-500/50';
+                return {
+                    icon: <Clock className="text-slate-500" size={20} />,
+                    badgeClass: 'status-badge-default',
+                    text: status || 'Unknown'
+                };
         }
     };
 
@@ -86,150 +79,119 @@ const ClientMeetingRequests = ({ user }) => {
     });
 
     const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
         });
     };
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center">
-                <div className="text-gray-400 text-lg">Loading your requests...</div>
+            <div className="page-shell justify-center items-center">
+                <p>Loading your requests...</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#1a1a1a] text-white">
-            <div className="max-w-7xl mx-auto px-6 py-8">
-                {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-                        <Calendar className="text-orange-400" size={40} />
-                        My Meeting Requests
-                    </h1>
-                    <p className="text-gray-400 text-lg">
-                        Track all your meeting requests and their status
-                    </p>
-                </div>
+        <div className="page-shell">
+            <header className="page-header">
+                <h1 className="page-title"><Calendar /> My Meeting Requests</h1>
+                <p className="page-subtitle">Track all your meeting requests and their status.</p>
+            </header>
 
-                {/* Filter Tabs */}
-                <div className="flex gap-3 mb-8 overflow-x-auto pb-2">
-                    {[
-                        { key: 'all', label: 'All Requests', count: statusCounts.all },
+            <div className="surface-card p-4 sm:p-6">
+                {/* Filter Pills */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                    {([
+                        { key: 'all', label: 'All', count: statusCounts.all },
                         { key: 'pending', label: 'Pending', count: statusCounts.pending },
                         { key: 'accepted', label: 'Accepted', count: statusCounts.accepted },
                         { key: 'rejected', label: 'Rejected', count: statusCounts.rejected },
-                    ].map((tab) => (
+                    ]).map((tab) => (
                         <button
                             key={tab.key}
                             onClick={() => setFilter(tab.key)}
-                            className={`px-6 py-3 rounded-xl font-semibold transition-all whitespace-nowrap ${
-                                filter === tab.key
-                                    ? 'bg-orange-500 text-white shadow-lg'
-                                    : 'bg-[#2a2a2a] text-gray-400 hover:bg-[#333] border border-gray-700'
-                            }`}
+                            className={`filter-pill ${filter === tab.key ? 'active' : ''}`}
                         >
                             {tab.label}
-                            <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
-                                filter === tab.key ? 'bg-white/20' : 'bg-gray-700'
-                            }`}>
-                                {tab.count}
-                            </span>
+                            <span className="filter-pill-count">{tab.count}</span>
                         </button>
                     ))}
                 </div>
 
-                {/* Error Message */}
                 {error && (
-                    <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-6 py-4 rounded-xl mb-6">
-                        {error}
-                    </div>
+                    <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-6">{error}</div>
                 )}
 
                 {/* Requests List */}
                 {filteredRequests.length === 0 ? (
-                    <div className="bg-[#2a2a2a] rounded-2xl p-12 text-center border border-gray-700">
-                        <Calendar className="mx-auto mb-4 text-gray-600" size={64} />
-                        <h3 className="text-xl font-semibold mb-2 text-gray-400">
-                            {filter === 'all' ? 'No requests yet' : `No ${filter} requests`}
+                    <div className="text-center py-16">
+                        <Info size={48} className="mx-auto text-slate-400 mb-4" />
+                        <h3 className="text-lg font-semibold text-slate-700">
+                            {filter === 'all' ? 'No requests sent yet' : `No ${filter} requests`}
                         </h3>
-                        <p className="text-gray-500">
-                            {filter === 'all' 
-                                ? 'Browse caterers and send meeting requests to get started!'
-                                : 'Your requests will appear here'}
+                        <p className="text-slate-500 mt-1">
+                            {filter === 'all'
+                                ? 'Find a caterer and request a meeting to get started.'
+                                : 'There are no requests with this status.'}
                         </p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {filteredRequests.map((request) => (
-                            <div
-                                key={request.id}
-                                className="bg-[#2a2a2a] rounded-2xl p-6 border border-gray-700 hover:border-orange-500/50 transition-all"
-                            >
-                                {/* Header with Status */}
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        {getStatusIcon(request.status)}
-                                        <div>
-                                            <h3 className="text-xl font-bold text-white">
-                                                {request.catererName}
-                                            </h3>
-                                            <p className="text-gray-400 text-sm">
-                                                Sent on {formatDate(request.createdAt)}
-                                            </p>
+                    <div className="space-y-4">
+                        {filteredRequests.map((request, index) => {
+                            const statusInfo = getStatusInfo(request.status);
+                            return (
+                                <div key={request.id || index} className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors">
+                                    <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                                        <div className="flex items-start gap-4">
+                                            <div className="mt-1">{statusInfo.icon}</div>
+                                            <div>
+                                                <h3 className="font-bold text-slate-800 text-lg">
+                                                    {request.catererName}
+                                                </h3>
+                                                <p className="text-sm text-slate-500">
+                                                    Request sent on {formatDate(request.createdAt)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className={`px-3 py-1 text-xs font-bold rounded-full ${statusInfo.badgeClass}`}>
+                                            {statusInfo.text}
                                         </div>
                                     </div>
-                                    <span className={`px-4 py-2 rounded-full text-sm font-bold ${getStatusBadge(request.status)}`}>
-                                        {request.status.toLowerCase()}
-                                    </span>
+
+                                    <div className="mt-4 pt-4 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                                        <div className="flex items-center gap-2 text-slate-600">
+                                            <Calendar size={16} className="text-slate-400" />
+                                            <div>
+                                                <span className="font-semibold">Event Date:</span> {formatDate(request.eventDate)}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-slate-600">
+                                            <Users size={16} className="text-slate-400" />
+                                            <div>
+                                                <span className="font-semibold">Guests:</span> {request.numberOfGuests}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-slate-600">
+                                            <MapPin size={16} className="text-slate-400" />
+                                            <div>
+                                                <span className="font-semibold">Location:</span> {request.eventLocation}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+
+                                    {request.message && (
+                                        <div className="mt-4 text-sm text-slate-700 bg-slate-100 p-3 rounded-md">
+                                            <strong>Your message:</strong> "{request.message}"
+                                        </div>
+                                    )}
                                 </div>
-
-                                {/* Event Details */}
-                                <div className="space-y-3 mb-4">
-                                    <div className="flex items-center gap-3 text-gray-300">
-                                        <Calendar className="text-orange-400" size={18} />
-                                        <span>{formatDate(request.eventDate)}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 text-gray-300">
-                                        <Users className="text-orange-400" size={18} />
-                                        <span>{request.numberOfGuests} guests</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 text-gray-300">
-                                        <MapPin className="text-orange-400" size={18} />
-                                        <span>{request.eventLocation}</span>
-                                    </div>
-                                </div>
-
-                                {/* Event Type */}
-                                <div className="mb-4">
-                                    <span className="inline-flex items-center gap-2 bg-[#1a1a1a] px-4 py-2 rounded-lg text-sm">
-                                        <span className="text-orange-400">🎉</span>
-                                        <span className="text-gray-300">{request.eventType}</span>
-                                    </span>
-                                </div>
-
-                                {/* Message */}
-                                {request.message && (
-                                    <div className="bg-[#1a1a1a] rounded-xl p-4 border border-gray-700">
-                                        <p className="text-sm text-gray-400 mb-1">Your Message:</p>
-                                        <p className="text-gray-300">{request.message}</p>
-                                    </div>
-                                )}
-
-                                {/* Response Time (if accepted/rejected) */}
-                                {request.respondedAt && (
-                                    <div className="mt-4 pt-4 border-t border-gray-700">
-                                        <p className="text-xs text-gray-500">
-                                            Responded on {formatDate(request.respondedAt)}
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>

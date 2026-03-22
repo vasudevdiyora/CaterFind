@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Pencil, Trash2, Plus, Minus, Send } from 'lucide-react';
+import { Pencil, Trash2, Plus, Minus, Send, Package, X } from 'lucide-react';
 import { inventoryAPI, contactAPI } from '../services/api';
 import ReorderModal from './ReorderModal';
+import Modal from '../components/Modal';
 import '../styles/Table.css';
+import '../styles/Contacts.css'; // Re-using filter pills
 
 /**
- * Inventory Page Component (Loveable Design)
- * 
- * Displays inventory items with category filters and quantity controls
+ * Inventory Page Component (Dense Light Theme)
  */
 function Inventory({ user }) {
     const [items, setItems] = useState([]);
@@ -30,17 +30,17 @@ function Inventory({ user }) {
     });
 
     const categories = [
-        { name: 'All', emoji: '🔍', color: '#f59e0b' },
-        { name: 'GRAIN', emoji: '🌾', color: '#10b981' },
-        { name: 'VEGETABLE', emoji: '🥬', color: '#22c55e' },
-        { name: 'MEAT', emoji: '🍖', color: '#ef4444' },
-        { name: 'DAIRY', emoji: '🥛', color: '#3b82f6' },
-        { name: 'OIL', emoji: '🫒', color: '#f59e0b' },
-        { name: 'MASALA', emoji: '🌶️', color: '#dc2626' },
-        { name: 'SAUCE', emoji: '🍯', color: '#f97316' },
-        { name: 'SWEET', emoji: '🍰', color: '#ec4899' },
-        { name: 'ESSENTIALS', emoji: '⭐', color: '#8b5cf6' },
-        { name: 'OTHER', emoji: '📦', color: '#64748b' }
+        { name: 'All', emoji: '🗂️' },
+        { name: 'GRAIN', emoji: '🌾' },
+        { name: 'VEGETABLE', emoji: '🥬' },
+        { name: 'MEAT', emoji: '🍖' },
+        { name: 'DAIRY', emoji: '🥛' },
+        { name: 'OIL', emoji: '🫒' },
+        { name: 'MASALA', emoji: '🌶️' },
+        { name: 'SAUCE', emoji: '🍯' },
+        { name: 'SWEET', emoji: '🍰' },
+        { name: 'ESSENTIALS', emoji: '⭐' },
+        { name: 'OTHER', emoji: '📦' }
     ];
 
     useEffect(() => {
@@ -183,14 +183,22 @@ function Inventory({ user }) {
     };
 
     return (
-        <div className="page-container">
-            <div className="page-header">
-                <div className="header-left">
-                    <h1 className="page-title">📦 Inventory</h1>
+        <div className="page-shell">
+            <div className="contacts-header">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+                        <Package className="w-6 h-6" />
+                        Inventory
+                    </h1>
+                    <button className="primary-button" onClick={() => {
+                        setEditingItem(null);
+                        setFormData({ itemName: '', category: 'GRAIN', quantity: '', unit: 'kg', minThreshold: '', dealerName: '', dealerContact: '', dealerContactId: '' });
+                        setShowModal(true);
+                    }}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Item
+                    </button>
                 </div>
-                <button className="add-button" onClick={() => setShowModal(true)}>
-                    + Add Item
-                </button>
             </div>
 
             {/* Category Filters */}
@@ -199,15 +207,10 @@ function Inventory({ user }) {
                     <button
                         key={cat.name}
                         className={`filter-pill ${selectedCategory === cat.name ? 'active' : ''}`}
-                        style={{
-                            backgroundColor: selectedCategory === cat.name ? cat.color : 'transparent',
-                            borderColor: cat.color,
-                            color: selectedCategory === cat.name ? '#000' : cat.color
-                        }}
                         onClick={() => setSelectedCategory(cat.name)}
                     >
                         <span className="pill-emoji">{cat.emoji}</span>
-                        <span className="pill-text">{cat.name === 'All' ? 'All' : cat.name.charAt(0) + cat.name.slice(1).toLowerCase()}</span>
+                        <span>{cat.name}</span>
                     </button>
                 ))}
             </div>
@@ -217,80 +220,50 @@ function Inventory({ user }) {
                 <table className="data-table">
                     <thead>
                         <tr>
-                            <th>ITEM</th>
-                            <th>QUANTITY</th>
-                            <th>DEALER</th>
-                            <th>STATUS</th>
-                            <th>ACTIONS</th>
+                            <th>Item</th>
+                            <th>Category</th>
+                            <th>Quantity</th>
+                            <th>Status</th>
+                            <th>Dealer</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredItems.map(item => (
-                            <tr key={item.id}>
+                            <tr key={item.id} className={isLowStock(item) ? 'bg-red-50/50' : ''}>
                                 <td>
-                                    <div className="item-cell">
-                                        <div className="item-name">{item.itemName}</div>
-                                        <div className="item-category">{getCategoryEmoji(item.category)} {item.category.charAt(0) + item.category.slice(1).toLowerCase()}</div>
+                                    <div className="item-name-cell">
+                                        <span className="item-emoji">{getCategoryEmoji(item.category)}</span>
+                                        <span className="item-name">{item.itemName}</span>
                                     </div>
                                 </td>
+                                <td>{item.category}</td>
                                 <td>
                                     <div className="quantity-control">
-                                        <button
-                                            className="qty-btn"
-                                            onClick={() => handleQuantityChange(item.id, -1)}
-                                        >
-                                            <Minus size={16} />
-                                        </button>
-                                        <span className={`qty-value ${isLowStock(item) ? 'low' : ''}`}>
-                                            {item.quantity} {item.unit}
-                                        </span>
-                                        <button
-                                            className="qty-btn"
-                                            onClick={() => handleQuantityChange(item.id, 1)}
-                                        >
-                                            <Plus size={16} />
-                                        </button>
-                                    </div>
-                                    <div className="qty-min">Min: {item.minThreshold} {item.unit}</div>
-                                </td>
-                                <td>
-                                    <div className="dealer-cell">
-                                        <div className="dealer-name">{item.dealerName}</div>
-                                        <div className="dealer-contact">📞 {item.dealerPhone || item.dealerContact}</div>
+                                        <button className="qty-btn" onClick={() => handleQuantityChange(item.id, -1)}><Minus size={14} /></button>
+                                        <span className="qty-value">{item.quantity} {item.unit}</span>
+                                        <button className="qty-btn" onClick={() => handleQuantityChange(item.id, 1)}><Plus size={14} /></button>
                                     </div>
                                 </td>
                                 <td>
-                                    {isLowStock(item) ? (
-                                        <div className="status-group">
-                                            <span className="status-badge low-stock">⚠ Low Stock</span>
-                                            <button
-                                                className="reorder-btn"
-                                                onClick={() => handleReorder(item)}
-                                            >
-                                                <Send size={16} /> Reorder
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <span className="status-badge ok">OK</span>
+                                    <span className={`table-cell-badge ${isLowStock(item) ? 'danger' : 'success'}`}>
+                                        {isLowStock(item) ? 'Low Stock' : 'In Stock'}
+                                    </span>
+                                </td>
+                                <td>{item.dealerName || 'N/A'}</td>
+                                <td className="table-cell-actions">
+                                    {isLowStock(item) && (
+                                        <button className="reorder-button" onClick={() => handleReorder(item)}>
+                                            <Send size={12} className="mr-1" />
+                                            Re-order
+                                        </button>
                                     )}
-                                </td>
-                                <td>
-                                    <div className="action-buttons">
-                                        <button
-                                            className="icon-btn edit"
-                                            onClick={() => handleEdit(item)}
-                                            title="Edit"
-                                        >
-                                            <Pencil size={16} />
-                                        </button>
-                                        <button
-                                            className="icon-btn delete"
-                                            onClick={() => handleDelete(item.id)}
-                                            title="Delete"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
+                                    <button className="table-icon-button" onClick={() => handleEdit(item)}>
+                                        <Pencil size={16} />
+                                    </button>
+                                    <button className="table-icon-button danger" onClick={() => handleDelete(item.id)}>
+                                        <Trash2 size={16} />
+                                    </button>
                                 </td>
                             </tr>
                         ))}
@@ -298,143 +271,69 @@ function Inventory({ user }) {
                 </table>
             </div>
 
-            {/* Add/Edit Modal */}
-            {showModal && (
-                <div className="modal-overlay" onClick={() => setShowModal(false)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <h2 className="modal-title">{editingItem ? 'Edit Item' : 'Add New Item'}</h2>
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-row">
-                                <label className="form-label">Item Name</label>
-                                <input
-                                    type="text"
-                                    className="form-input"
-                                    value={formData.itemName}
-                                    onChange={e => setFormData({ ...formData, itemName: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className="form-row">
-                                <label className="form-label">Category</label>
-                                <select
-                                    className="form-input"
-                                    value={formData.category}
-                                    onChange={e => setFormData({ ...formData, category: e.target.value })}
-                                >
-                                    {categories.filter(c => c.name !== 'All').map(cat => (
-                                        <option key={cat.name} value={cat.name}>{cat.emoji} {cat.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="form-row-group">
-                                <div className="form-row">
-                                    <label className="form-label">Quantity</label>
-                                    <input
-                                        type="number"
-                                        className="form-input"
-                                        value={formData.quantity}
-                                        onChange={e => setFormData({ ...formData, quantity: e.target.value })}
-                                        required
-                                    />
+            <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editingItem ? 'Edit Item' : 'Add New Item'} className="">
+                <form className="item-form" onSubmit={handleSubmit}>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="form-group md:col-span-2">
+                                    <label>Item Name</label>
+                                    <input type="text" className="form-input" value={formData.itemName} onChange={(e) => setFormData({ ...formData, itemName: e.target.value })} required />
                                 </div>
-                                <div className="form-row">
-                                    <label className="form-label">Unit</label>
-                                    <select
-                                        className="form-input"
-                                        value={formData.unit}
-                                        onChange={e => setFormData({ ...formData, unit: e.target.value })}
-                                    >
+                                <div className="form-group">
+                                    <label>Category</label>
+                                    <select className="form-select" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
+                                        {categories.filter(c => c.name !== 'All').map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Quantity</label>
+                                    <input type="number" className="form-input" value={formData.quantity} onChange={(e) => setFormData({ ...formData, quantity: e.target.value })} required />
+                                </div>
+                                <div className="form-group">
+                                    <label>Unit</label>
+                                    <select className="form-select" value={formData.unit} onChange={(e) => setFormData({ ...formData, unit: e.target.value })}>
                                         <option value="kg">kg</option>
-                                        <option value="liters">liters</option>
-                                        <option value="pieces">pieces</option>
+                                        <option value="g">g</option>
+                                        <option value="litre">litre</option>
+                                        <option value="ml">ml</option>
+                                        <option value="piece">piece</option>
+                                        <option value="dozen">dozen</option>
                                     </select>
                                 </div>
-                            </div>
-                            <div className="form-row">
-                                <label className="form-label">Minimum Threshold</label>
-                                <input
-                                    type="number"
-                                    className="form-input"
-                                    value={formData.minThreshold}
-                                    onChange={e => setFormData({ ...formData, minThreshold: e.target.value })}
-                                    required
-                                />
-                            </div>
-
-                            {/* Dealer Selection Section */}
-                            <div className="form-section">
-                                <h3 className="form-section-title">
-                                    Dealer / Supplier Information ({contacts.filter(c => c.labels && (c.labels.includes('Dealer') || c.labels.includes('Supplier'))).length} available)
-                                </h3>
-                                <div className="form-row">
-                                    <label className="form-label">Select from Existing Contacts</label>
-                                    <select
-                                        className="form-input"
-                                        onChange={e => {
-                                            handleDealerSelect(e.target.value);
-                                        }}
-                                        defaultValue=""
-                                    >
-                                        <option value="">-- Select Dealer (Optional) --</option>
-                                        {contacts.filter(c => c.labels && (c.labels.includes('Dealer') || c.labels.includes('Supplier'))).length === 0 && (
-                                            <option disabled>No dealers/suppliers found. Add contacts with 'Dealer' or 'Supplier' label.</option>
-                                        )}
-                                        {contacts
-                                            .filter(contact => contact.labels && (contact.labels.includes('Dealer') || contact.labels.includes('Supplier')))
-                                            .map(contact => (
-                                                <option key={contact.id} value={contact.id}>
-                                                    {contact.name} ({contact.labels.join(', ')}) - {contact.phone || contact.email}
-                                                </option>
-                                            ))}
-                                    </select>
-                                    <p className="form-hint">Or enter dealer details manually below</p>
+                                <div className="form-group">
+                                    <label>Low Stock Threshold</label>
+                                    <input type="number" className="form-input" value={formData.minThreshold} onChange={(e) => setFormData({ ...formData, minThreshold: e.target.value })} required />
                                 </div>
-                            </div>
-
-                            <div className="form-row">
-                                <label className="form-label">Dealer Name</label>
-                                <input
-                                    type="text"
-                                    className="form-input"
-                                    value={formData.dealerName}
-                                    onChange={e => setFormData({ ...formData, dealerName: e.target.value })}
-                                    placeholder="Enter dealer name or select from above"
-                                />
-                            </div>
-                            <div className="form-row">
-                                <label className="form-label">Dealer Contact</label>
-                                <input
-                                    type="text"
-                                    className="form-input"
-                                    value={formData.dealerContact}
-                                    onChange={e => setFormData({ ...formData, dealerContact: e.target.value })}
-                                    placeholder="Phone or email"
-                                />
+                                <div className="form-group md:col-span-2">
+                                    <label>Dealer / Supplier</label>
+                                    <select className="form-select" value={formData.dealerContactId} onChange={(e) => handleDealerSelect(e.target.value)}>
+                                        <option value="">Select a registered contact</option>
+                                        {contacts.filter(c => c.labels.includes('Dealer') || c.labels.includes('Supplier')).map(c => (
+                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                 <div className="form-group">
+                                    <label>Dealer Name (if not in contacts)</label>
+                                    <input type="text" className="form-input" value={formData.dealerName} onChange={(e) => setFormData({ ...formData, dealerName: e.target.value })} disabled={!!formData.dealerContactId} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Dealer Contact (if not in contacts)</label>
+                                    <input type="text" className="form-input" value={formData.dealerContact} onChange={(e) => setFormData({ ...formData, dealerContact: e.target.value })} disabled={!!formData.dealerContactId} />
+                                </div>
                             </div>
                             <div className="modal-actions">
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
-                                    Cancel
-                                </button>
-                                <button type="submit" className="btn btn-primary">
-                                    {editingItem ? 'Update' : 'Add'} Item
-                                </button>
+                                <button type="button" className="cancel-button" onClick={() => setShowModal(false)}>Cancel</button>
+                                <button type="submit" className="submit-button">{editingItem ? 'Save Changes' : 'Create Item'}</button>
                             </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-            {/* Reorder Modal */}
-            {showReorderModal && reorderingItem && (
+                </form>
+            </Modal>
+
+            {showReorderModal && (
                 <ReorderModal
                     item={reorderingItem}
+                    onClose={() => setShowReorderModal(false)}
+                    user={user}
                     catererId={user.userId}
-                    onClose={() => {
-                        setShowReorderModal(false);
-                        setReorderingItem(null);
-                    }}
-                    onSuccess={() => {
-                        // Optional: Refresh items/logs if needed
-                    }}
                 />
             )}
         </div>

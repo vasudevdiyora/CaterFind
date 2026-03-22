@@ -235,28 +235,28 @@ const Availability = ({ user }) => {
         const editable = canAddEvent(day);
         const hasEvent = events.some(e => e.eventDate === key);
 
-        let baseClass = "h-10 w-10 flex items-center justify-center rounded-lg text-sm transition-colors relative";
+        let baseClass = "h-10 w-10 flex items-center justify-center rounded-lg text-sm transition-colors relative font-medium";
 
         if (!viewable) {
             // Dates outside the last 30 days (and past)
-            baseClass += " bg-slate-900/30 text-slate-600 cursor-not-allowed opacity-30";
+            baseClass += " bg-slate-50 text-slate-300 cursor-not-allowed opacity-50";
         } else if (past && !editable) {
             // Past dates within last 30 days - viewable but not editable
-            baseClass += " cursor-pointer bg-slate-800 text-slate-300 hover:bg-slate-700 opacity-60";
+            baseClass += " cursor-pointer bg-slate-100 text-slate-400 hover:bg-slate-200";
         } else {
             // Future dates or today
             baseClass += " cursor-pointer";
             if (status === 'available') {
-                baseClass += " bg-emerald-800 text-emerald-100 hover:bg-emerald-700";
+                baseClass += " bg-emerald-100 text-emerald-800 border border-emerald-200 hover:bg-emerald-200";
             } else if (status === 'busy') {
-                baseClass += " bg-red-900/50 text-red-100 hover:bg-red-800/50";
+                baseClass += " bg-red-100 text-red-800 border border-red-200 hover:bg-red-200";
             } else {
-                baseClass += " bg-slate-800 text-slate-200 hover:bg-slate-700";
+                baseClass += " bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300";
             }
         }
 
         if (isSelected && viewable) {
-            baseClass += " ring-2 ring-amber-400";
+            baseClass += " ring-2 ring-sky-500 ring-offset-2";
         }
 
         return baseClass;
@@ -336,33 +336,35 @@ const Availability = ({ user }) => {
     };
 
     return (
-        <div className="p-8 text-white min-h-screen bg-transparent">
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold flex items-center gap-2">
-                    <span className="text-amber-500"><CalendarIcon className="h-6 w-6" /></span> Availability Calendar
-                </h1>
-                <p className="text-slate-400 mt-1">Select a date, set it as busy or available, and add events</p>
+        <div className="page-shell py-6 space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold flex items-center gap-2 text-slate-900">
+                        <span className="text-sky-600"><CalendarIcon className="h-6 w-6" /></span> Availability Calendar
+                    </h1>
+                    <p className="text-slate-500 mt-1">Select a date to manage availability or add events</p>
+                </div>
             </div>
 
             {/* Side-by-side layout */}
-            <div className="flex gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-8">
                 {/* Left side - Calendar */}
-                <div className="flex-shrink-0 bg-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-xl backdrop-blur-sm" style={{ width: '500px' }}>
+                <div className="surface-card p-6 bg-white border border-slate-200 shadow-sm relative z-0">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6">
                         <button
                             onClick={goToPrevMonth}
-                            className="p-2 hover:bg-slate-800 rounded-full transition-colors"
+                            className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600"
                             title="Previous Month"
                         >
                             <ChevronLeft className="h-5 w-5" />
                         </button>
-                        <h2 className="text-lg font-semibold min-w-[150px] text-center">
+                        <h2 className="text-lg font-bold min-w-[150px] text-center text-slate-900">
                             {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                         </h2>
                         <button
                             onClick={goToNextMonth}
-                            className="p-2 hover:bg-slate-800 rounded-full transition-colors"
+                            className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600"
                             title="Next Month"
                         >
                             <ChevronRight className="h-5 w-5" />
@@ -372,7 +374,7 @@ const Availability = ({ user }) => {
                     {/* Days of Week */}
                     <div className="grid grid-cols-7 gap-2 mb-2 text-center">
                         {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => (
-                            <div key={day} className="text-xs text-slate-500 font-medium">
+                            <div key={day} className="text-xs text-slate-400 font-semibold tracking-wider">
                                 {day}
                             </div>
                         ))}
@@ -393,7 +395,7 @@ const Availability = ({ user }) => {
                                     >
                                         {day}
                                         {hasEventIndicator(day) && (
-                                            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-blue-400"></div>
+                                            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-blue-500"></div>
                                         )}
                                     </button>
                                 ) : (
@@ -404,28 +406,32 @@ const Availability = ({ user }) => {
                     </div>
 
                     {selectedDate && canAddEvent(selectedDate.getDate()) && (
-                        <div className="mt-6 p-4 bg-slate-800/40 rounded-xl border border-slate-700">
-                            <p className="text-sm text-slate-300 mb-3">
-                                {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                <span className="text-slate-500"> • </span>
-                                <span className="capitalize">{availabilityMap[formatDateKey(selectedDate.getDate(), selectedDate.getMonth(), selectedDate.getFullYear())] || 'not set'}</span>
-                            </p>
-                            <div className="grid grid-cols-3 gap-2">
+                        <div className="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                            <h4 className="text-sm font-semibold text-slate-700 mb-3">Set Availability Status</h4>
+                            <div className="flex gap-2">
                                 <button
                                     onClick={() => updateAvailabilityStatus('available')}
-                                    className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-semibold py-2 px-3 rounded-lg transition-colors"
+                                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors border ${
+                                        availabilityMap[formatDateKey(selectedDate.getDate(), selectedDate.getMonth(), selectedDate.getFullYear())] === 'available'
+                                            ? 'bg-emerald-100 text-emerald-800 border-emerald-200 ring-1 ring-emerald-500' 
+                                            : 'bg-white text-slate-600 border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200'
+                                    }`}
                                 >
                                     Available
                                 </button>
                                 <button
                                     onClick={() => updateAvailabilityStatus('busy')}
-                                    className="bg-red-700 hover:bg-red-600 text-white text-sm font-semibold py-2 px-3 rounded-lg transition-colors"
+                                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors border ${
+                                        availabilityMap[formatDateKey(selectedDate.getDate(), selectedDate.getMonth(), selectedDate.getFullYear())] === 'busy'
+                                            ? 'bg-red-100 text-red-800 border-red-200 ring-1 ring-red-500' 
+                                            : 'bg-white text-slate-600 border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200'
+                                    }`}
                                 >
                                     Busy
                                 </button>
                                 <button
                                     onClick={() => updateAvailabilityStatus(null)}
-                                    className="bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold py-2 px-3 rounded-lg transition-colors"
+                                    className="px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
                                 >
                                     Clear
                                 </button>
@@ -434,23 +440,23 @@ const Availability = ({ user }) => {
                     )}
 
                     {/* Legend */}
-                    <div className="flex flex-col gap-4 mt-8">
+                    <div className="flex flex-col gap-4 mt-8 pt-6 border-t border-slate-100">
                         <div className="flex items-center justify-center gap-6">
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                                <span className="text-sm text-slate-300">Available</span>
+                                <span className="text-sm text-slate-600">Available</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                                <span className="text-sm text-slate-300">Busy</span>
+                                <span className="text-sm text-slate-600">Busy</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-blue-400"></div>
-                                <span className="text-sm text-slate-300">Has Event</span>
+                                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                                <span className="text-sm text-slate-600">Has Event</span>
                             </div>
                         </div>
                         <div className="text-center">
-                            <p className="text-xs text-slate-500">📅 View past 30 days • ✏️ Edit future dates</p>
+                            <p className="text-xs text-slate-400">📅 View past 30 days • ✏️ Edit future dates</p>
                         </div>
                     </div>
                 </div>
@@ -458,15 +464,15 @@ const Availability = ({ user }) => {
                 {/* Right side - Event Form */}
                 <div className="flex-1">
                     {selectedDate ? (
-                        <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-xl backdrop-blur-sm">
+                        <div className="surface-card p-6 bg-white border border-slate-200 shadow-sm relative sticky top-6">
                             {/* Header */}
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-amber-400">
-                                    {canAddEvent(selectedDate.getDate()) ? 'Add Event to Calendar' : 'Event Details'}
+                            <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+                                <h2 className="text-xl font-bold text-slate-900">
+                                    {canAddEvent(selectedDate.getDate()) ? 'Add Event' : 'Event Details'}
                                 </h2>
                                 <button
                                     onClick={closePanel}
-                                    className="p-2 hover:bg-slate-800 rounded-full transition-colors"
+                                    className="p-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-500"
                                     title="Close"
                                 >
                                     <X className="h-5 w-5" />
@@ -474,26 +480,24 @@ const Availability = ({ user }) => {
                             </div>
 
                             {/* Selected Date Display */}
-                            <div className="mb-6 p-4 bg-slate-800/50 rounded-lg">
-                                <p className="text-sm text-slate-400 mb-1">Selected Date</p>
-                                <p className="text-lg font-semibold">
+                            <div className="mb-6 p-4 bg-sky-50 rounded-lg border border-sky-100">
+                                <p className="text-sm text-sky-600/80 mb-1 font-medium">Selected Date</p>
+                                <p className="text-lg font-bold text-sky-900">
                                     {selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                 </p>
-                                {canAddEvent(selectedDate.getDate()) && (
-                                    <p className="text-sm text-slate-400 mt-2">
-                                        Current status: <span className="capitalize text-white font-medium">{availabilityMap[formatDateKey(selectedDate.getDate(), selectedDate.getMonth(), selectedDate.getFullYear())] || 'not set'}</span>
-                                    </p>
-                                )}
-                                {isPastDate(selectedDate.getDate()) && (
-                                    <p className="text-sm text-slate-500 mt-2">📋 Viewing past event details</p>
-                                )}
                             </div>
 
                             {/* Error/Success Messages */}
                             {error && (
-                                <div className="mb-4 p-3 bg-red-900/30 border border-red-500/50 rounded-lg flex items-start gap-2 text-red-200">
+                                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 text-red-700">
                                     <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
                                     <span className="text-sm">{error}</span>
+                                </div>
+                            )}
+                            {success && (
+                                <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2 text-emerald-700">
+                                    {/* Success Icon */}
+                                    <span className="text-sm">{success}</span>
                                 </div>
                             )}
                             {success && (
@@ -506,62 +510,59 @@ const Availability = ({ user }) => {
                             {canAddEvent(selectedDate.getDate()) && (
                                 <div className="space-y-4 mb-6">
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-300 mb-2">
-                                            Event Host Name <span className="text-red-400">*</span>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                            Event Host Name <span className="text-red-500">*</span>
                                         </label>
                                         <input
                                             type="text"
                                             value={formData.eventHostName}
                                             onChange={(e) => handleFormChange('eventHostName', e.target.value)}
-                                            placeholder="e.g., John's Wedding"
-                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                            placeholder="e.g. John's Wedding"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all"
                                         />
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-300 mb-2">
-                                            Managed By <span className="text-slate-500 text-xs">(Optional)</span>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                            Managed By <span className="text-slate-400 text-xs font-normal">(Optional)</span>
                                         </label>
                                         <input
                                             type="text"
                                             value={formData.managedBy}
                                             onChange={(e) => handleFormChange('managedBy', e.target.value)}
-                                            placeholder="e.g., Sarah Johnson"
-                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                            placeholder="e.g. Sarah Johnson"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all"
                                         />
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-300 mb-2">
-                                            Location <span className="text-slate-500 text-xs">(Optional)</span>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                            Location <span className="text-slate-400 text-xs font-normal">(Optional)</span>
                                         </label>
                                         <input
                                             type="text"
                                             value={formData.location}
                                             onChange={(e) => handleFormChange('location', e.target.value)}
-                                            placeholder="e.g., Grand Hotel, Mumbai"
-                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                            placeholder="e.g. Grand Hotel, Mumbai"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all"
                                         />
                                     </div>
-                                </div>
-                            )}
 
-                            {/* Action Buttons */}
-                            {canAddEvent(selectedDate.getDate()) && (
-                                <div className="flex gap-3 mb-6">
-                                    <button
-                                        onClick={handleSaveEvent}
-                                        disabled={loading}
-                                        className="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {loading ? 'Saving...' : 'Save Event'}
-                                    </button>
-                                    <button
-                                        onClick={closePanel}
-                                        className="px-6 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2.5 rounded-lg transition-colors"
-                                    >
-                                        Cancel
-                                    </button>
+                                    <div className="flex gap-3 pt-2">
+                                        <button
+                                            onClick={handleSaveEvent}
+                                            disabled={loading}
+                                            className="flex-1 primary-button"
+                                        >
+                                            {loading ? 'Saving...' : 'Save Event'}
+                                        </button>
+                                        <button
+                                            onClick={closePanel}
+                                            className="secondary-button"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
@@ -569,7 +570,7 @@ const Availability = ({ user }) => {
                                 <div className="mb-6">
                                     <button
                                         onClick={closePanel}
-                                        className="w-full px-6 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2.5 rounded-lg transition-colors"
+                                        className="w-full secondary-button"
                                     >
                                         Close
                                     </button>
@@ -577,23 +578,26 @@ const Availability = ({ user }) => {
                             )}
 
                             {/* Existing Events for Selected Date */}
-                            {eventsForSelectedDate.length > 0 && (
-                                <div className="mt-6 pt-6 border-t border-slate-700">
-                                    <h3 className="text-sm font-semibold text-slate-400 mb-3">Events on this date:</h3>
-                                    <div className="space-y-2">
+                            {(eventsForSelectedDate.length > 0 || !canAddEvent(selectedDate.getDate())) && eventsForSelectedDate.length > 0 && (
+                                <div className="mt-8 pt-6 border-t border-slate-100">
+                                    <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">Events on this date:</h3>
+                                    <div className="space-y-3">
                                         {eventsForSelectedDate.map(event => (
-                                            <div key={event.id} className="p-3 bg-slate-800 rounded-lg flex justify-between items-start">
-                                                <div>
-                                                    <p className="font-medium text-white">{event.eventHostName}</p>
-                                                    {event.managedBy && <p className="text-sm text-slate-400">Managed by: {event.managedBy}</p>}
-                                                    {event.location && <p className="text-sm text-slate-400">Location: {event.location}</p>}
+                                            <div key={event.id} className="p-4 bg-slate-50 border border-slate-200 rounded-xl relative group hover:border-sky-200 transition-colors">
+                                                <div className="pr-8">
+                                                    <p className="font-bold text-slate-900">{event.eventHostName}</p>
+                                                    {event.managedBy && <p className="text-sm text-slate-500 mt-1">Managed by: {event.managedBy}</p>}
+                                                    {event.location && <p className="text-sm text-slate-500">Location: {event.location}</p>}
                                                 </div>
-                                                <button
-                                                    onClick={() => handleDeleteEvent(event.id)}
-                                                    className="text-red-400 hover:text-red-300 text-sm"
-                                                >
-                                                    Delete
-                                                </button>
+                                                {canAddEvent(selectedDate.getDate()) && (
+                                                    <button
+                                                        onClick={() => handleDeleteEvent(event.id)}
+                                                        className="absolute top-4 right-4 text-slate-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        title="Delete Event"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -601,10 +605,14 @@ const Availability = ({ user }) => {
                             )}
                         </div>
                     ) : (
-                        <div className="bg-slate-900/30 p-12 rounded-2xl border border-slate-800 border-dashed flex flex-col items-center justify-center text-center min-h-[400px]">
-                            <CalendarIcon className="h-16 w-16 text-slate-600 mb-4" />
-                            <p className="text-slate-500 text-lg">Select a date to view or add an event</p>
-                            <p className="text-slate-600 text-sm mt-2">Click on any date from the past 30 days or future dates to view event details</p>
+                        <div className="bg-slate-50 min-h-[400px] rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center p-12">
+                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm border border-slate-100">
+                                <CalendarIcon className="h-8 w-8 text-slate-400" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-slate-900">No date selected</h3>
+                            <p className="text-slate-500 mt-2 max-w-xs mx-auto">
+                                Click on any date from the calendar to view details, set availability, or add events.
+                            </p>
                         </div>
                     )}
                 </div>

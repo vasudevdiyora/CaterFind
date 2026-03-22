@@ -157,8 +157,8 @@ const AdminSettings = () => {
                     </div>
                     <div className="flex items-center justify-between py-3">
                         <div>
-                            <p className="font-medium text-foreground">New User Registrations</p>
-                            <p className="text-sm text-muted-foreground">Get notified when new users register</p>
+                            <p className="font-medium text-foreground">New Account Registrations</p>
+                            <p className="text-sm text-muted-foreground">Get notified when new accounts are created</p>
                         </div>
                         <Toggle 
                             enabled={settings.newUserNotification}
@@ -198,7 +198,7 @@ const AdminSettings = () => {
                     <div className="flex items-center justify-between py-3">
                         <div>
                             <p className="font-medium text-foreground">Allow New Registrations</p>
-                            <p className="text-sm text-muted-foreground">Enable or disable user registrations</p>
+                            <p className="text-sm text-muted-foreground">Enable or disable account registrations</p>
                         </div>
                         <Toggle 
                             enabled={settings.allowRegistrations}

@@ -9,6 +9,7 @@ import java.util.List;
 public class MenuRequest {
     private String clientName;
     private String eventType;
+    private String mealTime;
     private String eventLocation;
     private LocalDate eventDate;
     private Integer numberOfGuests;
@@ -84,6 +85,14 @@ public class MenuRequest {
 
     public void setEventType(String eventType) {
         this.eventType = eventType;
+    }
+
+    public String getMealTime() {
+        return mealTime;
+    }
+
+    public void setMealTime(String mealTime) {
+        this.mealTime = mealTime;
     }
 
     public LocalDate getEventDate() {

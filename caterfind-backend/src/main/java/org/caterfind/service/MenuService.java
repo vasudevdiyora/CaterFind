@@ -1,7 +1,7 @@
 package org.caterfind.service;
 
-import java.time.LocalDateTime;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -14,11 +14,11 @@ import org.caterfind.entity.User;
 import org.caterfind.repository.DishRepository;
 import org.caterfind.repository.MenuRepository;
 import org.caterfind.repository.UserRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Service for managing menus.
@@ -101,11 +101,12 @@ public class MenuService {
         menu.setCaterer(caterer);
         menu.setClientName(request.getClientName());
         menu.setEventType(request.getEventType());
+        menu.setMealTime(request.getMealTime());
         menu.setEventLocation(request.getEventLocation());
         menu.setEventDate(request.getEventDate());
         menu.setNumberOfGuests(request.getNumberOfGuests());
         menu.setContactNumber(normalizeIndianMobile(request.getContactNumber()));
-        menu.setClientEmail(request.getClientEmail());
+        menu.setClientEmail(normalizeClientEmail(request.getClientEmail()));
         menu.setStatus(Menu.MenuStatus.DRAFT);
 
         // Add dishes to menu
@@ -140,11 +141,12 @@ public class MenuService {
 
         menu.setClientName(request.getClientName());
         menu.setEventType(request.getEventType());
+        menu.setMealTime(request.getMealTime());
         menu.setEventLocation(request.getEventLocation());
         menu.setEventDate(request.getEventDate());
         menu.setNumberOfGuests(request.getNumberOfGuests());
         menu.setContactNumber(normalizeIndianMobile(request.getContactNumber()));
-        menu.setClientEmail(request.getClientEmail());
+        menu.setClientEmail(normalizeClientEmail(request.getClientEmail()));
 
         // Clear existing dishes and add new ones
         menu.getDishes().clear();
@@ -247,6 +249,19 @@ public class MenuService {
         }
 
         return "+91" + digitsOnly;
+    }
+
+    private String normalizeClientEmail(String clientEmail) {
+        if (clientEmail == null || clientEmail.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Client email is required");
+        }
+
+        String normalizedEmail = clientEmail.trim().toLowerCase();
+        if (!normalizedEmail.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Client email must be a valid email address");
+        }
+
+        return normalizedEmail;
     }
 
     /**

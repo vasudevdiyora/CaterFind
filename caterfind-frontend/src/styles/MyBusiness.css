@@ -1,20 +1,20 @@
 /* ============================================================
-   MY BUSINESS PAGE STYLES (PREMIUM DARK THEME)
-   ============================================================ */
+    MY BUSINESS PAGE STYLES (PREMIUM LIGHT THEME)
+    ============================================================ */
 
 .business-container {
-    padding: 32px;
+    padding: 28px;
     max-width: 1200px;
     margin: 0 auto;
 }
 
 .business-header {
-    margin-bottom: 32px;
+    margin-bottom: 20px;
 }
 
 .business-title {
-    font-size: 32px;
-    font-weight: 700;
+    font-size: clamp(1.5rem, 2.6vw, 2rem);
+    font-weight: 800;
     color: var(--text-primary);
     margin: 0;
     display: flex;
@@ -26,36 +26,36 @@
 .business-form {
     display: flex;
     flex-direction: column;
-    gap: 32px;
+    gap: 18px;
 }
 
 .form-section {
-    background: var(--bg-card);
+    background: linear-gradient(180deg, color-mix(in oklab, var(--bg-card) 96%, white 4%) 0%, var(--bg-card) 100%);
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-md);
-    padding: 24px;
+    border-radius: 16px;
+    padding: 22px;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    margin-bottom: 24px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    margin-bottom: 10px;
 }
 
 .form-section:hover {
-    border-color: var(--primary-color);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: color-mix(in oklab, var(--primary-color) 58%, var(--border-color));
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.1);
 }
 
 .section-heading {
-    font-size: 20px;
-    font-weight: 600;
+    font-size: 18px;
+    font-weight: 700;
     color: var(--text-primary);
-    margin: 0 0 20px 0;
+    margin: 0 0 16px 0;
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
 .form-field {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
 .form-field:last-child {
@@ -65,36 +65,37 @@
 .form-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    margin-bottom: 20px;
+    gap: 16px;
+    margin-bottom: 16px;
 }
 
 .field-label {
     display: block;
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 13px;
+    font-weight: 600;
     color: var(--text-secondary);
-    margin-bottom: 8px;
+    margin-bottom: 7px;
 }
 
 .field-input,
 .field-textarea {
     width: 100%;
-    padding: 12px 16px;
-    background: var(--bg-input);
+    padding: 11px 14px;
+    background: color-mix(in oklab, var(--bg-input) 98%, white 2%);
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-sm);
+    border-radius: 12px;
     color: var(--text-primary);
     font-size: 14px;
+    line-height: 1.4;
     font-family: inherit;
-    transition: all 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
 }
 
 .field-input:focus,
 .field-textarea:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16);
 }
 
 .field-input::placeholder,
@@ -104,7 +105,7 @@
 
 .field-textarea {
     resize: vertical;
-    min-height: 100px;
+    min-height: 110px;
 }
 
 /* Input with Icon */
@@ -147,13 +148,13 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 12px 24px;
+    padding: 10px 16px;
     background: var(--bg-hover);
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-sm);
+    border-radius: 12px;
     color: var(--text-primary);
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -163,7 +164,7 @@
     color: #000;
     border-color: var(--primary-color);
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(251, 191, 36, 0.2);
+    box-shadow: 0 6px 14px rgba(245, 158, 11, 0.25);
 }
 
 .upload-icon {
@@ -173,14 +174,46 @@
 .field-hint {
     font-size: 12px;
     color: var(--text-muted);
-    margin: 8px 0 0 0;
+    margin: 8px 0 0;
+}
+
+.map-picker-wrapper {
+    margin-top: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: color-mix(in oklab, var(--bg-input) 96%, white 4%);
+    overflow: hidden;
+}
+
+.map-picker-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-color);
+    background: color-mix(in oklab, var(--bg-hover) 96%, white 4%);
+}
+
+.map-picker-title {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.map-picker-subtitle {
+    margin: 4px 0 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.business-location-map {
+    width: 100%;
+    height: 300px;
 }
 
 /* Form Actions */
 .form-actions {
     display: flex;
     justify-content: flex-end;
-    padding-top: 24px;
+    padding-top: 16px;
     border-top: 1px solid var(--border-color);
 }
 
@@ -188,13 +221,13 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 14px 32px;
+    padding: 12px 20px;
     background: var(--primary-color);
     border: none;
-    border-radius: var(--border-radius-sm);
+    border-radius: 12px;
     color: #000;
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.3s;
 }
@@ -253,5 +286,9 @@
     .save-button {
         width: 100%;
         justify-content: center;
+    }
+
+    .business-location-map {
+        height: 260px;
     }
 }

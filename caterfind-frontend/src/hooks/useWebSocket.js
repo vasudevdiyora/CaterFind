@@ -10,6 +10,7 @@ import { WS_ENDPOINT } from '../services/api';
 const useWebSocket = (userId, userRole) => {
     const [isConnected, setIsConnected] = useState(false);
     const [messages, setMessages] = useState({});
+    const [lastMessage, setLastMessage] = useState(null);
     const [conversations, setConversations] = useState([]);
     const stompClient = useRef(null);
     const reconnectTimeout = useRef(null);
@@ -115,8 +116,13 @@ const useWebSocket = (userId, userRole) => {
             senderId: data.senderId,
             text: data.text,
             timestamp: data.timestamp,
-            status: data.status
+            status: data.status,
+            // Additional fields for compatibility
+            content: data.text,
+            recipientId: data.recipientId
         };
+        
+        setLastMessage(message);
         
         setMessages(prev => ({
             ...prev,
@@ -211,6 +217,7 @@ const useWebSocket = (userId, userRole) => {
         isConnected,
         conversations,
         messages,
+        lastMessage,
         sendMessage,
         loadMessageHistory,
         startConversation

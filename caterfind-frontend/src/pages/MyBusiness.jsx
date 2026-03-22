@@ -1,16 +1,65 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { fileAPI, profileAPI } from '../services/api';
+import Modal from '../components/Modal';
+import { fileAPI, profileAPI, authAPI } from '../services/api';
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import '../styles/MyBusiness.css';
+import '../styles/Table.css'; // For modals and buttons
+import { Building, Info, Phone, Mail, MapPin, Compass, Image as ImageIcon, Video, Upload, Trash2, Save, Loader, ShieldCheck, X, LocateFixed } from 'lucide-react';
+
+const DEFAULT_MAP_CENTER = [22.9734, 78.6569]; // Center of India
+
+const businessLocationIcon = L.icon({
+    iconUrl: markerIcon,
+    iconRetinaUrl: markerIcon2x,
+    shadowUrl: markerShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
+function MapCenterUpdater({ position }) {
+    const map = useMap();
+    useEffect(() => {
+        if (position) {
+            map.setView(position, Math.max(map.getZoom(), 14));
+        }
+    }, [map, position]);
+    return null;
+}
+
+function LocationSelectorMarker({ position, onPositionSelect }) {
+    useMapEvents({
+        click(event) {
+            const { lat, lng } = event.latlng;
+            onPositionSelect(lat, lng);
+        }
+    });
+
+    if (!position) return null;
+
+    return (
+        <Marker
+            position={position}
+            icon={businessLocationIcon}
+            draggable
+            eventHandlers={{
+                dragend: (event) => {
+                    const { lat, lng } = event.target.getLatLng();
+                    onPositionSelect(lat, lng);
+                }
+            }}
+        />
+    );
+}
 
 /**
- * My Business Page Component (Loveable Design)
- * 
- * Comprehensive business profile management with:
- * - Basic Information (name, description)
- * - Contact Details (phones, email)
- * - Address (street, area, city, landmark)
- * - Service Area (radius in km)
- * - Photos & Media upload
+ * My Business Page Component (Dense Light Theme)
  */
 function MyBusiness({ user }) {
     const [formData, setFormData] = useState({
@@ -26,7 +75,7 @@ function MyBusiness({ user }) {
         latitude: '',
         longitude: '',
         serviceRadius: 50,
-        imageUrl: '' // Profile image URL - saved to database
+        imageUrl: ''
     });
 
     const [loading, setLoading] = useState(true);
@@ -36,6 +85,17 @@ function MyBusiness({ user }) {
     const [locatingPosition, setLocatingPosition] = useState(false);
     const [businessPhotos, setBusinessPhotos] = useState([]);
     const [businessVideos, setBusinessVideos] = useState([]);
+    const [mapPosition, setMapPosition] = useState(null);
+
+    // Email-change OTP state
+    const [originalEmail, setOriginalEmail] = useState('');
+    const [emailOtpModal, setEmailOtpModal] = useState(false);
+    const [pendingNewEmail, setPendingNewEmail] = useState('');
+    const [otpValue, setOtpValue] = useState('');
+    const [sendingOtp, setSendingOtp] = useState(false);
+    const [verifyingOtp, setVerifyingOtp] = useState(false);
+    const [otpError, setOtpError] = useState('');
+    const [otpSuccess, setOtpSuccess] = useState('');
 
     const photoInputRef = useRef(null);
     const videoInputRef = useRef(null);
@@ -44,13 +104,20 @@ function MyBusiness({ user }) {
         loadBusinessProfile();
     }, []);
 
+    useEffect(() => {
+        const lat = parseFloat(formData.latitude);
+        const lng = parseFloat(formData.longitude);
+        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+            setMapPosition([lat, lng]);
+        }
+    }, [formData.latitude, formData.longitude]);
+
     const loadBusinessProfile = async () => {
-        const catererId = user?.userId || user?.id; // Handle both cases for robustness
+        const catererId = user?.userId || user?.id;
         if (!catererId) {
             setLoading(false);
             return;
         }
-
         try {
             const data = await profileAPI.get(catererId);
             if (data) {
@@ -69,548 +136,280 @@ function MyBusiness({ user }) {
                     serviceRadius: data.serviceRadius || 50,
                     imageUrl: data.imageUrl || ''
                 });
-                
-                // Load business photos from comma-separated string
+                setOriginalEmail(data.email || '');
                 if (data.businessPhotos) {
                     const photoUrls = data.businessPhotos.split(',').filter(url => url.trim());
                     setBusinessPhotos(photoUrls.map(url => ({ url: url.trim(), name: '' })));
                 }
             }
         } catch (error) {
-            // Error loading profile
+            console.error("Error loading profile:", error);
         } finally {
             setLoading(false);
         }
     };
 
     const handleChange = (field, value) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value
-        }));
+        setFormData(prev => ({ ...prev, [field]: value }));
     };
 
     const handleSave = async (e) => {
         e.preventDefault();
+        const newEmail = formData.email.trim().toLowerCase();
+        const oldEmail = originalEmail.trim().toLowerCase();
+
+        if (newEmail && newEmail !== oldEmail) {
+            setSendingOtp(true);
+            setOtpError('');
+            try {
+                await authAPI.requestEmailChangeOtp(formData.email.trim());
+                setPendingNewEmail(formData.email.trim());
+                setOtpValue('');
+                setOtpError('');
+                setOtpSuccess('');
+                setEmailOtpModal(true);
+            } catch (err) {
+                alert('Could not send OTP: ' + (err.message || 'Please try again.'));
+            } finally {
+                setSendingOtp(false);
+            }
+        } else {
+            await performSave();
+        }
+    };
+
+    const performSave = async (finalEmail = null) => {
         setSaving(true);
         const catererId = user?.userId || user?.id;
+        const photoUrls = businessPhotos.map(p => p.url).join(',');
+        const payload = {
+            ...formData,
+            email: finalEmail || formData.email,
+            businessPhotos: photoUrls
+        };
 
         try {
-            const hasLatitude = String(formData.latitude).trim() !== '';
-            const hasLongitude = String(formData.longitude).trim() !== '';
-
-            if ((hasLatitude && !hasLongitude) || (!hasLatitude && hasLongitude)) {
-                throw new Error('Please provide both latitude and longitude, or leave both empty.');
+            await profileAPI.update(catererId, payload);
+            if (finalEmail) {
+                setOriginalEmail(finalEmail);
             }
-
-            if (hasLatitude && hasLongitude) {
-                const latValue = Number(formData.latitude);
-                const lngValue = Number(formData.longitude);
-
-                if (Number.isNaN(latValue) || latValue < -90 || latValue > 90) {
-                    throw new Error('Latitude must be between -90 and 90.');
-                }
-
-                if (Number.isNaN(lngValue) || lngValue < -180 || lngValue > 180) {
-                    throw new Error('Longitude must be between -180 and 180.');
-                }
-            }
-
-            // Convert businessPhotos array to comma-separated string
-            const businessPhotosString = businessPhotos.map(photo => photo.url).join(',');
-            
-            const dataToSave = {
-                ...formData,
-                latitude: hasLatitude ? Number(formData.latitude) : null,
-                longitude: hasLongitude ? Number(formData.longitude) : null,
-                businessPhotos: businessPhotosString
-            };
-            
-            const updatedData = await profileAPI.update(catererId, dataToSave);
-            if (updatedData) {
-                setFormData(updatedData); // Update with server response
-                alert('Business profile updated successfully!');
-            } else {
-                throw new Error('Failed to update profile');
-            }
+            alert('Profile saved successfully!');
         } catch (error) {
-            alert('Failed to save changes. Please try again.');
+            alert('Failed to save profile: ' + error.message);
         } finally {
             setSaving(false);
+            setEmailOtpModal(false);
         }
     };
 
-    const handleUseCurrentLocation = () => {
+    const handleOtpVerification = async (e) => {
+        e.preventDefault();
+        setVerifyingOtp(true);
+        setOtpError('');
+        setOtpSuccess('');
+        try {
+            await authAPI.verifyEmailChangeOtp(pendingNewEmail, otpValue);
+            setOtpSuccess('Email verified! Saving profile...');
+            await performSave(pendingNewEmail);
+        } catch (err) {
+            setOtpError(err.message || 'Invalid OTP. Please try again.');
+        } finally {
+            setVerifyingOtp(false);
+        }
+    };
+
+    const handleFileUpload = async (event, type) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const uploader = type === 'photo' ? setUploadingPhoto : setUploadingVideo;
+        uploader(true);
+
+        try {
+            const result = await fileAPI.upload(file);
+            if (type === 'photo') {
+                setBusinessPhotos(prev => [...prev, { url: result.url, name: file.name }]);
+            } else {
+                setBusinessVideos(prev => [...prev, { url: result.url, name: file.name }]);
+            }
+        } catch (error) {
+            alert(`Failed to upload ${type}: ${error.message}`);
+        } finally {
+            uploader(false);
+            event.target.value = '';
+        }
+    };
+
+    const removeMedia = (index, type) => {
+        if (type === 'photo') {
+            setBusinessPhotos(prev => prev.filter((_, i) => i !== index));
+        } else {
+            setBusinessVideos(prev => prev.filter((_, i) => i !== index));
+        }
+    };
+
+    const handleLocateMe = () => {
         if (!navigator.geolocation) {
-            alert('Geolocation is not supported in this browser.');
+            alert('Geolocation is not supported by your browser.');
             return;
         }
-
         setLocatingPosition(true);
-
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                handleChange('latitude', String(position.coords.latitude));
-                handleChange('longitude', String(position.coords.longitude));
+                const { latitude, longitude } = position.coords;
+                handleChange('latitude', latitude.toFixed(6));
+                handleChange('longitude', longitude.toFixed(6));
                 setLocatingPosition(false);
             },
-            (error) => {
-                alert(error.message || 'Unable to fetch your current location.');
+            () => {
+                alert('Unable to retrieve your location.');
                 setLocatingPosition(false);
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 300000,
             }
         );
     };
 
-    const handlePhotoUpload = () => {
-        photoInputRef.current?.click();
-    };
-
-    const handleVideoUpload = () => {
-        videoInputRef.current?.click();
-    };
-
-    const handlePhotoChange = async (e) => {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) return;
-
-        setUploadingPhoto(true);
-        try {
-            for (const file of files) {
-                const result = await fileAPI.upload(file);
-                setBusinessPhotos(prev => [...prev, {
-                    url: result.url,
-                    name: file.name
-                }]);
-                
-                // Set the first uploaded photo as the profile image
-                if (formData.imageUrl === '') {
-                    handleChange('imageUrl', result.url);
-                }
-            }
-        } catch (error) {
-            alert('Failed to upload photos: ' + error.message);
-        } finally {
-            setUploadingPhoto(false);
-            e.target.value = ''; // Reset input
-        }
-    };
-
-    const handleVideoChange = async (e) => {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) return;
-
-        setUploadingVideo(true);
-        try {
-            for (const file of files) {
-                const result = await fileAPI.upload(file);
-                setBusinessVideos(prev => [...prev, {
-                    url: result.url,
-                    name: file.name
-                }]);
-            }
-        } catch (error) {
-            alert('Failed to upload videos: ' + error.message);
-        } finally {
-            setUploadingVideo(false);
-            e.target.value = ''; // Reset input
-        }
-    };
-
-    const removePhoto = async (index, photoUrl) => {
-        if (confirm('Delete this photo?')) {
-            try {
-                await fileAPI.delete(photoUrl);
-                setBusinessPhotos(prev => prev.filter((_, i) => i !== index));
-            } catch (error) {
-                alert('Failed to delete photo');
-            }
-        }
-    };
-
-    const removeVideo = async (index, videoUrl) => {
-        if (confirm('Delete this video?')) {
-            try {
-                await fileAPI.delete(videoUrl);
-                setBusinessVideos(prev => prev.filter((_, i) => i !== index));
-            } catch (error) {
-                alert('Failed to delete video');
-            }
-        }
-    };
+    const FormSection = ({ title, icon, children }) => (
+        <div className="surface-card p-6">
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-3 mb-4">
+                {icon} {title}
+            </h2>
+            <div className="space-y-4">{children}</div>
+        </div>
+    );
 
     if (loading) {
-        return (
-            <div className="business-container">
-                <div className="loading-state">Loading business profile...</div>
-            </div>
-        );
+        return <div className="page-shell text-center p-10">Loading business profile...</div>;
     }
 
     return (
-        <div className="business-container">
-            <div className="business-header">
-                <h1 className="business-title">👤 Business Profile</h1>
-            </div>
-
-            <form className="business-form" onSubmit={handleSave}>
-                {/* Basic Information */}
-                <div className="form-section">
-                    <h2 className="section-heading">Basic Information</h2>
-
-                    <div className="form-field">
-                        <label className="field-label">Business Name</label>
-                        <input
-                            type="text"
-                            className="field-input"
-                            value={formData.businessName}
-                            onChange={(e) => handleChange('businessName', e.target.value)}
-                            required
-                        />
-                    </div>
-
-                    <div className="form-field">
-                        <label className="field-label">Description</label>
-                        <textarea
-                            className="field-textarea"
-                            value={formData.description}
-                            onChange={(e) => handleChange('description', e.target.value)}
-                            rows={4}
-                            placeholder="Describe your catering services..."
-                        />
-                    </div>
-                </div>
-
-                {/* Contact Details */}
-                <div className="form-section">
-                    <h2 className="section-heading">📞 Contact Details</h2>
-
-                    <div className="form-row">
-                        <div className="form-field">
-                            <label className="field-label">Primary Phone</label>
-                            <div className="input-with-icon">
-                                <span className="input-icon">📞</span>
-                                <input
-                                    type="tel"
-                                    className="field-input with-icon"
-                                    value={formData.primaryPhone}
-                                    onChange={(e) => handleChange('primaryPhone', e.target.value)}
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div className="form-field">
-                            <label className="field-label">Alternate Phone</label>
-                            <div className="input-with-icon">
-                                <span className="input-icon">📞</span>
-                                <input
-                                    type="tel"
-                                    className="field-input with-icon"
-                                    value={formData.alternatePhone}
-                                    onChange={(e) => handleChange('alternatePhone', e.target.value)}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="form-field">
-                        <label className="field-label">Email</label>
-                        <div className="input-with-icon">
-                            <span className="input-icon">📧</span>
-                            <input
-                                type="email"
-                                className="field-input with-icon"
-                                value={formData.email}
-                                onChange={(e) => handleChange('email', e.target.value)}
-                                required
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Address */}
-                <div className="form-section">
-                    <h2 className="section-heading">📍 Address</h2>
-
-                    <div className="form-field">
-                        <label className="field-label">Street Address</label>
-                        <input
-                            type="text"
-                            className="field-input"
-                            value={formData.streetAddress}
-                            onChange={(e) => handleChange('streetAddress', e.target.value)}
-                            required
-                        />
-                    </div>
-
-                    <div className="form-row">
-                        <div className="form-field">
-                            <label className="field-label">Area</label>
-                            <input
-                                type="text"
-                                className="field-input"
-                                value={formData.area}
-                                onChange={(e) => handleChange('area', e.target.value)}
-                            />
-                        </div>
-
-                        <div className="form-field">
-                            <label className="field-label">City</label>
-                            <input
-                                type="text"
-                                className="field-input"
-                                value={formData.city}
-                                onChange={(e) => handleChange('city', e.target.value)}
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div className="form-field">
-                        <label className="field-label">Landmark (Optional)</label>
-                        <input
-                            type="text"
-                            className="field-input"
-                            value={formData.landmark}
-                            onChange={(e) => handleChange('landmark', e.target.value)}
-                            placeholder="e.g., Near Central Market"
-                        />
-                    </div>
-
-                    <div className="form-field">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-                            <label className="field-label" style={{ marginBottom: 0 }}>Coordinates (Optional)</label>
-                            <button
-                                type="button"
-                                className="upload-button"
-                                onClick={handleUseCurrentLocation}
-                                disabled={locatingPosition}
-                                style={{ padding: '8px 12px', fontSize: '12px' }}
-                            >
-                                {locatingPosition ? 'Locating...' : 'Use current location'}
-                            </button>
-                        </div>
-                        <div className="form-row">
-                            <div className="form-field">
-                                <input
-                                    type="number"
-                                    step="any"
-                                    className="field-input"
-                                    value={formData.latitude}
-                                    onChange={(e) => handleChange('latitude', e.target.value)}
-                                    placeholder="Latitude (e.g. 28.6139)"
-                                />
-                            </div>
-                            <div className="form-field">
-                                <input
-                                    type="number"
-                                    step="any"
-                                    className="field-input"
-                                    value={formData.longitude}
-                                    onChange={(e) => handleChange('longitude', e.target.value)}
-                                    placeholder="Longitude (e.g. 77.2090)"
-                                />
-                            </div>
-                        </div>
-                        <p className="field-hint">Coordinates improve nearby ranking in client discovery.</p>
-                    </div>
-                </div>
-
-                {/* Service Area */}
-                <div className="form-section">
-                    <h2 className="section-heading">✈️ Service Area</h2>
-
-                    <div className="form-field">
-                        <label className="field-label">Service Radius (in km)</label>
-                        <div className="radius-input-group">
-                            <input
-                                type="number"
-                                className="field-input radius-input"
-                                value={formData.serviceRadius}
-                                onChange={(e) => handleChange('serviceRadius', parseInt(e.target.value))}
-                                min="1"
-                                max="500"
-                                required
-                            />
-                            <span className="radius-hint">kilometers from your location</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Photos & Media */}
-                <div className="form-section">
-                    <h2 className="section-heading">📸 Photos & Media</h2>
-
-                    {/* Profile Image Preview */}
-                    <div className="form-field">
-                        <label className="field-label">Profile Image</label>
-                        {formData.imageUrl && (
-                            <div style={{ marginBottom: '16px' }}>
-                                <img 
-                                    src={fileAPI.getImageUrl(formData.imageUrl)} 
-                                    alt="Profile"
-                                    style={{ 
-                                        width: '200px', 
-                                        height: '200px', 
-                                        objectFit: 'cover',
-                                        borderRadius: '8px',
-                                        border: '2px solid var(--border-color, #333)'
-                                    }}
-                                />
-                                <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>Current profile image</p>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="form-field">
-                        <label className="field-label">Business Photos</label>
-                        <input
-                            ref={photoInputRef}
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            onChange={handlePhotoChange}
-                            style={{ display: 'none' }}
-                        />
-                        <button
-                            type="button"
-                            className="upload-button"
-                            onClick={handlePhotoUpload}
-                            disabled={uploadingPhoto}
-                        >
-                            <span className="upload-icon">⬆️</span>
-                            {uploadingPhoto ? 'Uploading...' : 'Upload Photos'}
-                        </button>
-                        <p className="field-hint">Upload photos of your kitchen, dishes, and events</p>
-                        
-                        {businessPhotos.length > 0 && (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '16px', marginTop: '16px' }}>
-                                {businessPhotos.map((photo, index) => (
-                                    <div key={index} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: formData.imageUrl === photo.url ? '3px solid #4CAF50' : '2px solid var(--border-color, #333)' }}>
-                                        <img 
-                                            src={fileAPI.getImageUrl(photo.url)} 
-                                            alt={photo.name}
-                                            style={{ width: '100%', height: '150px', objectFit: 'cover', cursor: 'pointer' }}
-                                            onClick={() => handleChange('imageUrl', photo.url)}
-                                            title="Click to set as profile image"
-                                        />
-                                        {formData.imageUrl === photo.url && (
-                                            <div style={{
-                                                position: 'absolute',
-                                                top: '8px',
-                                                left: '8px',
-                                                background: '#4CAF50',
-                                                color: 'white',
-                                                padding: '4px 8px',
-                                                borderRadius: '4px',
-                                                fontSize: '12px',
-                                                fontWeight: 'bold'
-                                            }}>
-                                                ✓ Profile Image
-                                            </div>
-                                        )}
-                                        <button
-                                            type="button"
-                                            onClick={() => removePhoto(index, photo.url)}
-                                            style={{
-                                                position: 'absolute',
-                                                top: '8px',
-                                                right: '8px',
-                                                background: 'rgba(255, 0, 0, 0.8)',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '50%',
-                                                width: '28px',
-                                                height: '28px',
-                                                cursor: 'pointer',
-                                                fontSize: '18px',
-                                                fontWeight: 'bold',
-                                                lineHeight: '1'
-                                            }}
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="form-field">
-                        <label className="field-label">Videos (Optional)</label>
-                        <input
-                            ref={videoInputRef}
-                            type="file"
-                            accept="video/*"
-                            multiple
-                            onChange={handleVideoChange}
-                            style={{ display: 'none' }}
-                        />
-                        <button
-                            type="button"
-                            className="upload-button"
-                            onClick={handleVideoUpload}
-                            disabled={uploadingVideo}
-                        >
-                            <span className="upload-icon">⬆️</span>
-                            {uploadingVideo ? 'Uploading...' : 'Upload Videos'}
-                        </button>
-                        <p className="field-hint">Showcase your catering services with videos</p>
-                        
-                        {businessVideos.length > 0 && (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', marginTop: '16px' }}>
-                                {businessVideos.map((video, index) => (
-                                    <div key={index} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '2px solid var(--border-color, #333)' }}>
-                                        <video 
-                                            src={fileAPI.getImageUrl(video.url)}
-                                            controls
-                                            style={{ width: '100%', height: '150px', objectFit: 'cover', backgroundColor: '#000' }}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => removeVideo(index, video.url)}
-                                            style={{
-                                                position: 'absolute',
-                                                top: '8px',
-                                                right: '8px',
-                                                background: 'rgba(255, 0, 0, 0.8)',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '50%',
-                                                width: '28px',
-                                                height: '28px',
-                                                cursor: 'pointer',
-                                                fontSize: '18px',
-                                                fontWeight: 'bold',
-                                                lineHeight: '1'
-                                            }}
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Save Button */}
-                <div className="form-actions">
-                    <button
-                        type="submit"
-                        className="save-button"
-                        disabled={saving}
-                    >
-                        <span className="save-icon">💾</span>
-                        {saving ? 'Saving Changes...' : 'Save Changes'}
+        <div className="page-shell py-8">
+            <form onSubmit={handleSave}>
+                <div className="flex items-center justify-between mb-6">
+                    <h1 className="text-3xl font-extrabold text-slate-800">My Business Profile</h1>
+                    <button type="submit" className="primary-button" disabled={saving || sendingOtp}>
+                        {saving ? <Loader className="animate-spin w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                        {saving ? 'Saving...' : 'Save Changes'}
                     </button>
                 </div>
+
+                <div className="dense-grid grid-cols-1 lg:grid-cols-3">
+                    <div className="lg:col-span-2 space-y-5">
+                        <FormSection title="Basic Information" icon={<Building size={20} />}>
+                            <div className="form-group">
+                                <label htmlFor="businessName">Business Name</label>
+                                <input id="businessName" type="text" className="form-input" value={formData.businessName} onChange={e => handleChange('businessName', e.target.value)} required />
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="description">Description / Bio</label>
+                                <textarea id="description" className="form-input" rows="4" value={formData.description} onChange={e => handleChange('description', e.target.value)} placeholder="Tell clients about your business, your specialty, and what makes you unique."></textarea>
+                            </div>
+                        </FormSection>
+
+                        <FormSection title="Contact Details" icon={<Phone size={20} />}>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="form-group">
+                                    <label htmlFor="primaryPhone">Primary Phone</label>
+                                    <input id="primaryPhone" type="tel" className="form-input" value={formData.primaryPhone} onChange={e => handleChange('primaryPhone', e.target.value)} />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="alternatePhone">Alternate Phone</label>
+                                    <input id="alternatePhone" type="tel" className="form-input" value={formData.alternatePhone} onChange={e => handleChange('alternatePhone', e.target.value)} />
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="email">Business Email</label>
+                                <input id="email" type="email" className="form-input" value={formData.email} onChange={e => handleChange('email', e.target.value)} />
+                                <p className="text-xs text-slate-500 mt-1">Changing your email will require OTP verification.</p>
+                            </div>
+                        </FormSection>
+
+                        <FormSection title="Photos & Media" icon={<ImageIcon size={20} />}>
+                            <div>
+                                <label className="form-label">Business Photos</label>
+                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                                    {businessPhotos.map((photo, index) => (
+                                        <div key={index} className="relative group aspect-square">
+                                            <img src={photo.url} alt={`Business photo ${index + 1}`} className="w-full h-full object-cover rounded-lg bg-slate-100" />
+                                            <button type="button" onClick={() => removeMedia(index, 'photo')} className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Trash2 size={12} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    <div
+                                        className="aspect-square border-2 border-dashed border-slate-300 rounded-lg flex items-center justify-center text-slate-400 hover:border-sky-500 hover:bg-sky-50 transition-colors cursor-pointer"
+                                        onClick={() => photoInputRef.current?.click()}
+                                    >
+                                        {uploadingPhoto ? <Loader className="animate-spin" /> : <Upload size={24} />}
+                                    </div>
+                                </div>
+                                <input type="file" ref={photoInputRef} onChange={e => handleFileUpload(e, 'photo')} className="hidden" accept="image/*" />
+                            </div>
+                        </FormSection>
+                    </div>
+
+                    <div className="lg:col-span-1 space-y-5">
+                        <FormSection title="Location & Service Area" icon={<MapPin size={20} />}>
+                            <div className="form-group">
+                                <label htmlFor="streetAddress">Street Address</label>
+                                <input id="streetAddress" type="text" className="form-input" value={formData.streetAddress} onChange={e => handleChange('streetAddress', e.target.value)} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="form-group">
+                                    <label htmlFor="area">Area</label>
+                                    <input id="area" type="text" className="form-input" value={formData.area} onChange={e => handleChange('area', e.target.value)} />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="city">City</label>
+                                    <input id="city" type="text" className="form-input" value={formData.city} onChange={e => handleChange('city', e.target.value)} />
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="landmark">Landmark</label>
+                                <input id="landmark" type="text" className="form-input" value={formData.landmark} onChange={e => handleChange('landmark', e.target.value)} />
+                            </div>
+                            <div className="h-64 w-full rounded-lg overflow-hidden relative">
+                                <MapContainer center={mapPosition || DEFAULT_MAP_CENTER} zoom={mapPosition ? 14 : 5} scrollWheelZoom={true} className="h-full w-full">
+                                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                                    <MapCenterUpdater position={mapPosition} />
+                                    <LocationSelectorMarker position={mapPosition} onPositionSelect={(lat, lng) => {
+                                        handleChange('latitude', lat.toFixed(6));
+                                        handleChange('longitude', lng.toFixed(6));
+                                    }} />
+                                </MapContainer>
+                                <button type="button" onClick={handleLocateMe} className="absolute top-2 right-2 secondary-button-sm z-[1000]">
+                                    {locatingPosition ? <Loader className="animate-spin w-4 h-4" /> : <LocateFixed size={16} />}
+                                </button>
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="serviceRadius">Service Radius (km)</label>
+                                <input id="serviceRadius" type="range" min="5" max="200" step="5" className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer" value={formData.serviceRadius} onChange={e => handleChange('serviceRadius', e.target.value)} />
+                                <div className="text-center font-semibold text-slate-700 mt-1">{formData.serviceRadius} km</div>
+                            </div>
+                        </FormSection>
+                    </div>
+                </div>
             </form>
+
+            <Modal isOpen={emailOtpModal} onClose={() => setEmailOtpModal(false)} title={<div className="flex items-center gap-2"><ShieldCheck /> Verify New Email</div>} className="">
+                <form onSubmit={handleOtpVerification}>
+                    <p className="text-sm text-slate-600 mb-4">
+                        We've sent a One-Time Password (OTP) to <strong>{pendingNewEmail}</strong>. Please enter it below to confirm the change.
+                    </p>
+                    <div className="form-group">
+                        <label htmlFor="otp">Enter OTP</label>
+                        <input id="otp" type="text" className="form-input text-center tracking-[0.5em]" value={otpValue} onChange={e => setOtpValue(e.target.value)} maxLength="6" required />
+                    </div>
+                    {otpError && <p className="form-error-text mt-2">{otpError}</p>}
+                    {otpSuccess && <p className="text-green-600 font-semibold mt-2">{otpSuccess}</p>}
+                    <div className="modal-actions">
+                        <button type="button" className="cancel-button" onClick={() => setEmailOtpModal(false)}>Cancel</button>
+                        <button type="submit" className="submit-button" disabled={verifyingOtp}>
+                            {verifyingOtp ? <Loader className="animate-spin w-4 h-4 mr-2" /> : null}
+                            Verify & Save
+                        </button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 }

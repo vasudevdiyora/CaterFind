@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, MessageCircle, Check, X } from 'lucide-react';
+import { Calendar, MapPin, Users, MessageCircle, Check, X, Clock, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { meetingRequestAPI } from '../services/api';
 
@@ -15,27 +15,24 @@ const ClientRequests = ({ user }) => {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        loadRequests();
+        if (user?.userId) {
+            loadRequests();
+        }
     }, [user, filter]);
 
-    const loadRequests =async () => {
+    const loadRequests = async () => {
         try {
             setLoading(true);
             setError('');
             
-            // Fetch requests from API (pass user ID)
-            if (!user || !user.userId) {
-                throw new Error('User not authenticated');
-            }
-            
             const data = await meetingRequestAPI.getCatererRequests(filter);
             
-            // Transform API response to match UI format
+            // Transform API response
             const transformedRequests = data.map(req => ({
                 id: req.id,
                 clientId: req.clientId,
                 clientName: req.clientName,
-                status: req.status,
+                status: req.status, 
                 date: req.eventDate,
                 location: req.eventLocation,
                 guests: req.numberOfGuests,
@@ -55,21 +52,14 @@ const ClientRequests = ({ user }) => {
 
     const handleAccept = async (requestId) => {
         try {
-            if (!user || !user.userId) {
-                throw new Error('User not authenticated');
-            }
-            
             await meetingRequestAPI.accept(requestId);
             
-            // Update local state
+            // Optimistic update
             setRequests(prev =>
                 prev.map(req =>
-                    req.id === requestId ? { ...req, status: 'accepted' } : req
+                    req.id === requestId ? { ...req, status: 'ACCEPTED' } : req
                 )
             );
-            
-            // Show success message
-            alert('Request accepted successfully!');
         } catch (error) {
             console.error('Error accepting request:', error);
             alert(error.message || 'Failed to accept request. Please try again.');
@@ -77,22 +67,16 @@ const ClientRequests = ({ user }) => {
     };
 
     const handleReject = async (requestId) => {
+        if (!window.confirm('Are you sure you want to reject this request?')) return;
         try {
-            if (!user || !user.userId) {
-                throw new Error('User not authenticated');
-            }
-            
             await meetingRequestAPI.reject(requestId);
             
-            // Update local state
+            // Optimistic update
             setRequests(prev =>
                 prev.map(req =>
-                    req.id === requestId ? { ...req, status: 'rejected' } : req
+                    req.id === requestId ? { ...req, status: 'REJECTED' } : req
                 )
             );
-            
-            // Show success message
-            alert('Request rejected.');
         } catch (error) {
             console.error('Error rejecting request:', error);
             alert(error.message || 'Failed to reject request. Please try again.');
@@ -100,8 +84,6 @@ const ClientRequests = ({ user }) => {
     };
 
     const handleMessage = (request) => {
-        // Navigate to messages page
-        // The Chat component will handle opening the conversation
         navigate('/owner/messages', { 
             state: { 
                 openConversationWith: request.clientId,
@@ -110,181 +92,253 @@ const ClientRequests = ({ user }) => {
         });
     };
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'pending':
-                return 'bg-primary text-primary-foreground';
-            case 'accepted':
-                return 'bg-secondary text-secondary-foreground';
-            case 'rejected':
-                return 'bg-destructive/20 text-destructive border border-destructive/50';
+    const getStatusInfo = (status) => {
+        if (!status) return { text: 'Unknown', color: 'text-slate-500', bg: 'bg-slate-100', icon: Clock };
+        
+        switch (status.toUpperCase()) {
+            case 'PENDING':
+                return { 
+                    text: 'Pending Action', 
+                    color: 'text-sky-700', 
+                    bg: 'bg-sky-50', 
+                    border: 'border-sky-200',
+                    icon: AlertTriangle 
+                };
+            case 'ACCEPTED':
+                return { 
+                    text: 'Accepted', 
+                    color: 'text-emerald-700', 
+                    bg: 'bg-emerald-50', 
+                    border: 'border-emerald-200',
+                    icon: CheckCircle 
+                };
+            case 'REJECTED':
+                return { 
+                    text: 'Rejected', 
+                    color: 'text-red-700', 
+                    bg: 'bg-red-50', 
+                    border: 'border-red-200',
+                    icon: XCircle 
+                };
             default:
-                return 'bg-muted text-muted-foreground';
+                return { 
+                    text: status, 
+                    color: 'text-slate-700', 
+                    bg: 'bg-slate-50', 
+                    border: 'border-slate-200',
+                    icon: Clock 
+                };
         }
     };
 
     const filteredRequests = requests.filter(req => {
         if (filter === 'all') return true;
-        return req.status === filter;
+        return req.status?.toUpperCase() === filter.toUpperCase();
     });
+
+    const pendingCount = requests.filter(req => req.status?.toUpperCase() === 'PENDING').length;
+    const acceptedCount = requests.filter(req => req.status?.toUpperCase() === 'ACCEPTED').length;
+    const rejectedCount = requests.filter(req => req.status?.toUpperCase() === 'REJECTED').length;
+
+    const filterOptions = [
+        { key: 'all', label: 'All', count: requests.length },
+        { key: 'pending', label: 'Pending', count: pendingCount },
+        { key: 'accepted', label: 'Accepted', count: acceptedCount },
+        { key: 'rejected', label: 'Rejected', count: rejectedCount },
+    ];
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <div className="page-shell space-y-6">
+                <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-white via-sky-50/40 to-white p-5 md:p-6 shadow-sm">
+                    <div className="h-7 w-56 rounded-md bg-slate-200 animate-pulse"></div>
+                    <div className="mt-3 h-4 w-80 max-w-full rounded-md bg-slate-100 animate-pulse"></div>
+                </div>
+
+                <div className="grid gap-4">
+                    {[1, 2, 3].map((skeleton) => (
+                        <div key={skeleton} className="surface-card p-5 animate-pulse">
+                            <div className="flex flex-col gap-4">
+                                <div className="h-5 w-44 rounded bg-slate-200"></div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div className="h-10 rounded bg-slate-100"></div>
+                                    <div className="h-10 rounded bg-slate-100"></div>
+                                    <div className="h-10 rounded bg-slate-100"></div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-                        <Users className="text-primary" size={32} />
-                        Client Requests
-                    </h1>
-                    <p className="text-muted-foreground mt-2">
-                        Manage event requests from potential clients
-                    </p>
+        <div className="page-shell space-y-8">
+            {/* Header Section */}
+            <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-white via-sky-50/40 to-white p-5 md:p-6 shadow-sm">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Client Requests</h1>
+                        <p className="text-slate-600 mt-1">Manage incoming event inquiries and bookings.</p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                        <div className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+                            Pending: {pendingCount}
+                        </div>
+                        <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                            Accepted: {acceptedCount}
+                        </div>
+                        <div className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+                            Rejected: {rejectedCount}
+                        </div>
+                    </div>
                 </div>
-                
-                {/* All Messages Button */}
-                <button
-                    onClick={() => navigate('/owner/messages')}
-                    className="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-semibold transition-all shadow-lg hover:shadow-primary/20"
-                >
-                    <MessageCircle size={20} />
-                    <span>All Messages</span>
-                </button>
+
+                <div className="mt-4 flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm w-fit">
+                    {filterOptions.map(option => (
+                        <button
+                            key={option.key}
+                            onClick={() => setFilter(option.key)}
+                            className={`px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                filter === option.key
+                                    ? 'bg-slate-900 text-white shadow-sm'
+                                    : 'text-slate-600 hover:bg-slate-50'
+                            }`}
+                        >
+                            <span>{option.label}</span>
+                            <span className={`ml-2 text-xs ${filter === option.key ? 'text-white/90' : 'text-slate-400'}`}>
+                                {option.count}
+                            </span>
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            {/* Error Message */}
+            {/* Error Display */}
             {error && (
-                <div className="bg-red-500/10 border border-red-500 rounded-lg p-4">
-                    <p className="text-red-500">{error}</p>
-                    <button
-                        onClick={loadRequests}
-                        className="mt-2 text-sm text-red-500 underline hover:text-red-600"
-                    >
-                        Try again
-                    </button>
+                <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg flex items-center justify-between">
+                    <p>{error}</p>
+                    <button onClick={loadRequests} className="text-sm font-semibold hover:underline">Retry</button>
                 </div>
             )}
 
-            {/* Filters */}
-            <div className="flex gap-3">
-                {['all', 'pending', 'accepted', 'rejected'].map(f => (
-                    <button
-                        key={f}
-                        onClick={() => setFilter(f)}
-                        className={`px-4 py-2 rounded-lg capitalize transition-colors ${
-                            filter === f
-                                ? 'bg-primary text-primary-foreground font-medium'
-                                : 'bg-card border border-border text-muted-foreground hover:bg-secondary'
-                        }`}
-                    >
-                        {f}
-                    </button>
-                ))}
-            </div>
-
-            {/* Requests List */}
+            {/* Content Area */}
             {filteredRequests.length === 0 ? (
-                <div className="bg-card rounded-lg border border-border p-12 text-center">
-                    <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold text-foreground mb-2">
-                        No Requests Found
-                    </h3>
-                    <p className="text-muted-foreground">
-                        {filter === 'all'
-                            ? 'You have no client requests yet'
-                            : `No ${filter} requests`}
+                <div className="surface-card flex flex-col items-center justify-center min-h-[400px] text-center p-12">
+                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+                        <Users className="text-slate-400" size={32} />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">No Requests Found</h3>
+                    <p className="text-slate-500 max-w-sm mx-auto">
+                        {filter === 'all' 
+                            ? "You haven't received any client requests yet. Make sure your profile is up to date!" 
+                            : `There are no ${filter} requests at the moment.`}
                     </p>
                 </div>
             ) : (
-                <div className="space-y-4">
-                    {filteredRequests.map((request) => (
-                        <div
-                            key={request.id}
-                            className="bg-card rounded-lg border border-border p-6 hover:border-primary/50 transition-colors"
-                        >
-                            <div className="flex items-start justify-between mb-4">
-                                <div>
-                                    <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
-                                        {request.clientName}
-                                        <span
-                                            className={`text-xs px-3 py-1 rounded-full ${getStatusColor(
-                                                request.status
-                                            )}`}
-                                        >
-                                            {request.status}
-                                        </span>
-                                    </h3>
-                                </div>
-                            </div>
+                <div className="grid gap-4">
+                    {filteredRequests.map((request, index) => {
+                        const status = getStatusInfo(request.status);
+                        const StatusIcon = status.icon;
+                        const borderColor = status.color.includes('amber')
+                            ? '#d97706'
+                            : status.color.includes('emerald')
+                            ? '#059669'
+                            : status.color.includes('red')
+                            ? '#dc2626'
+                            : '#94a3b8';
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Calendar size={16} />
-                                    <span>
-                                        {new Date(request.date).toLocaleDateString('en-IN', {
-                                            weekday: 'long',
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric',
-                                        })}
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Users size={16} />
-                                    <span>{request.guests} guests</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <MapPin size={16} />
-                                    <span>{request.location}</span>
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                    <span className="font-medium">{request.eventType}</span>
-                                </div>
-                            </div>
+                        return (
+                            <div
+                                key={`${request.id}-${index}`}
+                                className="surface-card group hover:shadow-md transition-all duration-200 border-l-4 p-4 md:p-5"
+                                style={{ borderLeftColor: borderColor }}
+                            >
+                                <div className="flex flex-col md:flex-row gap-6">
+                                    {/* Left: Info */}
+                                    <div className="flex-1 space-y-4">
+                                        <div className="flex items-start justify-between">
+                                            <div>
+                                                <div className="flex items-center gap-3 mb-1">
+                                                    <h3 className="text-lg font-bold text-slate-900">{request.clientName}</h3>
+                                                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium flex items-center gap-1.5 ${status.bg} ${status.color} border ${status.border}`}>
+                                                        <StatusIcon size={12} />
+                                                        {status.text}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-slate-500 flex items-center gap-2">
+                                                    Creating a <span className="font-semibold text-slate-700">{request.eventType}</span>
+                                                </p>
+                                            </div>
+                                            <span className="text-xs text-slate-400 font-mono bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
+                                                ID: #{request.id.toString().slice(-6)}
+                                            </span>
+                                        </div>
 
-                            {request.message && (
-                                <div className="bg-secondary/50 rounded-lg p-3 mb-4">
-                                    <p className="text-sm text-foreground">{request.message}</p>
-                                </div>
-                            )}
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                            <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">
+                                                <Calendar size={16} className="text-slate-400" />
+                                                <span className="font-medium">
+                                                    {new Date(request.date).toLocaleDateString(undefined, {
+                                                        year: 'numeric',
+                                                        month: 'short',
+                                                        day: 'numeric',
+                                                    })}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">
+                                                <Users size={16} className="text-slate-400" />
+                                                <span className="font-medium">{request.guests} Guests</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">
+                                                <MapPin size={16} className="text-slate-400" />
+                                                <span className="font-medium truncate">{request.location}</span>
+                                            </div>
+                                        </div>
 
-                            <div className="flex gap-3">
-                                {request.status === 'pending' && (
-                                    <>
+                                        {request.message && (
+                                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm text-slate-600 italic relative">
+                                                <span className="absolute top-2 left-2 text-slate-300 text-xl font-serif">"</span>
+                                                <p className="pl-4">{request.message}</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Right: Actions */}
+                                    <div className="flex md:flex-col gap-2 md:w-48 md:border-l md:border-slate-200 md:pl-6 justify-center">
+                                        {(request.status?.toUpperCase() === 'PENDING') && (
+                                            <>
+                                                <button
+                                                    onClick={() => handleAccept(request.id)}
+                                                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
+                                                >
+                                                    <Check size={16} />
+                                                    Accept
+                                                </button>
+                                                <button
+                                                    onClick={() => handleReject(request.id)}
+                                                    className="w-full py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-red-50 hover:text-red-700 hover:border-red-200 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                                                >
+                                                    <X size={16} />
+                                                    Reject
+                                                </button>
+                                            </>
+                                        )}
+                                        
                                         <button
-                                            onClick={() => handleAccept(request.id)}
-                                            className="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
+                                            onClick={() => handleMessage(request)}
+                                            className="w-full py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2 mt-auto"
                                         >
-                                            <Check size={18} />
-                                            Accept
+                                            <MessageCircle size={16} />
+                                            Message
                                         </button>
-                                        <button
-                                            onClick={() => handleReject(request.id)}
-                                            className="flex-1 px-4 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
-                                        >
-                                            <X size={18} />
-                                            Reject
-                                        </button>
-                                    </>
-                                )}
-                                <button
-                                    onClick={() => handleMessage(request)}
-                                    className="px-4 py-2 bg-card border border-border hover:bg-secondary text-foreground rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
-                                >
-                                    <MessageCircle size={18} />
-                                    Message
-                                </button>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

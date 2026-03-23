@@ -22,6 +22,7 @@ import AdminCaterers from './pages/AdminCaterers';
 import AdminClients from './pages/AdminClients';
 import AdminModeration from './pages/AdminModeration';
 import AdminSettings from './pages/AdminSettings';
+import AdminReviews from './pages/AdminReviews';
 import ClientHome from './pages/ClientHome';
 import CatererDetail from './pages/CatererDetail';
 import ClientTrials from './pages/ClientTrials';
@@ -29,6 +30,7 @@ import ClientProfile from './pages/ClientProfile';
 import ClientMeetingRequests from './pages/ClientMeetingRequests';
 import ForgotPassword from './pages/ForgotPassword';
 import { AUTH_EXPIRED_EVENT, authSession } from './services/api';
+import ToastProvider from './components/ToastProvider';
 
 
 /**
@@ -102,6 +104,7 @@ function App() {
   };
 
   return (
+    <ToastProvider>
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={
@@ -172,6 +175,7 @@ function App() {
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="caterers" element={<AdminCaterers />} />
             <Route path="clients" element={<AdminClients />} />
+            <Route path="reviews" element={<AdminReviews />} />
             <Route path="moderation" element={<AdminModeration />} />
             <Route path="messages" element={<Chat user={user} />} />
             <Route path="settings" element={<AdminSettings />} />
@@ -183,6 +187,7 @@ function App() {
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
+    </ToastProvider>
   );
 }
 

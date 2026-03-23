@@ -34,10 +34,16 @@ public class CateringProfileService {
         Optional<CateringProfile> profileOpt = cateringProfileRepository.findByUserId(userId);
 
         if (profileOpt.isEmpty()) {
-            return null; // Or throw exception / return empty DTO
+            throw new org.caterfind.exception.ResourceNotFoundException("Catering profile not found for userId=" + userId);
         }
 
-        return mapToDTO(profileOpt.get());
+        CateringProfile profile = profileOpt.get();
+        if (profile.getUser() == null || profile.getUser().getAccountStatus() != User.AccountStatus.ACTIVE) {
+            // Treat suspended or missing user as not-found for public clients
+            throw new org.caterfind.exception.ResourceNotFoundException("Catering profile not found for userId=" + userId);
+        }
+
+        return mapToDTO(profile);
     }
 
     /**

@@ -250,9 +250,9 @@ function Contacts({ user }) {
                                 <div className="form-group">
                                     <label htmlFor="preferredContactMethod"><MessageSquare className="inline-icon" /> Preferred Contact Method</label>
                                     <select id="preferredContactMethod" className="form-select" value={formData.preferredContactMethod} onChange={(e) => setFormData({ ...formData, preferredContactMethod: e.target.value })}>
+                                        <option value="SMS">SMS</option>
                                         <option value="EMAIL">Email</option>
-                                        <option value="PHONE">Phone</option>
-                                        <option value="WHATSAPP">WhatsApp</option>
+                                        <option value="CALL">Call</option>
                                     </select>
                                 </div>
                                 <div className="form-group">

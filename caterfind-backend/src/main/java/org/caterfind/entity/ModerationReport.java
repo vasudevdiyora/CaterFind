@@ -48,6 +48,12 @@ public class ModerationReport {
     @Column(nullable = false, length = 100)
     private String reason;
 
+    @Column(name = "content_id", nullable = true)
+    private Long contentId;
+
+    @Column(name = "content_type", nullable = true, length = 50)
+    private String contentType;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private ReportStatus status = ReportStatus.PENDING;
@@ -115,6 +121,22 @@ public class ModerationReport {
 
     public void setReason(String reason) {
         this.reason = reason;
+    }
+
+    public Long getContentId() {
+        return contentId;
+    }
+
+    public void setContentId(Long contentId) {
+        this.contentId = contentId;
+    }
+
+    public String getContentType() {
+        return contentType;
+    }
+
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
     }
 
     public ReportStatus getStatus() {

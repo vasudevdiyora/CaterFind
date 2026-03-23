@@ -12,49 +12,33 @@ import '../styles/Messages.css';
 const Chat = ({ user }) => {
     const location = useLocation();
     const navigate = useNavigate();
-    const [conversations, setConversations] = useState([]);
+    // conversations are provided by the websocket hook (wsConversations)
     const [selectedConversation, setSelectedConversation] = useState(null);
-    const [messages, setMessages] = useState([]);
+    // Messages are sourced from WebSocket state (`wsMessages`) only
+    // const [messages, setMessages] = useState([]);
     const [messageText, setMessageText] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(false);
+    const [pendingLoadConv, setPendingLoadConv] = useState(null);
     const messagesEndRef = useRef(null);
 
-    // WebSocket hook
-    const { isConnected, lastMessage } = useWebSocket(user?.userId);
+    // WebSocket hook - use full API (conversations/messages are provided by hook)
+    const { isConnected, lastMessage, conversations: wsConversations, messages: wsMessages, loadMessageHistory, sendMessage: sendViaWS, startConversation } = useWebSocket(user?.userId, user?.role);
 
-    // Initial Load
+    // Use websocket messages as single source of truth
+    const currentMessages = wsMessages?.[selectedConversation?.id] || [];
+
+    // Conversations are supplied by `wsConversations` from the hook; no local REST fallback
     useEffect(() => {
-        if (user?.userId) {
-            loadConversations();
-        }
-    }, [user]);
+        // keep effect for potential side-effects when lastMessage arrives
+    }, [lastMessage]);
 
-    // Handle incoming WebSocket messages
+    // Scroll to bottom when the selected conversation's WS messages change
     useEffect(() => {
-        if (lastMessage) {
-            const { senderId, recipientId, content, timestamp } = lastMessage;
-            
-            // 1. If we are in the active conversation, append the message
-            const currentPartnerId = selectedConversation?.partner?.id;
-            
-            if (currentPartnerId && (
-                (senderId === user.userId && recipientId === currentPartnerId) ||
-                (senderId === currentPartnerId && recipientId === user.userId)
-            )) {
-                setMessages(prev => {
-                    // Avoid duplicates if we optimistically added it
-                    const exists = prev.some(m => m.timestamp === timestamp && m.content === content);
-                    if (exists) return prev;
-                    return [...prev, lastMessage];
-                });
-                scrollToBottom();
-            }
-
-            // 2. Always refresh conversation list to update "last message" snippet and unread counts
-            loadConversations(); 
+        if (selectedConversation && selectedConversation.id) {
+            scrollToBottom();
         }
-    }, [lastMessage, selectedConversation, user.userId]);
+    }, [wsMessages, selectedConversation]);
 
     // Handle Navigation from other pages (e.g. "Message" button on request)
     useEffect(() => {
@@ -62,51 +46,67 @@ const Chat = ({ user }) => {
             const targetId = location.state.openConversationWith;
             const targetName = location.state.clientName || location.state.catererName || 'User';
             
-            // Check if conversation exists
-            const existing = conversations.find(c => c.partner?.id === targetId);
-            
-            if (existing) {
-                handleSelectConversation(existing);
-            } else {
-                // Create temporary conversation
-                const tempConv = {
-                    partner: { id: targetId, name: targetName },
-                    messages: []
+            // Try to find an existing conversation in websocket-provided list first
+            const existingWs = (wsConversations || []).find(c => c.participantId === targetId || c.participantId?.toString() === targetId?.toString());
+            if (existingWs) {
+                // build conversation object expected by UI
+                const conv = {
+                    id: existingWs.id,
+                    partner: { id: existingWs.participantId, name: existingWs.participantName },
+                    lastMessage: { content: existingWs.lastMessage }
                 };
+                handleSelectConversation(conv);
+            } else {
+                // Use temporary selection and request startConversation (will create if missing)
+                const tempConv = { partner: { id: targetId, name: targetName } };
                 setSelectedConversation(tempConv);
-                setMessages([]);
+                // trigger startConversation which will notify both users
+                startConversation(targetId, targetName, 'CLIENT');
             }
             
             // Clear state
             navigate(location.pathname, { replace: true });
         }
-    }, [location.state, conversations, navigate]);
+    }, [location.state, wsConversations, navigate]);
 
-    // Scroll to bottom when messages change
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+    // removed local `messages` state; scrolling is handled via wsMessages effect above
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
-    const loadConversations = async () => {
-        try {
-            const data = await chatAPI.getConversations();
-            // Ensure data structure matches what we expect
-            // API should return [{ partner: {id, name, ...}, lastMessage: {...} }]
-            setConversations(Array.isArray(data) ? data : []);
-        } catch (error) {
-            console.error("Failed to load conversations", error);
-        }
-    };
+    // Conversations are provided by the websocket hook; no REST fallback function
 
-    const loadMessages = async (partnerId) => {
+    const loadMessages = async (conversationOrPartner) => {
         try {
+            console.log('loadMessages called with:', conversationOrPartner);
             setLoading(true);
-            const data = await chatAPI.getMessages(partnerId);
-            setMessages(Array.isArray(data) ? data : []);
+            // If we have a conversation id, request via WebSocket history loader
+            const convId = conversationOrPartner?.id || conversationOrPartner;
+            // If websocket not connected, save pending load and return
+            if (convId && !isConnected) {
+                console.log('WS not connected, saving pending load:', convId);
+                setPendingLoadConv(convId);
+                return;
+            }
+            if (convId && loadMessageHistory) {
+                console.log('Calling loadMessageHistory with:', convId);
+                // If conversation id is numeric, call loadMessageHistory
+                await loadMessageHistory(convId);
+                // messages will be populated from `wsMessages`
+            } else if (conversationOrPartner && conversationOrPartner.partner) {
+                // No conversation id - try to find websocket conversation by participant id
+                const partnerId = conversationOrPartner.partner.id;
+                const found = (wsConversations || []).find(c => c.participantId === partnerId || c.participantId?.toString() === partnerId?.toString());
+                if (found) {
+                    await loadMessageHistory(found.id);
+                } else {
+                    // Fallback to REST if available (older API)
+                    console.warn('No websocket conversation found; REST fallback ignored to avoid local state conflicts');
+                }
+            } else {
+                // fallback: nothing to load
+            }
             scrollToBottom();
         } catch (error) {
             console.error("Failed to load messages", error);
@@ -115,54 +115,75 @@ const Chat = ({ user }) => {
         }
     };
 
-    const handleSelectConversation = (conversation) => {
-        setSelectedConversation(conversation);
-        if (conversation.partner?.id) {
-            loadMessages(conversation.partner.id);
+    const handleSelectConversation = (conv) => {
+        console.log('Selected conversation:', conv);
+        console.log('Selected conversation ID:', conv?.id);
+
+        setSelectedConversation(conv);
+
+        if (conv && conv.id) {
+            console.log('Requesting messages via loadMessages for:', conv.id);
+            loadMessages(conv.id);
+        } else {
+            console.error('Conversation ID missing!', conv);
         }
     };
+
+    // When websocket becomes connected, trigger any pending history load
+    useEffect(() => {
+        if (isConnected && pendingLoadConv) {
+            console.log('WebSocket connected — loading pending conversation history for:', pendingLoadConv);
+            if (pendingLoadConv.id) loadMessages(pendingLoadConv.id);
+            else loadMessages(pendingLoadConv);
+            setPendingLoadConv(null);
+        }
+    }, [isConnected, pendingLoadConv]);
 
     const handleSendMessage = async () => {
         if (!messageText.trim() || !selectedConversation) return;
 
-        const partnerId = selectedConversation.partner.id;
+        const convId = selectedConversation.id;
+        const partnerId = selectedConversation.partner?.id;
+
         const tempId = Date.now();
-        
         const newMessage = {
             id: tempId,
             senderId: user.userId,
             recipientId: partnerId,
             content: messageText.trim(),
             timestamp: new Date().toISOString(),
-            status: 'sent' // optimistic
+            status: 'sending'
         };
 
-        // Optimistic update
-        setMessages(prev => [...prev, newMessage]);
+        // Clear input immediately; rely on server/websocket to update messages
         setMessageText('');
 
         try {
-            // Send via API (REST) for persistence + WebSocket trigger logic on backend
-            // OR use WebSocket directly if backend supports it. 
-            // The previous logic used API for persistence.
-            await chatAPI.sendMessage({
-                recipientId: partnerId,
-                content: newMessage.content
-            });
-            
-            // If using pure WebSocket without REST persistence for sending:
-            // sendMessage(partnerId, newMessage.content); 
+            // Prefer WebSocket send if available
+            if (sendViaWS && convId) {
+                sendViaWS(convId, partnerId, newMessage.content);
+            } else if (sendViaWS && partnerId) {
+                // If conversation does not have id, send a temporary placeholder by using
+                // recipientId as the conversationId so the server can create the conversation.
+                sendViaWS(partnerId, partnerId, newMessage.content);
+            } else {
+                // Fallback to REST
+                await chatAPI.sendMessage({ recipientId: partnerId, content: newMessage.content });
+            }
 
-            // Refresh conversations to show this as last message
-            loadConversations();
+            // conversations will update via websocket; no explicit reload needed
         } catch (error) {
             console.error("Failed to send message", error);
-            // Mark message as failed?
-            setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'error' } : m));
         }
     };
 
-    const filteredConversations = conversations.filter(conv =>
+    const mappedConversations = (wsConversations || []).map(c => ({
+        id: c.id,
+        partner: { id: c.participantId, name: c.participantName, role: c.participantRole },
+        lastMessage: { content: c.lastMessage, timestamp: c.lastMessageTime }
+    }));
+
+    const filteredConversations = mappedConversations.filter(conv =>
         conv.partner?.name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -213,9 +234,10 @@ const Chat = ({ user }) => {
                         ) : (
                             filteredConversations.map((conv, index) => (
                                 <button
-                                    key={conv.partner?.id || index}
-                                    onClick={() => handleSelectConversation(conv)}
-                                    className={`w-full p-4 flex items-start gap-3 hover:bg-white hover:shadow-sm transition-all border-b border-slate-100 ${selectedConversation?.partner?.id === conv.partner?.id ? 'bg-white shadow-sm border-l-4 border-l-primary' : ''}`}
+                                    key={conv.id}
+                                    onClick={(e) => { e.stopPropagation(); console.log('CLICK WORKING', conv); handleSelectConversation(conv); }}
+                                    className={`w-full p-4 flex items-start gap-3 hover:bg-white hover:shadow-sm transition-all border-b border-slate-100 cursor-pointer ${selectedConversation?.id === conv.id ? 'bg-white shadow-sm border-l-4 border-l-primary' : ''}`}
+                                    style={{ zIndex: 9999 }}
                                 >
                                     <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-semibold flex-shrink-0">
                                         {conv.partner.name?.[0]?.toUpperCase()}
@@ -272,10 +294,11 @@ const Chat = ({ user }) => {
 
                             {/* Messages List */}
                             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/30">
-                                {messages.map((msg, index) => {
+                                {currentMessages.map((msg, index) => {
                                     const isMe = msg.senderId === user.userId;
+                                    const key = msg.id || msg.clientMessageId || index;
                                     return (
-                                        <div key={index} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                        <div key={key} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                                             <div className={`max-w-[80%] md:max-w-[60%] rounded-2xl px-5 py-3 shadow-sm ${
                                                 isMe 
                                                 ? 'bg-primary text-primary-foreground rounded-br-none' 

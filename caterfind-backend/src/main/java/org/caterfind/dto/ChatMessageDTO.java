@@ -15,6 +15,8 @@ public class ChatMessageDTO {
     private String text;
     private LocalDateTime timestamp;
     private String status; // sending, sent, delivered, read
+    // Optional client-supplied id to correlate optimistic messages
+    private String clientMessageId;
 
     public ChatMessageDTO() {
     }
@@ -95,5 +97,13 @@ public class ChatMessageDTO {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getClientMessageId() {
+        return clientMessageId;
+    }
+
+    public void setClientMessageId(String clientMessageId) {
+        this.clientMessageId = clientMessageId;
     }
 }

@@ -1,21 +1,24 @@
 package org.caterfind.service;
 
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 import org.caterfind.dto.ChatMessageDTO;
+import org.caterfind.entity.CateringProfile;
 import org.caterfind.entity.ChatConversation;
 import org.caterfind.entity.ChatMessage;
-import org.caterfind.entity.CateringProfile;
 import org.caterfind.entity.User;
+import org.caterfind.repository.CateringProfileRepository;
 import org.caterfind.repository.ChatConversationRepository;
 import org.caterfind.repository.ChatMessageRepository;
-import org.caterfind.repository.CateringProfileRepository;
 import org.caterfind.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Service for handling chat operations with database persistence.
@@ -162,8 +165,19 @@ public class ChatService {
      * Get message history for a conversation.
      */
     public List<ChatMessageDTO> getMessageHistory(Long conversationId) {
+        return getMessageHistory(conversationId, null);
+    }
+
+    /**
+     * Get message history for a conversation, optionally filtered since a given time.
+     */
+    public List<ChatMessageDTO> getMessageHistory(Long conversationId, java.time.LocalDateTime since) {
+        // Ignore 'since' for now; always return full conversation history to avoid
+        // cases where clients do not send a valid 'since' or parse issues filter out messages.
         List<ChatMessage> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
-        
+
+        System.out.println("ChatService.getMessageHistory: conversationId=" + conversationId + ", requestedSince=" + (since != null ? since.toString() : "<none>") + ", returnedCount=" + (messages != null ? messages.size() : 0));
+
         return messages.stream().map(msg -> {
             ChatMessageDTO dto = new ChatMessageDTO("NEW_MESSAGE");
             dto.setId(msg.getId());
@@ -184,7 +198,7 @@ public class ChatService {
         Optional<ChatConversation> convOpt = conversationRepository.findById(conversationId);
         
         if (!convOpt.isPresent()) {
-            return null;
+            throw new org.caterfind.exception.ResourceNotFoundException("Conversation not found: id=" + conversationId);
         }
 
         ChatConversation conv = convOpt.get();

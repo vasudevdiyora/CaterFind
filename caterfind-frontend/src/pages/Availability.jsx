@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, X, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, X, AlertCircle, Trash2 } from 'lucide-react';
 import { calendarAPI, availabilityAPI } from '../services/api';
 
 

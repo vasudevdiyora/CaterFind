@@ -166,6 +166,7 @@ public class MeetingRequestController {
     @PutMapping("/{id}/accept")
     public ResponseEntity<?> acceptRequest(
             @PathVariable Long id,
+            @org.springframework.web.bind.annotation.RequestBody(required = false) org.caterfind.dto.MeetingAcceptanceDTO acceptance,
             Authentication authentication) {
         try {
             User actor = getAuthenticatedUser(authentication);
@@ -175,7 +176,7 @@ public class MeetingRequestController {
                     .body(Map.of("error", "Only caterers can accept requests"));
             }
 
-            MeetingRequestResponse response = requestService.acceptRequest(id, actor.getId());
+            MeetingRequestResponse response = requestService.acceptRequest(id, actor.getId(), acceptance);
             
             return ResponseEntity.ok(response);
         } catch (SecurityException e) {

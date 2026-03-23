@@ -22,11 +22,11 @@ public class AvailabilityStatusService {
     private AvailabilityStatusRepository repository;
 
     /**
-     * Set availability status for a date (available/busy)
-     * If status is null or "neutral", the record is deleted.
+     * Set availability status for a date (available/busy).
+     * If status is null or "neutral", the record is deleted and an empty Optional is returned.
      */
     @Transactional
-    public AvailabilityStatusDTO setStatus(Long userId, AvailabilityStatusDTO dto) {
+    public Optional<AvailabilityStatusDTO> setStatus(Long userId, AvailabilityStatusDTO dto) {
         if (dto.getDate() == null) {
             throw new IllegalArgumentException("Date is required");
         }
@@ -39,7 +39,7 @@ public class AvailabilityStatusService {
         String status = normalizeStatus(dto.getStatus());
         if (status == null) {
             repository.deleteByUserIdAndAvailableDate(userId, dto.getDate());
-            return null;
+            return Optional.empty();
         }
 
         Optional<AvailabilityStatus> existing = repository.findByUserIdAndAvailableDate(userId, dto.getDate());
@@ -49,7 +49,7 @@ public class AvailabilityStatusService {
         entity.setStatus(status);
 
         AvailabilityStatus saved = repository.save(entity);
-        return toDTO(saved);
+        return Optional.of(toDTO(saved));
     }
 
     /**

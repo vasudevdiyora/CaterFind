@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, MapPin, Phone, Mail, Calendar, Utensils, MessageCircle, Building, Compass, ChefHat } from 'lucide-react';
-import { profileAPI, fileAPI, dishAPI } from '../services/api';
+import { profileAPI, fileAPI, dishAPI, reviewsAPI, moderationAPI } from '../services/api';
 import MeetingRequestModal from '../components/MeetingRequestModal';
+import ReportModal from '../components/ReportModal';
+import { useToast } from '../components/ToastProvider';
 import '../styles/Table.css';
 
 const CatererDetail = ({ user }) => {
@@ -14,14 +16,43 @@ const CatererDetail = ({ user }) => {
     const [loading, setLoading] = useState(true);
     const [dishes, setDishes] = useState([]);
     const [loadingDishes, setLoadingDishes] = useState(true);
+    const [reviews, setReviews] = useState([]);
+    const [ratingSummary, setRatingSummary] = useState({ average: 0, count: 0, distribution: {} });
+    const [submittingReview, setSubmittingReview] = useState(false);
+    const [newReview, setNewReview] = useState({ rating: 0, title: '', body: '' });
     const [showMeetingModal, setShowMeetingModal] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [reportTarget, setReportTarget] = useState(null);
+    const toast = useToast();
 
     useEffect(() => {
         if (catererId) {
             loadCaterer();
             loadDishes();
+            loadReviews();
+            loadRatingSummary();
         }
     }, [catererId]);
+
+    const loadReviews = async () => {
+        try {
+            const data = await reviewsAPI.list(catererId);
+            setReviews(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error('Error loading reviews:', error);
+            setReviews([]);
+        }
+    };
+
+    const loadRatingSummary = async () => {
+        try {
+            const data = await reviewsAPI.summary(catererId);
+            setRatingSummary(data || { average: 0, count: 0, distribution: {} });
+        } catch (error) {
+            console.error('Error loading rating summary:', error);
+            setRatingSummary({ average: 0, count: 0, distribution: {} });
+        }
+    };
 
     const loadCaterer = async () => {
         try {
@@ -136,6 +167,39 @@ const CatererDetail = ({ user }) => {
                                 </div>
                             </div>
                         )}
+
+                        {/* Reviews */}
+                        <div className="surface-card">
+                            <h2 className="card-header">Reviews</h2>
+                            <div className="p-6">
+                                {reviews.length === 0 ? (
+                                    <p className="text-slate-500">No reviews yet. Be the first to review this caterer.</p>
+                                ) : (
+                                    <ul className="space-y-4">
+                                        {reviews.map((r) => (
+                                            <li key={r.id} className="border rounded-lg p-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        {[1,2,3,4,5].map((s)=> (
+                                                            <Star key={s} size={14} className={s <= r.rating ? 'text-amber-500' : 'text-slate-300'} />
+                                                        ))}
+                                                        <strong className="ml-2">{r.title || ''}</strong>
+                                                    </div>
+                                                    <small className="text-slate-400">{new Date(r.createdAt).toLocaleDateString()}</small>
+                                                </div>
+                                                            {r.body && <p className="text-slate-700 mt-2">{r.body}</p>}
+                                                            <div className="mt-2 flex justify-end">
+                                                                <button className="text-sm text-red-600 hover:underline" onClick={() => {
+                                                                    setReportTarget(r);
+                                                                    setShowReportModal(true);
+                                                                }}>Report</button>
+                                                            </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     {/* Right Column (Sticky) */}
@@ -146,9 +210,9 @@ const CatererDetail = ({ user }) => {
                                 <div className="p-6">
                                     <div className="flex justify-center items-center gap-2 text-sky-500 mb-4">
                                         <Star size={24} fill="currentColor" />
-                                        <span className="text-3xl font-bold text-slate-800">{caterer.averageRating?.toFixed(1) || 'New'}</span>
+                                            <span className="text-3xl font-bold text-slate-800">{(ratingSummary?.average && ratingSummary.count>0) ? Number(ratingSummary.average).toFixed(1) : (caterer.averageRating?.toFixed(1) || 'New')}</span>
                                     </div>
-                                    <p className="text-slate-500 mb-6">Based on user reviews</p>
+                                        <p className="text-slate-500 mb-6">{ratingSummary.count || 0} reviews</p>
                                     <div className="space-y-3">
                                         <button onClick={() => setShowMeetingModal(true)} className="primary-button w-full">
                                             <Calendar size={16} className="mr-2" />
@@ -167,6 +231,35 @@ const CatererDetail = ({ user }) => {
                                             Send a Message
                                         </button>
                                     </div>
+                                        {/* Review submission (clients only) */}
+                                        <div className="mt-4 pt-4 border-t">
+                                            <h4 className="font-semibold mb-2">Leave a review</h4>
+                                            <div className="flex items-center gap-2 mb-2">
+                                                {[1,2,3,4,5].map((s) => (
+                                                    <button key={s} onClick={() => setNewReview(prev => ({...prev, rating: s}))} className={`text-${s <= newReview.rating ? 'amber' : 'gray'}-500`} aria-label={`${s} stars`}>
+                                                        <Star size={18} className={s <= newReview.rating ? 'text-amber-500' : 'text-slate-300'} />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <input type="text" placeholder="Title (optional)" value={newReview.title} onChange={(e)=>setNewReview(prev=>({...prev,title:e.target.value}))} className="form-input mb-2" />
+                                            <textarea placeholder="Share your experience" value={newReview.body} onChange={(e)=>setNewReview(prev=>({...prev,body:e.target.value}))} className="form-input mb-2" rows={3} />
+                                            <button className="primary-button w-full" disabled={submittingReview} onClick={async ()=>{
+                                                if (!newReview.rating) { toast.show('Please select a rating', { type: 'error' }); return; }
+                                                try {
+                                                    setSubmittingReview(true);
+                                                    // include user id if available
+                                                    const payload = { ...newReview, userId: user?.userId || null };
+                                                    await reviewsAPI.create(catererId, payload);
+                                                    setNewReview({ rating:0, title:'', body:'' });
+                                                    await loadReviews();
+                                                    await loadRatingSummary();
+                                                    toast.show('Thanks for your review!', { type: 'success' });
+                                                } catch (err) {
+                                                    console.error('Error submitting review', err);
+                                                    toast.show(err.message || 'Failed to submit review', { type: 'error' });
+                                                } finally { setSubmittingReview(false); }
+                                            }}>Submit Review</button>
+                                        </div>
                                 </div>
                             </div>
 
@@ -222,6 +315,15 @@ const CatererDetail = ({ user }) => {
                     onClose={() => setShowMeetingModal(false)}
                     catererId={catererId}
                     clientId={user?.userId}
+                />
+            )}
+            {showReportModal && (
+                <ReportModal
+                    isOpen={showReportModal}
+                    onClose={() => { setShowReportModal(false); setReportTarget(null); }}
+                    content={reportTarget?.body || reportTarget?.title}
+                    contentId={reportTarget?.id}
+                    contentType={'review'}
                 />
             )}
         </div>

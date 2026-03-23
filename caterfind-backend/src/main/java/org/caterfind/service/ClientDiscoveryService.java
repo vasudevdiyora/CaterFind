@@ -105,6 +105,11 @@ public class ClientDiscoveryService {
                 continue;
             }
 
+            // Skip caterers whose accounts are not active (suspended or pending)
+            if (profile.getUser().getAccountStatus() != User.AccountStatus.ACTIVE) {
+                continue;
+            }
+
             String businessName = safe(profile.getBusinessName());
             String profileCity = safe(profile.getCity());
             String profileArea = safe(profile.getArea());

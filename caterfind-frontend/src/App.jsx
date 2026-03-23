@@ -29,8 +29,9 @@ import ClientTrials from './pages/ClientTrials';
 import ClientProfile from './pages/ClientProfile';
 import ClientMeetingRequests from './pages/ClientMeetingRequests';
 import ForgotPassword from './pages/ForgotPassword';
-import { AUTH_EXPIRED_EVENT, authSession } from './services/api';
+import { authAPI, AUTH_EXPIRED_EVENT, authSession } from './services/api';
 import ToastProvider from './components/ToastProvider';
+import { useDialog } from './components/DialogProvider';
 
 
 /**
@@ -45,6 +46,8 @@ import ToastProvider from './components/ToastProvider';
  */
 function App() {
   const location = useLocation();
+  const { showConfirm } = useDialog();
+  const [authChecked, setAuthChecked] = useState(false);
 
   // Authentication state
   const [user, setUser] = useState(() => {
@@ -65,6 +68,41 @@ function App() {
 
     window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
     return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const verifySession = async () => {
+      const session = authSession.get();
+      if (!session?.token || !session?.user) {
+        if (isMounted) {
+          setUser(null);
+          setAuthChecked(true);
+        }
+        return;
+      }
+
+      try {
+        await authAPI.getProfile();
+        if (isMounted) {
+          setUser(session.user);
+          setAuthChecked(true);
+        }
+      } catch {
+        authSession.clear();
+        if (isMounted) {
+          setUser(null);
+          setAuthChecked(true);
+        }
+      }
+    };
+
+    verifySession();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   /**
@@ -96,12 +134,25 @@ function App() {
    * Handle logout.
    * Clears user info and returns to landing page.
    */
-  const handleLogout = () => {
-    if (window.confirm('Are you sure you want to logout?')) {
-      authSession.clear();
-      setUser(null);
-    }
+  const handleLogout = async () => {
+    const shouldLogout = await showConfirm('Are you sure you want to logout?', {
+      title: 'Logout',
+      confirmText: 'Logout'
+    });
+
+    if (!shouldLogout) return;
+
+    authSession.clear();
+    setUser(null);
   };
+
+  if (!authChecked) {
+    return (
+      <ToastProvider>
+        <div className="min-h-screen bg-background" />
+      </ToastProvider>
+    );
+  }
 
   return (
     <ToastProvider>

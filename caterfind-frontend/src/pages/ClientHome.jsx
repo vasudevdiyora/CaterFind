@@ -14,7 +14,8 @@ import {
     Building,
     Sparkles,
     Award,
-    Compass
+    Compass,
+    ArrowRight
 } from 'lucide-react';
 import { profileAPI, discoveryAPI, fileAPI } from '../services/api';
 import '../styles/Table.css'; // For buttons, modals
@@ -136,11 +137,58 @@ const ClientHome = ({ user }) => {
                 lng: clientCoordinates.lng,
                 sortBy,
             });
+            // Log raw discovery response for debugging (remove in production)
+            try { console.debug('discovery.raw', data && data.length ? data[0] : data); } catch (e) {}
 
-            setCaterers(Array.isArray(data) ? data : []);
+            // Normalize incoming caterer objects to ensure consistent keys
+            const normalized = Array.isArray(data) ? data.map(item => {
+                const avg = Number(item.rating ?? item.averageRating ?? item.avg ?? item.qualityScore ?? 0) || 0;
 
-            if (!allCaterers.length && Array.isArray(data)) {
-                setAllCaterers(data);
+                // Try multiple common locations for review count
+                const possibleCounts = [
+                    item.reviewCount,
+                    item.reviewsCount,
+                    item.reviews && item.reviews.length,
+                    item.count,
+                    item.reviewsCountTotal,
+                    item.ratingSummary && item.ratingSummary.count,
+                    item.rating_summary && item.rating_summary.count,
+                    item.reviews_summary && item.reviews_summary.count,
+                ];
+
+                let count = 0;
+                for (const v of possibleCounts) {
+                    const n = Number(v);
+                    if (Number.isFinite(n) && n > 0) { count = n; break; }
+                }
+
+                // As a last resort, inspect nested objects for numeric fields
+                if (count === 0 && item && typeof item === 'object') {
+                    for (const key of Object.keys(item)) {
+                        const val = item[key];
+                        if (val && typeof val === 'object' && (typeof val.count === 'number' || typeof val.length === 'number')) {
+                            const n = Number(val.count ?? val.length ?? 0);
+                            if (Number.isFinite(n) && n > 0) { count = n; break; }
+                        }
+                    }
+                }
+
+                // Debug any items still zero (helps trace mapping issues)
+                try { if (count === 0) console.debug('discovery.item.zeroCount', item); } catch (e) {}
+
+                return {
+                    ...item,
+                    rating: avg,
+                    averageRating: avg,
+                    reviewCount: count,
+                    userId: item.userId ?? (item.user && item.user.id) ?? item.id
+                };
+            }) : [];
+
+            setCaterers(normalized);
+
+            if (!allCaterers.length && normalized.length) {
+                setAllCaterers(normalized);
             }
         } catch (error) {
             setSearchError('Failed to load discovery results. Showing fallback list.');
@@ -303,9 +351,19 @@ const ClientHome = ({ user }) => {
         const catererId = getCatererId(caterer);
         const isShortlisted = shortlistedSet.has(catererId);
         const isComparing = compareIds.includes(catererId);
+        const numericRating = Number(caterer.rating ?? caterer.averageRating ?? 0);
+        const displayRating = Number.isFinite(numericRating) && numericRating > 0 ? numericRating.toFixed(1) : 'New';
+        const displayReviewCount = Number(caterer.reviewCount ?? 0);
 
         return (
-            <div key={catererId || index} className="surface-card overflow-hidden flex flex-col group hover:shadow-lg hover:-translate-y-0.5 duration-300">
+            <div
+                key={catererId || index}
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/client/caterer/${catererId}`)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/client/caterer/${catererId}`); }}
+                className="surface-card overflow-hidden flex flex-col group hover:shadow-lg hover:-translate-y-0.5 duration-300 cursor-pointer"
+            >
                 <div className="relative">
                     <img
                         src={getCatererImage(caterer)}
@@ -319,7 +377,8 @@ const ClientHome = ({ user }) => {
                     <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/40 to-transparent" />
                     <div className="absolute top-2 right-2 flex gap-2">
                         <button
-                            onClick={() => toggleShortlist(catererId)}
+                            onClick={(e) => { e.stopPropagation(); toggleShortlist(catererId); }}
+                            type="button"
                             className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-200 ${
                                 isShortlisted ? 'bg-red-500 text-white' : 'bg-white/80 backdrop-blur-sm text-slate-600 hover:bg-white'
                             }`}
@@ -329,7 +388,8 @@ const ClientHome = ({ user }) => {
                     </div>
                     <div className="absolute bottom-2 left-2 bg-black/55 text-white px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1">
                         <Star size={12} fill="currentColor" />
-                        <span>{caterer.averageRating?.toFixed(1) || 'New'}</span>
+                        <span>{displayRating}</span>
+                        <span className="text-white/80">({displayReviewCount})</span>
                     </div>
                 </div>
                 <div className="p-4 flex-grow flex flex-col">
@@ -338,9 +398,10 @@ const ClientHome = ({ user }) => {
                         <MapPin size={12} /> {caterer.area}, {caterer.city}
                     </p>
                     <p className="text-sm text-slate-600 line-clamp-2 flex-grow">{caterer.description}</p>
-                    <div className="mt-3 pt-3 border-t border-slate-200 flex justify-between items-center">
+                    <div className="mt-3 pt-3 border-t border-slate-200 flex justify-between items-center gap-2">
                         <button
-                            onClick={() => toggleCompare(catererId)}
+                            onClick={(e) => { e.stopPropagation(); toggleCompare(catererId); }}
+                            type="button"
                             className={`text-sm font-semibold flex items-center gap-2 transition-colors ${
                                 isComparing ? 'text-sky-600' : 'text-slate-500 hover:text-sky-500'
                             }`}
@@ -348,10 +409,12 @@ const ClientHome = ({ user }) => {
                             <Scale size={14} /> {isComparing ? 'Comparing' : 'Compare'}
                         </button>
                         <button
-                            onClick={() => navigate(`/client/caterer/${catererId}`)}
-                            className="primary-button-sm"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/client/caterer/${catererId}`); }}
+                            type="button"
+                            className="primary-button flex-1 flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-md"
                         >
-                            View Profile
+                            <span>View Profile</span>
+                            <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                         </button>
                     </div>
                 </div>
@@ -388,13 +451,14 @@ const ClientHome = ({ user }) => {
             </div>
             <div className="form-group">
                 <label>Service Radius ({minServiceRadius} km)</label>
-                <input type="range" min="0" max="100" step="5" value={minServiceRadius} onChange={e => setMinServiceRadius(e.target.value)} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer" />
+                <input type="range" min="0" max="100" step="5" value={minServiceRadius} onChange={e => setMinServiceRadius(Number(e.target.value))} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer" />
             </div>
             <div className="form-group">
                 <label>Sort By</label>
                 <select className="form-select border-slate-200 focus:border-sky-500 focus:ring-sky-500" value={sortBy} onChange={e => setSortBy(e.target.value)}>
                     <option value="relevance">Relevance</option>
-                    <option value="rating">Rating</option>
+                    <option value="rating_high">Top Rated (Smart)</option>
+                    <option value="rating_low">Lowest Rated</option>
                     <option value="distance">Distance</option>
                 </select>
             </div>

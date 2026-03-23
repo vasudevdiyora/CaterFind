@@ -62,6 +62,9 @@ public class CateringProfile {
     @Column(length = 50)
     private String city;
 
+    @Column(length = 10)
+    private String pincode;
+
     @Column(length = 100)
     private String landmark;
 
@@ -219,6 +222,14 @@ public class CateringProfile {
 
     public String getLandmark() {
         return landmark;
+    }
+
+    public String getPincode() {
+        return pincode;
+    }
+
+    public void setPincode(String pincode) {
+        this.pincode = pincode;
     }
 
     public Double getLatitude() {

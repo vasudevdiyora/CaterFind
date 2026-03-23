@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Modal from '../components/Modal';
-import { fileAPI, profileAPI, authAPI } from '../services/api';
+import { fileAPI, profileAPI, authAPI, locationAPI } from '../services/api';
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -12,6 +12,8 @@ import '../styles/Table.css'; // For modals and buttons
 import { Building, Info, Phone, Mail, MapPin, Compass, Image as ImageIcon, Video, Upload, Trash2, Save, Loader, ShieldCheck, X, LocateFixed } from 'lucide-react';
 
 const DEFAULT_MAP_CENTER = [22.9734, 78.6569]; // Center of India
+const FALLBACK_BUSINESS_PHOTO = 'https://via.placeholder.com/320x320?text=Business+Photo';
+const PUBLIC_PINCODE_API_ENDPOINT = 'https://api.postalpincode.in/pincode';
 
 const businessLocationIcon = L.icon({
     iconUrl: markerIcon,
@@ -80,6 +82,7 @@ function MyBusiness({ user }) {
         alternatePhone: '',
         email: '',
         streetAddress: '',
+        pincode: '',
         area: '',
         city: '',
         landmark: '',
@@ -96,7 +99,10 @@ function MyBusiness({ user }) {
     const [locatingPosition, setLocatingPosition] = useState(false);
     const [businessPhotos, setBusinessPhotos] = useState([]);
     const [businessVideos, setBusinessVideos] = useState([]);
+    const [failedPhotoIndexes, setFailedPhotoIndexes] = useState({});
     const [mapPosition, setMapPosition] = useState(null);
+    const [pincodeLookupStatus, setPincodeLookupStatus] = useState('idle');
+    const [pincodeLookupMessage, setPincodeLookupMessage] = useState('');
 
     // Ref to Description / Bio textarea so we can read
     // the latest value on save without controlling it.
@@ -114,6 +120,8 @@ function MyBusiness({ user }) {
 
     const photoInputRef = useRef(null);
     const videoInputRef = useRef(null);
+    const lastPincodeLookupRef = useRef('');
+    const pincodeRequestSeqRef = useRef(0);
 
     useEffect(() => {
         loadBusinessProfile();
@@ -126,6 +134,11 @@ function MyBusiness({ user }) {
             setMapPosition([lat, lng]);
         }
     }, [formData.latitude, formData.longitude]);
+
+    useEffect(() => {
+        // Clear failed image cache whenever photo list changes.
+        setFailedPhotoIndexes({});
+    }, [businessPhotos]);
 
     const loadBusinessProfile = async () => {
         const catererId = user?.userId || user?.id;
@@ -143,6 +156,7 @@ function MyBusiness({ user }) {
                     alternatePhone: data.alternatePhone || '',
                     email: data.email || '',
                     streetAddress: data.streetAddress || '',
+                    pincode: data.pincode || '',
                     area: data.area || '',
                     city: data.city || '',
                     landmark: data.landmark || '',
@@ -154,7 +168,10 @@ function MyBusiness({ user }) {
                 setOriginalEmail(data.email || '');
                 if (data.businessPhotos) {
                     const photoUrls = data.businessPhotos.split(',').filter(url => url.trim());
-                    setBusinessPhotos(photoUrls.map(url => ({ url: url.trim(), name: '' })));
+                    setBusinessPhotos(photoUrls.map(url => ({
+                        url: url.trim().replace(/^"|"$/g, ''),
+                        name: ''
+                    })));
                 }
             }
         } catch (error) {
@@ -166,6 +183,157 @@ function MyBusiness({ user }) {
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const extractLocationFromPostalApi = (payload) => {
+        const firstResult = Array.isArray(payload) ? payload[0] : null;
+        const postOffices = firstResult?.PostOffice;
+        const firstPostOffice = Array.isArray(postOffices) ? postOffices[0] : null;
+
+        if (!firstPostOffice) {
+            return null;
+        }
+
+        const city = String(
+            firstPostOffice.District || firstPostOffice.Block || firstPostOffice.Name || ''
+        ).trim();
+        const area = String(firstPostOffice.Name || '').trim();
+
+        return {
+            city,
+            area
+        };
+    };
+
+    const extractLocationFromBackend = (payload) => {
+        if (!payload?.success) {
+            return null;
+        }
+
+        const city = String(payload.district || '').trim();
+        const area = String(payload.postOffices?.[0] || '').trim();
+
+        if (!city && !area) {
+            return null;
+        }
+
+        return {
+            city,
+            area
+        };
+    };
+
+    const fetchFromPublicPincodeApi = async (pincode) => {
+        const response = await fetch(`${PUBLIC_PINCODE_API_ENDPOINT}/${pincode}`);
+        if (!response.ok) {
+            throw new Error('Public pincode API failed');
+        }
+
+        const payload = await response.json();
+        return extractLocationFromPostalApi(payload);
+    };
+
+    const lookupLocationByPincode = async (pincode) => {
+        const requestSeq = ++pincodeRequestSeqRef.current;
+        setPincodeLookupStatus('loading');
+        setPincodeLookupMessage('Fetching city details...');
+
+        try {
+            let resolvedLocation = null;
+
+            try {
+                const backendData = await locationAPI.lookupPincode(pincode);
+                resolvedLocation = extractLocationFromBackend(backendData);
+            } catch {
+                resolvedLocation = null;
+            }
+
+            if (!resolvedLocation) {
+                resolvedLocation = await fetchFromPublicPincodeApi(pincode);
+            }
+
+            // Ignore out-of-order responses when user changes pincode quickly.
+            if (requestSeq !== pincodeRequestSeqRef.current) {
+                return;
+            }
+
+            if (!resolvedLocation?.city && !resolvedLocation?.area) {
+                setPincodeLookupStatus('not-found');
+                setPincodeLookupMessage('No location found for this pincode.');
+                return;
+            }
+
+            const detectedCity = String(resolvedLocation.city || '').trim();
+            const detectedArea = String(resolvedLocation.area || '').trim();
+
+            setFormData(prev => ({
+                ...prev,
+                city: detectedCity || prev.city,
+                area: prev.area || detectedArea
+            }));
+            setPincodeLookupStatus('found');
+            setPincodeLookupMessage(detectedCity ? `City detected: ${detectedCity}` : 'Location detected.');
+        } catch (error) {
+            if (requestSeq !== pincodeRequestSeqRef.current) {
+                return;
+            }
+            setPincodeLookupStatus('error');
+            setPincodeLookupMessage('Unable to fetch city for this pincode right now.');
+        }
+    };
+
+    const handlePincodeChange = (rawValue) => {
+        const sanitized = rawValue.replace(/\D/g, '').slice(0, 6);
+        handleChange('pincode', sanitized);
+
+        if (sanitized.length < 6) {
+            lastPincodeLookupRef.current = '';
+            setPincodeLookupStatus('idle');
+            setPincodeLookupMessage('');
+            return;
+        }
+
+        if (lastPincodeLookupRef.current === sanitized) {
+            return;
+        }
+
+        lastPincodeLookupRef.current = sanitized;
+        lookupLocationByPincode(sanitized);
+    };
+
+    const handlePincodeKeyDown = (event) => {
+        if (event.key === 'Enter') {
+            // Prevent browser form submit + HTML required field popup while typing pincode.
+            event.preventDefault();
+            const currentPincode = String(formData.pincode || '').trim();
+            if (currentPincode.length === 6 && lastPincodeLookupRef.current !== currentPincode) {
+                lastPincodeLookupRef.current = currentPincode;
+                lookupLocationByPincode(currentPincode);
+            }
+        }
+    };
+
+    const getBusinessPhotoSrc = (imageUrl) => {
+        const raw = String(imageUrl || '').trim().replace(/^"|"$/g, '');
+        if (!raw) return FALLBACK_BUSINESS_PHOTO;
+
+        if (/^data:image\//i.test(raw) || /^https?:\/\//i.test(raw)) {
+            return raw;
+        }
+
+        if (raw.startsWith('/uploads/')) {
+            return fileAPI.getImageUrl(raw);
+        }
+
+        if (raw.startsWith('uploads/')) {
+            return fileAPI.getImageUrl(`/${raw}`);
+        }
+
+        if (/^[^/\\]+\.(jpg|jpeg|png|webp|gif|jfif|svg)$/i.test(raw)) {
+            return fileAPI.getImageUrl(`/uploads/images/${raw}`);
+        }
+
+        return fileAPI.getImageUrl(raw.startsWith('/') ? raw : `/${raw}`);
     };
 
     const handleSave = async (e) => {
@@ -345,7 +513,22 @@ function MyBusiness({ user }) {
                                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                                     {businessPhotos.map((photo, index) => (
                                         <div key={index} className="relative group aspect-square">
-                                            <img src={photo.url} alt={`Business photo ${index + 1}`} className="w-full h-full object-cover rounded-lg bg-slate-100" />
+                                            {failedPhotoIndexes[index] ? (
+                                                <div className="w-full h-full rounded-lg bg-slate-100 border border-slate-200 flex flex-col items-center justify-center text-slate-500 gap-1 text-xs text-center px-2">
+                                                    <ImageIcon size={18} />
+                                                    <span>Image unavailable</span>
+                                                </div>
+                                            ) : (
+                                                <img
+                                                    src={getBusinessPhotoSrc(photo.url)}
+                                                    alt={`Business photo ${index + 1}`}
+                                                    className="w-full h-full object-cover rounded-lg bg-slate-100"
+                                                    onError={(event) => {
+                                                        event.currentTarget.onerror = null;
+                                                        setFailedPhotoIndexes(prev => ({ ...prev, [index]: true }));
+                                                    }}
+                                                />
+                                            )}
                                             <button type="button" onClick={() => removeMedia(index, 'photo')} className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <Trash2 size={12} />
                                             </button>
@@ -365,19 +548,40 @@ function MyBusiness({ user }) {
 
                     <div className="lg:col-span-1 space-y-5">
                         <FormSection title="Location & Service Area" icon={<MapPin size={20} />}>
-                            <div className="form-group">
-                                <label htmlFor="streetAddress">Street Address</label>
-                                <input id="streetAddress" type="text" className="form-input" value={formData.streetAddress} onChange={e => handleChange('streetAddress', e.target.value)} />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="form-group">
-                                    <label htmlFor="area">Area</label>
-                                    <input id="area" type="text" className="form-input" value={formData.area} onChange={e => handleChange('area', e.target.value)} />
+                                    <label htmlFor="pincode">Pincode</label>
+                                    <input
+                                        id="pincode"
+                                        type="text"
+                                        className="form-input"
+                                        value={formData.pincode}
+                                        onChange={e => handlePincodeChange(e.target.value)}
+                                        onKeyDown={handlePincodeKeyDown}
+                                        inputMode="numeric"
+                                        pattern="[0-9]{6}"
+                                        maxLength={6}
+                                        placeholder="Enter 6-digit pincode"
+                                        required
+                                    />
+                                    {pincodeLookupMessage && (
+                                        <p className={`text-xs mt-1 ${pincodeLookupStatus === 'error' || pincodeLookupStatus === 'not-found' ? 'text-red-600' : 'text-slate-500'}`}>
+                                            {pincodeLookupMessage}
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="city">City</label>
-                                    <input id="city" type="text" className="form-input" value={formData.city} onChange={e => handleChange('city', e.target.value)} />
+                                    <input id="city" type="text" className="form-input" value={formData.city} onChange={e => handleChange('city', e.target.value)} required />
                                 </div>
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="streetAddress">Street Address</label>
+                                <input id="streetAddress" type="text" className="form-input" value={formData.streetAddress} onChange={e => handleChange('streetAddress', e.target.value)} required />
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="area">Area</label>
+                                <input id="area" type="text" className="form-input" value={formData.area} onChange={e => handleChange('area', e.target.value)} />
                             </div>
                             <div className="form-group">
                                 <label htmlFor="landmark">Landmark</label>

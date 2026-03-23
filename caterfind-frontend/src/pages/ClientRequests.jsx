@@ -3,12 +3,14 @@ import { Calendar, MapPin, Users, MessageCircle, Check, X, Clock, AlertTriangle,
 import { useNavigate } from 'react-router-dom';
 import { meetingRequestAPI, profileAPI } from '../services/api';
 import MeetingAcceptModal from '../components/MeetingAcceptModal';
+import { useDialog } from '../components/DialogProvider';
 
 /**
  * Client Requests Page - Caterer Side
  * Shows all meeting/event requests from clients with ability to accept/reject
  */
 const ClientRequests = ({ user }) => {
+    const { showConfirm } = useDialog();
     const navigate = useNavigate();
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -108,7 +110,13 @@ const ClientRequests = ({ user }) => {
     };
 
     const handleReject = async (requestId) => {
-        if (!window.confirm('Are you sure you want to reject this request?')) return;
+        const shouldReject = await showConfirm('Are you sure you want to reject this request?', {
+            title: 'Reject Request',
+            confirmText: 'Reject'
+        });
+
+        if (!shouldReject) return;
+
         try {
             await meetingRequestAPI.reject(requestId);
             

@@ -86,8 +86,31 @@ const handleResponse = async (response) => {
 
 export const authSession = {
   storageKey: AUTH_SESSION_KEY,
-  get: () => readStoredSession(),
-  save: (session) => localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session)),
+  get: () => {
+    const session = readStoredSession();
+    if (!session?.token || !session?.user) return null;
+
+    if (session.expiresAt && Number.isFinite(session.expiresAt) && Date.now() >= session.expiresAt) {
+      localStorage.removeItem(AUTH_SESSION_KEY);
+      return null;
+    }
+
+    return session;
+  },
+  save: (session) => {
+    const expiresInSeconds = Number(session?.expiresIn);
+    const expiresAt = Number.isFinite(expiresInSeconds) && expiresInSeconds > 0
+      ? Date.now() + (expiresInSeconds * 1000)
+      : null;
+
+    localStorage.setItem(
+      AUTH_SESSION_KEY,
+      JSON.stringify({
+        ...session,
+        expiresAt
+      })
+    );
+  },
   clear: () => localStorage.removeItem(AUTH_SESSION_KEY)
 };
 
@@ -1062,11 +1085,12 @@ const parseDiscoveryResponse = async (response, fallbackMessage) => {
 export const discoveryAPI = {
   searchCaterers: async (params = {}) => {
     const searchParams = new URLSearchParams();
+    const minServiceRadius = Number(params.minServiceRadius);
     if (params.q) searchParams.set('q', params.q);
     if (params.city && params.city !== 'all') searchParams.set('city', params.city);
     if (params.area && params.area !== 'all') searchParams.set('area', params.area);
     if (typeof params.minRating === 'number' && params.minRating > 0) searchParams.set('minRating', String(params.minRating));
-    if (typeof params.minServiceRadius === 'number' && params.minServiceRadius > 0) searchParams.set('minServiceRadius', String(params.minServiceRadius));
+    if (Number.isFinite(minServiceRadius) && minServiceRadius > 0) searchParams.set('minServiceRadius', String(minServiceRadius));
     if (typeof params.lat === 'number' && typeof params.lng === 'number') {
       searchParams.set('lat', String(params.lat));
       searchParams.set('lng', String(params.lng));

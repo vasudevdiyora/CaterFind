@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, Filter, Plus, Pencil, Trash2, X, Check, Utensils, Info, Upload, UtensilsCrossed } from 'lucide-react';
 import Modal from '../components/Modal';
 import { dishAPI, fileAPI } from '../services/api';
+import { useDialog } from '../components/DialogProvider';
 import '../styles/Table.css';
 import '../styles/Contacts.css'; // Re-using filter pills
 
@@ -9,6 +10,7 @@ import '../styles/Contacts.css'; // Re-using filter pills
  * Dish Library Page Component (Dense Light Theme)
  */
 function DishLibrary({ user }) {
+    const { showConfirm } = useDialog();
     const [dishes, setDishes] = useState([]);
     const [filteredDishes, setFilteredDishes] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -120,13 +122,18 @@ function DishLibrary({ user }) {
     };
 
     const handleDeleteDish = async (id) => {
-        if (window.confirm('Are you sure you want to delete this dish?')) {
-            try {
-                await dishAPI.delete(id);
-                fetchDishes();
-            } catch (error) {
-                // Error deleting dish
-            }
+        const shouldDelete = await showConfirm('Are you sure you want to delete this dish?', {
+            title: 'Delete Dish',
+            confirmText: 'Delete'
+        });
+
+        if (!shouldDelete) return;
+
+        try {
+            await dishAPI.delete(id);
+            fetchDishes();
+        } catch (error) {
+            // Error deleting dish
         }
     };
 

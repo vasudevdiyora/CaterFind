@@ -86,6 +86,7 @@ public class CateringProfileService {
         profile.setStreetAddress(dto.getStreetAddress());
         profile.setArea(dto.getArea());
         profile.setCity(dto.getCity());
+        profile.setPincode(dto.getPincode());
         profile.setLandmark(dto.getLandmark());
         profile.setLatitude(dto.getLatitude());
         profile.setLongitude(dto.getLongitude());
@@ -100,7 +101,7 @@ public class CateringProfileService {
 
         // Sync legacy fields for backward compatibility
         profile.setPhone(dto.getPrimaryPhone());
-        String fullAddress = (dto.getStreetAddress() + ", " + dto.getArea() + ", " + dto.getCity())
+        String fullAddress = (dto.getStreetAddress() + ", " + dto.getArea() + ", " + dto.getCity() + " - " + dto.getPincode())
                 .replaceAll("null", "")
                 .replaceAll(", ,", ",")
                 .trim();
@@ -127,6 +128,7 @@ public class CateringProfileService {
         dto.setStreetAddress(entity.getStreetAddress());
         dto.setArea(entity.getArea());
         dto.setCity(entity.getCity());
+        dto.setPincode(entity.getPincode());
         dto.setLandmark(entity.getLandmark());
         dto.setLatitude(entity.getLatitude());
         dto.setLongitude(entity.getLongitude());

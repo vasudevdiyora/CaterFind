@@ -2,11 +2,13 @@ package org.caterfind.service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -15,6 +17,7 @@ import org.caterfind.entity.ClientShortlist;
 import org.caterfind.entity.User;
 import org.caterfind.repository.CateringProfileRepository;
 import org.caterfind.repository.ClientShortlistRepository;
+import org.caterfind.repository.ReviewRepository;
 import org.caterfind.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -31,6 +34,9 @@ public class ClientDiscoveryService {
 
     @Autowired
     private CateringProfileRepository cateringProfileRepository;
+
+    @Autowired
+    private ReviewRepository reviewRepository;
 
     @Transactional(readOnly = true)
     public List<Long> getShortlistedCatererIds(Long clientId) {
@@ -97,6 +103,8 @@ public class ClientDiscoveryService {
         boolean hasClientCoordinates = lat != null && lng != null;
 
         Set<Long> shortlistSet = new HashSet<>(getShortlistedCatererIds(clientId));
+        Map<Long, ReviewStats> reviewStatsByCaterer = buildReviewStatsByCaterer();
+        double globalAverageRating = computeGlobalAverageRating(reviewStatsByCaterer);
 
         List<Map<String, Object>> rows = new ArrayList<>();
 
@@ -119,6 +127,13 @@ public class ClientDiscoveryService {
             double rating = profileRating != null ? profileRating : 0.0;
             int serviceRadius = profileServiceRadius != null ? profileServiceRadius : 0;
 
+            Long catererUserId = profile.getUser().getId();
+            Long profileId = profile.getId();
+            ReviewStats reviewStats = resolveReviewStats(reviewStatsByCaterer, catererUserId, profileId);
+            long reviewCount = reviewStats != null ? reviewStats.count : 0L;
+            double averageReviewRating = reviewStats != null ? reviewStats.average : rating;
+            double reviewQualityScore = computeReviewQualityScore(averageReviewRating, reviewCount, globalAverageRating);
+
             boolean queryMatch = query.isEmpty()
                     || businessName.toLowerCase(Locale.ROOT).contains(query)
                     || profileCity.toLowerCase(Locale.ROOT).contains(query)
@@ -127,7 +142,7 @@ public class ClientDiscoveryService {
 
             boolean cityMatch = cityFilter.isEmpty() || profileCity.equalsIgnoreCase(cityFilter);
             boolean areaMatch = areaFilter.isEmpty() || profileArea.equalsIgnoreCase(areaFilter);
-            boolean ratingMatch = rating >= minRatingValue;
+            boolean ratingMatch = averageReviewRating >= minRatingValue;
             boolean radiusMatch = serviceRadius >= minRadiusValue;
 
             if (!(queryMatch && cityMatch && areaMatch && ratingMatch && radiusMatch)) {
@@ -145,7 +160,7 @@ public class ClientDiscoveryService {
                     profileCity,
                     profileArea,
                     description,
-                    rating,
+                    reviewQualityScore,
                     shortlistSet.contains(profile.getUser().getId()),
                     distanceKm);
 
@@ -158,7 +173,9 @@ public class ClientDiscoveryService {
             row.put("city", profile.getCity());
             row.put("state", profile.getState());
             row.put("serviceRadius", profile.getServiceRadius());
-            row.put("rating", profile.getRating());
+            row.put("rating", averageReviewRating);
+            row.put("reviewCount", reviewCount);
+            row.put("qualityScore", reviewQualityScore);
             row.put("imageUrl", profile.getImageUrl());
             row.put("latitude", profile.getLatitude());
             row.put("longitude", profile.getLongitude());
@@ -169,9 +186,9 @@ public class ClientDiscoveryService {
         }
 
         Comparator<Map<String, Object>> comparator = switch (sort) {
-            case "rating_high" -> Comparator.comparing(
-                item -> toDouble(item.get("rating")),
-                Comparator.reverseOrder());
+            case "rating", "rating_high" -> Comparator
+                .comparing((Map<String, Object> item) -> toDouble(item.get("qualityScore")), Comparator.reverseOrder())
+                .thenComparing(item -> toLong(item.get("reviewCount")), Comparator.reverseOrder());
             case "rating_low" -> Comparator.comparing(item -> toDouble(item.get("rating")));
             case "name_asc" -> Comparator.comparing(
                 item -> safe((String) item.get("businessName")),
@@ -188,6 +205,7 @@ public class ClientDiscoveryService {
         return rows.stream()
                 .sorted(comparator.thenComparing(item -> safe((String) item.get("businessName")), String.CASE_INSENSITIVE_ORDER))
                 .peek(item -> item.remove("relevanceScore"))
+                .peek(item -> item.remove("qualityScore"))
                 .collect(Collectors.toList());
     }
 
@@ -206,11 +224,46 @@ public class ClientDiscoveryService {
         return 0.0;
     }
 
+    private long toLong(Object value) {
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        return 0L;
+    }
+
     private double distanceSortValue(Object value) {
         if (value instanceof Number number) {
             return number.doubleValue();
         }
         return Double.MAX_VALUE;
+    }
+
+    /**
+     * Some historical data stores reviews by profile ID while newer flows use user ID.
+     * Resolve from both keys so discovery can show accurate review-driven ranking/count.
+     */
+    private ReviewStats resolveReviewStats(Map<Long, ReviewStats> statsByCaterer, Long catererUserId, Long profileId) {
+        ReviewStats byUserId = statsByCaterer.get(catererUserId);
+        ReviewStats byProfileId = statsByCaterer.get(profileId);
+
+        if (Objects.equals(catererUserId, profileId)) {
+            return byUserId;
+        }
+
+        if (byUserId == null) {
+            return byProfileId;
+        }
+        if (byProfileId == null) {
+            return byUserId;
+        }
+
+        long totalCount = byUserId.count + byProfileId.count;
+        if (totalCount <= 0L) {
+            return new ReviewStats(0.0, 0L);
+        }
+
+        double weightedAverage = ((byUserId.average * byUserId.count) + (byProfileId.average * byProfileId.count)) / totalCount;
+        return new ReviewStats(weightedAverage, totalCount);
     }
 
     private double computeRelevanceScore(
@@ -219,11 +272,11 @@ public class ClientDiscoveryService {
             String city,
             String area,
             String description,
-            double rating,
+            double reviewQualityScore,
             boolean shortlisted,
             Double distanceKm) {
 
-        double score = rating / 5.0;
+        double score = Math.max(0.0, Math.min(5.0, reviewQualityScore)) / 5.0;
 
         if (!query.isEmpty()) {
             String q = query.toLowerCase(Locale.ROOT);
@@ -241,6 +294,91 @@ public class ClientDiscoveryService {
         }
 
         return score;
+    }
+
+    private Map<Long, ReviewStats> buildReviewStatsByCaterer() {
+        Map<Long, ReviewStats> result = new HashMap<>();
+        List<Object[]> rows = reviewRepository.findVisibleAverageAndCountByCaterer();
+
+        if (rows == null) {
+            return result;
+        }
+
+        for (Object[] row : rows) {
+            if (row == null || row.length < 3) {
+                continue;
+            }
+
+            if (!(row[0] instanceof Number catererIdNum)) {
+                continue;
+            }
+
+            long catererId = catererIdNum.longValue();
+            double average = row[1] instanceof Number avgNum ? avgNum.doubleValue() : 0.0;
+            long count = row[2] instanceof Number countNum ? countNum.longValue() : 0L;
+            result.put(catererId, new ReviewStats(average, count));
+        }
+
+        return result;
+    }
+
+    private double computeGlobalAverageRating(Map<Long, ReviewStats> statsByCaterer) {
+        if (statsByCaterer == null || statsByCaterer.isEmpty()) {
+            return 3.5;
+        }
+
+        double weightedSum = 0.0;
+        long totalCount = 0L;
+
+        for (ReviewStats stats : statsByCaterer.values()) {
+            if (stats == null || stats.count <= 0) {
+                continue;
+            }
+            weightedSum += stats.average * stats.count;
+            totalCount += stats.count;
+        }
+
+        if (totalCount == 0L) {
+            return 3.5;
+        }
+
+        return weightedSum / totalCount;
+    }
+
+    private double computeReviewQualityScore(double averageRating, long reviewCount, double globalAverageRating) {
+        double R = clamp(averageRating, 0.0, 5.0);
+        double C = clamp(globalAverageRating, 0.0, 5.0);
+        double v = Math.max(0L, reviewCount);
+        double m = 8.0;
+
+        // Bayesian average reduces small-sample bias.
+        double bayesian = ((v / (v + m)) * R) + ((m / (v + m)) * C);
+
+        // Wilson lower bound on a normalized 0..1 scale, then map back to 0..5 stars.
+        double p = R / 5.0;
+        double n = Math.max(1.0, v);
+        double z = 1.96;
+        double denom = 1.0 + (z * z / n);
+        double center = p + (z * z / (2.0 * n));
+        double margin = z * Math.sqrt((p * (1.0 - p) + (z * z / (4.0 * n))) / n);
+        double wilsonLower = (center - margin) / denom;
+        double wilsonStars = clamp(wilsonLower, 0.0, 1.0) * 5.0;
+
+        return (0.7 * bayesian) + (0.3 * wilsonStars);
+    }
+
+    private double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private static class ReviewStats {
+        private final double average;
+        private final long count;
+
+        private ReviewStats(double average, long count) {
+            this.average = average;
+            this.count = count;
+        }
     }
 
     private double haversineKm(double lat1, double lng1, double lat2, double lng2) {

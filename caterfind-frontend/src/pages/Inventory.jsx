@@ -3,6 +3,7 @@ import { Pencil, Trash2, Plus, Minus, Send, Package, X } from 'lucide-react';
 import { inventoryAPI, contactAPI } from '../services/api';
 import ReorderModal from './ReorderModal';
 import Modal from '../components/Modal';
+import { useDialog } from '../components/DialogProvider';
 import '../styles/Table.css';
 import '../styles/Contacts.css'; // Re-using filter pills
 
@@ -10,6 +11,7 @@ import '../styles/Contacts.css'; // Re-using filter pills
  * Inventory Page Component (Dense Light Theme)
  */
 function Inventory({ user }) {
+    const { showConfirm } = useDialog();
     const [items, setItems] = useState([]);
     const [filteredItems, setFilteredItems] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('All');
@@ -86,13 +88,18 @@ function Inventory({ user }) {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this item?')) {
-            try {
-                await inventoryAPI.delete(id);
-                fetchItems();
-            } catch (error) {
-                // Error deleting item
-            }
+        const shouldDelete = await showConfirm('Are you sure you want to delete this item?', {
+            title: 'Delete Inventory Item',
+            confirmText: 'Delete'
+        });
+
+        if (!shouldDelete) return;
+
+        try {
+            await inventoryAPI.delete(id);
+            fetchItems();
+        } catch (error) {
+            // Error deleting item
         }
     };
 

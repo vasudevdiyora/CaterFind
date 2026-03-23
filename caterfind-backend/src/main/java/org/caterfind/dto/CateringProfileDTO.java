@@ -14,6 +14,7 @@ public class CateringProfileDTO {
     private String streetAddress;
     private String area;
     private String city;
+    private String pincode;
     private String landmark;
     private Double latitude;
     private Double longitude;
@@ -105,6 +106,14 @@ public class CateringProfileDTO {
 
     public String getLandmark() {
         return landmark;
+    }
+
+    public String getPincode() {
+        return pincode;
+    }
+
+    public void setPincode(String pincode) {
+        this.pincode = pincode;
     }
 
     public void setLandmark(String landmark) {

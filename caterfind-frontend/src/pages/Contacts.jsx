@@ -4,12 +4,14 @@ import '../styles/Contacts.css';
 import '../styles/Table.css'; // For modal and other shared styles
 import { Plus, Search, User, Phone, Mail, MessageSquare, Languages, Pencil, Trash2, X, Users } from 'lucide-react';
 import Modal from '../components/Modal';
+import { useDialog } from '../components/DialogProvider';
 
 /**
  * Contacts Page Component (Dense Light Theme)
  * Displays internal contacts (staff, suppliers, dealers) with label filters
  */
 function Contacts({ user }) {
+    const { showConfirm } = useDialog();
     const [contacts, setContacts] = useState([]);
     const [filteredContacts, setFilteredContacts] = useState([]);
     const [selectedLabel, setSelectedLabel] = useState('All');
@@ -83,13 +85,18 @@ function Contacts({ user }) {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this contact?')) {
-            try {
-                await contactAPI.delete(id);
-                fetchContacts();
-            } catch (error) {
-                // Error deleting contact
-            }
+        const shouldDelete = await showConfirm('Are you sure you want to delete this contact?', {
+            title: 'Delete Contact',
+            confirmText: 'Delete'
+        });
+
+        if (!shouldDelete) return;
+
+        try {
+            await contactAPI.delete(id);
+            fetchContacts();
+        } catch (error) {
+            // Error deleting contact
         }
     };
 

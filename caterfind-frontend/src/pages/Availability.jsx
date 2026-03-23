@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, X, AlertCircle, Trash2 } from 'lucide-react';
 import { calendarAPI, availabilityAPI } from '../services/api';
+import { useDialog } from '../components/DialogProvider';
 
 
 /**
@@ -15,6 +16,7 @@ import { calendarAPI, availabilityAPI } from '../services/api';
  * - Events older than 30 days are automatically cleaned up.
  */
 const Availability = ({ user }) => {
+    const { showConfirm } = useDialog();
     // Current date for calendar navigation
     const [currentDate, setCurrentDate] = useState(new Date());
     
@@ -312,7 +314,12 @@ const Availability = ({ user }) => {
     };
 
     const handleDeleteEvent = async (eventId) => {
-        if (!confirm('Delete this event?')) return;
+        const shouldDelete = await showConfirm('Delete this event?', {
+            title: 'Delete Event',
+            confirmText: 'Delete'
+        });
+
+        if (!shouldDelete) return;
         
         try {
             await calendarAPI.delete(eventId);

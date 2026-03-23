@@ -27,6 +27,12 @@ const AdminLayout = ({ user, children, onLogout }) => {
             icon: Users, 
             path: '/admin/clients' 
         },
+        {
+            id: 'reviews',
+            label: 'Reviews',
+            icon: User,
+            path: '/admin/reviews'
+        },
         { 
             id: 'moderation',
             label: 'Moderation', 

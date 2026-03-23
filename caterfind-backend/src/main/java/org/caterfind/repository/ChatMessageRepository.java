@@ -24,6 +24,12 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     List<ChatMessage> findByConversationIdOrderByCreatedAtAsc(Long conversationId);
 
     /**
+     * Find messages in a conversation created after the specified timestamp.
+     * Ordered by creation time (oldest first).
+     */
+    List<ChatMessage> findByConversationIdAndCreatedAtAfterOrderByCreatedAtAsc(Long conversationId, java.time.LocalDateTime createdAt);
+
+    /**
      * Count messages in a conversation.
      * 
      * @param conversationId Conversation ID

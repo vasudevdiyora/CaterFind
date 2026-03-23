@@ -42,9 +42,9 @@ public class ChatController {
         // Determine actual conversation ID
         Long actualConversationId = message.getConversationId();
         
-        // If conversationId is the same as recipientId, this is likely a temp conversation
-        // We need to get or create the real conversation
-        if (actualConversationId != null && actualConversationId.equals(message.getRecipientId())) {
+        // If conversationId is null or equals recipientId, treat as a temporary placeholder
+        // and get or create the real conversation in the DB.
+        if (actualConversationId == null || (actualConversationId != null && actualConversationId.equals(message.getRecipientId()))) {
             // Get or create conversation in database
             ChatConversation conversation = chatService.getOrCreateConversation(
                 message.getSenderId(),
@@ -73,6 +73,11 @@ public class ChatController {
         newMessage.setSenderName(chatService.getUserDisplayName(savedMessage.getSenderId()));
         newMessage.setTimestamp(savedMessage.getCreatedAt());
         newMessage.setStatus(savedMessage.getStatus());
+        // Echo back clientMessageId if the sender provided one so the client can reconcile optimistic messages
+        try {
+            newMessage.setClientMessageId(message.getClientMessageId());
+        } catch (Exception ignore) {
+        }
 
         System.out.println("Sending message to user: " + message.getRecipientId() + " with conversation: " + actualConversationId);
         
@@ -83,10 +88,22 @@ public class ChatController {
             newMessage
         );
 
+        // Also send the full message to the sender so the UI receives the persisted message
+        // (prevents optimistic UI from being overwritten without persisted data)
+        try {
+            messagingTemplate.convertAndSendToUser(
+                message.getSenderId().toString(),
+                "/queue/messages",
+                newMessage
+            );
+        } catch (Exception ex) {
+            System.err.println("Failed to send persisted message to sender: " + ex.getMessage());
+        }
         // Send confirmation back to sender
         ChatMessageDTO confirmation = new ChatMessageDTO("MESSAGE_SENT");
         confirmation.setId(savedMessage.getId());
         confirmation.setConversationId(actualConversationId);
+        confirmation.setClientMessageId(message.getClientMessageId());
         messagingTemplate.convertAndSendToUser(
             message.getSenderId().toString(),
             "/queue/messages",
@@ -100,11 +117,16 @@ public class ChatController {
      * Send conversation object to both users
      */
     private void sendConversationToBothUsers(Long conversationId, Long userId1, Long userId2, String lastMessage, LocalDateTime lastMessageTime) {
-        // Get conversation details from database
-        Map<String, Object> conv1 = chatService.getConversationDetails(conversationId, userId1);
-        Map<String, Object> conv2 = chatService.getConversationDetails(conversationId, userId2);
-        
-        if (conv1 == null || conv2 == null) return;
+        // Get conversation details from database; if missing, skip sending
+        Map<String, Object> conv1;
+        Map<String, Object> conv2;
+        try {
+            conv1 = chatService.getConversationDetails(conversationId, userId1);
+            conv2 = chatService.getConversationDetails(conversationId, userId2);
+        } catch (org.caterfind.exception.ResourceNotFoundException ex) {
+            System.out.println("Conversation not found when attempting to send to users: " + conversationId + " - " + ex.getMessage());
+            return;
+        }
         
         // Update with current message
         conv1.put("lastMessage", lastMessage);
@@ -168,12 +190,11 @@ public class ChatController {
     public void getMessageHistory(@Payload Map<String, Object> request, SimpMessageHeaderAccessor headerAccessor) {
         Long conversationId = Long.parseLong(request.get("conversationId").toString());
         Long userId = Long.parseLong(request.get("userId").toString());
-        
-        // Fetch message history from database
+        // Fetch full message history for the conversation (do not filter by 'since')
+        System.out.println("Request for message history received for conversation: " + conversationId + " by user: " + userId);
         List<ChatMessageDTO> messages = chatService.getMessageHistory(conversationId);
-        
-        System.out.println("Found " + messages.size() + " messages for conversation " + conversationId);
-        
+        System.out.println("Fetched " + (messages != null ? messages.size() : 0) + " messages for conversation " + conversationId);
+
         Map<String, Object> response = new HashMap<>();
         response.put("type", "MESSAGE_HISTORY");
         response.put("conversationId", conversationId);
@@ -197,18 +218,21 @@ public class ChatController {
         // Get or create conversation in database
         ChatConversation conversation = chatService.getOrCreateConversation(userId, recipientId);
         
-        // Get conversation details
-        Map<String, Object> conversationData = chatService.getConversationDetails(conversation.getId(), userId);
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("type", "CONVERSATION_STARTED");
-        response.put("conversation", conversationData);
+        // Get conversation details and send to user; if missing, log and skip
+        try {
+            Map<String, Object> conversationData = chatService.getConversationDetails(conversation.getId(), userId);
+            Map<String, Object> response = new HashMap<>();
+            response.put("type", "CONVERSATION_STARTED");
+            response.put("conversation", conversationData);
 
-        messagingTemplate.convertAndSendToUser(
-            userId.toString(),
-            "/queue/messages",
-            response
-        );
+            messagingTemplate.convertAndSendToUser(
+                userId.toString(),
+                "/queue/messages",
+                response
+            );
+        } catch (org.caterfind.exception.ResourceNotFoundException ex) {
+            System.out.println("Conversation created but details missing: " + conversation.getId() + " - " + ex.getMessage());
+        }
     }
 
     /**

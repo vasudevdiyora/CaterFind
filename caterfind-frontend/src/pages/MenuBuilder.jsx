@@ -31,6 +31,19 @@ function MenuBuilder({ user }) {
         clientEmail: ''
     });
 
+    // Standardized event types for dropdowns
+    const eventTypes = [
+        'Wedding',
+        'Birthday Party',
+        'Corporate Event',
+        'Anniversary',
+        'Engagement',
+        'Reception',
+        'Baby Shower',
+        'Religious Ceremony',
+        'Other'
+    ];
+
     const [formErrors, setFormErrors] = useState({});
 
     // Menu dishes (Step 2)
@@ -655,7 +668,12 @@ function MenuBuilder({ user }) {
                 </div>
                 <div className="form-group">
                     <label htmlFor="eventType">Event Type</label>
-                    <input id="eventType" name="eventType" type="text" className={`form-input ${formErrors.eventType ? 'error' : ''}`} value={clientDetails.eventType} onChange={handleInputChange} placeholder="e.g., Wedding, Birthday Party" />
+                    <select id="eventType" name="eventType" className={`form-select ${formErrors.eventType ? 'error' : ''}`} value={clientDetails.eventType} onChange={handleInputChange}>
+                        <option value="">Select event type</option>
+                        {eventTypes.map((t) => (
+                            <option key={t} value={t}>{t}</option>
+                        ))}
+                    </select>
                     {formErrors.eventType && <p className="form-error-text">{formErrors.eventType}</p>}
                 </div>
                 <div className="form-group">

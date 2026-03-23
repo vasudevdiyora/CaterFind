@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Availability Status Controller
@@ -32,11 +33,11 @@ public class AvailabilityStatusController {
     public ResponseEntity<?> setStatus(@RequestParam Long userId, @RequestBody AvailabilityStatusDTO dto) {
         try {
             dto.setUserId(userId);
-            AvailabilityStatusDTO result = service.setStatus(userId, dto);
-            if (result == null) {
+            Optional<AvailabilityStatusDTO> result = service.setStatus(userId, dto);
+            if (result.isEmpty()) {
                 return ResponseEntity.noContent().build();
             }
-            return ResponseEntity.status(HttpStatus.CREATED).body(result);
+            return ResponseEntity.status(HttpStatus.CREATED).body(result.get());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {

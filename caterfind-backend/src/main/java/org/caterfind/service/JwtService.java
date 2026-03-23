@@ -45,18 +45,32 @@ public class JwtService {
     }
 
     public String extractUsername(String token) {
-        return extractAllClaims(token).getSubject();
+        try {
+            return extractAllClaims(token).getSubject();
+        } catch (RuntimeException ex) {
+            throw new org.caterfind.exception.InvalidTokenException("Invalid JWT token: " + ex.getMessage(), ex);
+        }
     }
 
     public Long extractUserId(String token) {
-        Object value = extractAllClaims(token).get("userId");
+        Claims claims = null;
+        try {
+            claims = extractAllClaims(token);
+        } catch (RuntimeException ex) {
+            throw new org.caterfind.exception.InvalidTokenException("Invalid JWT token: " + ex.getMessage(), ex);
+        }
+
+        Object value = claims.get("userId");
+        if (value == null) {
+            throw new org.caterfind.exception.InvalidTokenException("JWT token missing userId claim");
+        }
         if (value instanceof Integer) {
             return ((Integer) value).longValue();
         }
         if (value instanceof Long) {
             return (Long) value;
         }
-        return null;
+        throw new org.caterfind.exception.InvalidTokenException("JWT claim 'userId' has unsupported type: " + value.getClass().getName());
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
@@ -73,11 +87,15 @@ public class JwtService {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (RuntimeException ex) {
+            throw new org.caterfind.exception.InvalidTokenException("Failed to parse JWT token: " + ex.getMessage(), ex);
+        }
     }
 
     private Key getSigningKey() {

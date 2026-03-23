@@ -46,6 +46,9 @@ public class AdminService {
     private ModerationReportRepository moderationReportRepository;
 
     @Autowired
+    private org.caterfind.service.ReviewService reviewService;
+
+    @Autowired
     private PlatformSettingRepository platformSettingRepository;
 
     private static final Set<String> BOOLEAN_SETTING_KEYS = Set.of(
@@ -267,6 +270,13 @@ public class AdminService {
         }
 
         ModerationReport saved = moderationReportRepository.save(report);
+
+        // If admin removed content and report points to a review id, hide the review automatically
+        if (report.getStatus() == ReportStatus.REMOVED && report.getContentId() != null && "review".equalsIgnoreCase(report.getContentType())) {
+            try {
+                reviewService.setVisibility(report.getContentId(), false);
+            } catch (Exception ignored) {}
+        }
         return mapModerationReport(saved);
     }
 
@@ -393,6 +403,8 @@ public class AdminService {
         row.put("reason", report.getReason());
         row.put("status", report.getStatus().name().toLowerCase(Locale.ROOT));
         row.put("timestamp", report.getCreatedAt());
+        row.put("contentId", report.getContentId());
+        row.put("contentType", report.getContentType());
         return row;
     }
 

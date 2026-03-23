@@ -146,7 +146,7 @@ public class MeetingRequestService {
      * Only the caterer can accept their received requests.
      */
     @Transactional
-    public MeetingRequestResponse acceptRequest(Long requestId, Long catererId) {
+    public MeetingRequestResponse acceptRequest(Long requestId, Long catererId, org.caterfind.dto.MeetingAcceptanceDTO acceptance) {
         MeetingRequest request = requestRepository.findById(requestId)
             .orElseThrow(() -> new RuntimeException("Meeting request not found"));
 
@@ -160,12 +160,37 @@ public class MeetingRequestService {
             throw new RuntimeException("Request has already been responded to");
         }
 
+        // Apply optional meeting details provided by the caterer
+        if (acceptance != null) {
+            try {
+                if (acceptance.getMeetingDate() != null && !acceptance.getMeetingDate().isBlank()) {
+                    request.setMeetingDate(java.time.LocalDate.parse(acceptance.getMeetingDate()));
+                }
+            } catch (Exception ignored) {}
+
+            try {
+                if (acceptance.getMeetingTime() != null && !acceptance.getMeetingTime().isBlank()) {
+                    request.setMeetingTime(java.time.LocalTime.parse(acceptance.getMeetingTime()));
+                }
+            } catch (Exception ignored) {}
+
+            if (acceptance.getMeetingPlace() != null && !acceptance.getMeetingPlace().isBlank()) {
+                request.setMeetingPlace(acceptance.getMeetingPlace());
+            }
+        }
+
         request.setStatus(RequestStatus.ACCEPTED);
         request.setRespondedAt(LocalDateTime.now());
-        
+
         request = requestRepository.save(request);
 
-        meetingRequestNotificationService.notifyRequestAccepted(request);
+        // If the acceptance DTO supplied coordinates, pass them to notification (best-effort; not persisted)
+        Double[] coords = null;
+        if (acceptance != null && acceptance.getMeetingLatitude() != null && acceptance.getMeetingLongitude() != null) {
+            coords = new Double[] { acceptance.getMeetingLatitude(), acceptance.getMeetingLongitude() };
+        }
+
+        meetingRequestNotificationService.notifyRequestAccepted(request, coords);
 
         return new MeetingRequestResponse(request);
     }

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, MapPin, Users, MessageCircle, Check, X, Clock, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { meetingRequestAPI } from '../services/api';
+import { meetingRequestAPI, profileAPI } from '../services/api';
+import MeetingAcceptModal from '../components/MeetingAcceptModal';
 
 /**
  * Client Requests Page - Caterer Side
@@ -13,6 +14,9 @@ const ClientRequests = ({ user }) => {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all'); // all, pending, accepted, rejected
     const [error, setError] = useState('');
+    const [acceptModalOpen, setAcceptModalOpen] = useState(false);
+    const [selectedRequest, setSelectedRequest] = useState(null);
+    const [businessProfile, setBusinessProfile] = useState(null);
 
     useEffect(() => {
         if (user?.userId) {
@@ -50,14 +54,51 @@ const ClientRequests = ({ user }) => {
         }
     };
 
-    const handleAccept = async (requestId) => {
+    const handleAccept = async (request) => {
+        // Open modal to collect date/time/place before accepting
+        setSelectedRequest(request);
+        setAcceptModalOpen(true);
+
+        // Preload business profile for default place
         try {
-            await meetingRequestAPI.accept(requestId);
-            
+            const profile = await profileAPI.get(user?.userId || user?.id);
+            setBusinessProfile(profile || null);
+        } catch (err) {
+            console.warn('Could not load business profile for default address', err);
+            setBusinessProfile(null);
+        }
+    };
+
+    const confirmAccept = async (requestId, payload) => {
+        try {
+            // If meetingPlace not provided, default to business address if available
+            if (!payload.meetingPlace) {
+                const addrParts = [];
+                if (businessProfile) {
+                    if (businessProfile.streetAddress) addrParts.push(businessProfile.streetAddress);
+                    if (businessProfile.area) addrParts.push(businessProfile.area);
+                    if (businessProfile.city) addrParts.push(businessProfile.city);
+                    if (businessProfile.landmark) addrParts.push(businessProfile.landmark);
+                }
+                const defaultAddr = addrParts.filter(Boolean).join(', ');
+                if (defaultAddr) payload.meetingPlace = defaultAddr;
+                // If profile has coordinates, include them so backend can produce a coordinate-based maps link
+                if ((!payload.meetingLatitude || !payload.meetingLongitude) && businessProfile && businessProfile.latitude && businessProfile.longitude) {
+                    const lat = Number(businessProfile.latitude);
+                    const lon = Number(businessProfile.longitude);
+                    if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+                        payload.meetingLatitude = lat;
+                        payload.meetingLongitude = lon;
+                    }
+                }
+            }
+
+            await meetingRequestAPI.accept(requestId, payload);
+
             // Optimistic update
             setRequests(prev =>
                 prev.map(req =>
-                    req.id === requestId ? { ...req, status: 'ACCEPTED' } : req
+                    req.id === requestId ? { ...req, status: 'ACCEPTED', meetingDate: payload.meetingDate, meetingTime: payload.meetingTime, meetingPlace: payload.meetingPlace, meetingLatitude: payload.meetingLatitude, meetingLongitude: payload.meetingLongitude } : req
                 )
             );
         } catch (error) {
@@ -194,6 +235,15 @@ const ClientRequests = ({ user }) => {
                             Rejected: {rejectedCount}
                         </div>
                     </div>
+                    <div className="flex items-center gap-2 ml-4">
+                        <button
+                            onClick={() => navigate('/owner/messages')}
+                            className="py-2 px-3 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-semibold flex items-center gap-2"
+                        >
+                            <MessageCircle size={16} />
+                            Client Messages
+                        </button>
+                    </div>
                 </div>
 
                 <div className="mt-4 flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm w-fit">
@@ -311,7 +361,7 @@ const ClientRequests = ({ user }) => {
                                         {(request.status?.toUpperCase() === 'PENDING') && (
                                             <>
                                                 <button
-                                                    onClick={() => handleAccept(request.id)}
+                                                    onClick={() => handleAccept(request)}
                                                     className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
                                                 >
                                                     <Check size={16} />
@@ -341,6 +391,14 @@ const ClientRequests = ({ user }) => {
                     })}
                 </div>
             )}
+            <MeetingAcceptModal
+                isOpen={acceptModalOpen}
+                onClose={() => { setAcceptModalOpen(false); setSelectedRequest(null); }}
+                request={selectedRequest}
+                defaultPlace={businessProfile ? `${businessProfile.streetAddress || ''}${businessProfile.area ? ', ' + businessProfile.area : ''}${businessProfile.city ? ', ' + businessProfile.city : ''}` : ''}
+                businessProfile={businessProfile}
+                onConfirm={async (id, payload) => { await confirmAccept(id, payload); }}
+            />
         </div>
     );
 };

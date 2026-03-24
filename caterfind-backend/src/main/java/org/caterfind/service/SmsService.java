@@ -18,6 +18,9 @@ import com.twilio.type.PhoneNumber;
 @Service
 public class SmsService {
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private SettingsService settingsService;
+
     @Value("${twilio.phoneNumber}")
     private String fromNumber;
 
@@ -30,12 +33,16 @@ public class SmsService {
      * @return true if sent successfully, false otherwise
      */
     public boolean sendSms(String toPhone, String message) {
+        if (!settingsService.isEnabled("smsEnabled")) {
+            return false;
+        }
+
         try {
             // Ensure phone number has country code
             String formattedPhone = toPhone.startsWith("+") ? toPhone : "+91" + toPhone;
 
             // Send SMS via Twilio
-            Message twilioMessage = Message.creator(
+                Message.creator(
                     new PhoneNumber(formattedPhone),
                     new PhoneNumber(fromNumber),
                     message).create();
@@ -44,7 +51,6 @@ public class SmsService {
 
         } catch (Exception e) {
             System.err.println("❌ Failed to send SMS: " + e.getMessage());
-            e.printStackTrace();
             return false;
         }
     }

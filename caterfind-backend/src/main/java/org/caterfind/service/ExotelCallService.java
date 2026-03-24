@@ -16,6 +16,9 @@ import org.springframework.stereotype.Service;
 @ConditionalOnProperty(name = "app.calling.provider", havingValue = "exotel")
 public class ExotelCallService implements VoiceCallService {
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private SettingsService settingsService;
+
     @Value("${exotel.sid}")
     private String sid;
 
@@ -44,6 +47,10 @@ public class ExotelCallService implements VoiceCallService {
 
     @Override
     public void makeCall(String to, String message) throws Exception {
+        if (!settingsService.isEnabled("callEnabled")) {
+            return;
+        }
+
         // Exotel API Endpoint
         String hostname = subdomain;
         if (!hostname.contains(".")) {

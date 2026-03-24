@@ -1,6 +1,7 @@
 package org.caterfind.service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.caterfind.dto.MessageDTO;
@@ -52,6 +53,9 @@ public class MessageService {
     @Autowired
     private TranslationService translationService;
 
+    @Autowired
+    private SettingsService settingsService;
+
     /**
      * Send broadcast message to multiple contacts.
      * 
@@ -70,6 +74,10 @@ public class MessageService {
 
         // Iterate through each contact ID
         for (Long contactId : request.getContactIds()) {
+            if (contactId == null) {
+                continue;
+            }
+
             Contact contact = contactRepository.findById(contactId).orElse(null);
             if (contact == null) {
                 continue;
@@ -103,62 +111,11 @@ public class MessageService {
             // System.out.println("   Translated Message: " + translatedMessage);
             // System.out.println("   Contact Method: " + contact.getPreferredContactMethod());
 
-            // ========================================
-            // ✅ ACTUAL SENDING ENABLED
-            // ========================================
-            boolean sent = false;
-            Message.ContactMethod method = contact.getPreferredContactMethod() != null 
-                ? Message.ContactMethod.valueOf(contact.getPreferredContactMethod().name())
-                : Message.ContactMethod.SMS;
-            
-            // Send via preferred contact method with fallback
-            try {
-                if (contact.getPreferredContactMethod() == Contact.ContactMethod.EMAIL) {
-                    sent = emailService.sendEmail(
-                            contact.getEmail(),
-                            "Message from Caterer",
-                            translatedMessage);
-                    method = Message.ContactMethod.EMAIL;
-                } else if (contact.getPreferredContactMethod() == Contact.ContactMethod.SMS) {
-                    sent = smsService.sendSms(
-                            contact.getPhone(),
-                            translatedMessage);
-                    method = Message.ContactMethod.SMS;
-                } else if (contact.getPreferredContactMethod() == Contact.ContactMethod.CALL) {
-                    try {
-                        callService.makeCall(
-                                contact.getPhone(),
-                                translatedMessage);
-                        sent = true;
-                        method = Message.ContactMethod.CALL;
-                    } catch (Exception callException) {
-                        // CALL failed, fallback to SMS
-                            System.err.println("⚠️ CALL failed for " + contact.getName() + ", falling back to SMS: " + callException.getMessage());
-                        try {
-                            sent = smsService.sendSms(
-                                    contact.getPhone(),
-                                    translatedMessage);
-                            method = Message.ContactMethod.SMS;
-                            // System.out.println("✅ Fallback SMS sent successfully to " + contact.getName());
-                        } catch (Exception smsException) {
-                            // SMS also failed, try EMAIL as last resort
-                                System.err.println("⚠️ SMS also failed, trying EMAIL as last resort");
-                            if (contact.getEmail() != null && !contact.getEmail().isEmpty()) {
-                                sent = emailService.sendEmail(
-                                        contact.getEmail(),
-                                        "Message from Caterer",
-                                        translatedMessage);
-                                method = Message.ContactMethod.EMAIL;
-                                // System.out.println("✅ Fallback EMAIL sent successfully to " + contact.getName());
-                            }
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                System.err.println(
-                        "❌ Failed to send message via " + contact.getPreferredContactMethod() + ": " + e.getMessage());
-                sent = false;
-            }
+            Message.ContactMethod method = sendUsingPreferenceWithEmailFallback(
+                    contact,
+                    "Message from Caterer",
+                    translatedMessage);
+            boolean sent = method != null;
 
             // Log message in database (store translated version)
             if (sent) {
@@ -222,53 +179,40 @@ public class MessageService {
         Message.ContactMethod method = Message.ContactMethod.SMS; // Default to SMS
 
         // 1. Determine method and recipient details
-        String recipientEmail = null;
         String recipientPhone = dealerPhone;
 
         // If linked contact, check preference
         if (contactId != null) {
             Contact contact = contactRepository.findById(contactId).orElse(null);
             if (contact != null) {
-                // Use contact's preference
-                if (contact.getPreferredContactMethod() == Contact.ContactMethod.EMAIL) {
-                    method = Message.ContactMethod.EMAIL;
-                    recipientEmail = contact.getEmail();
-                } else if (contact.getPreferredContactMethod() == Contact.ContactMethod.CALL) {
-                    method = Message.ContactMethod.CALL;
-                    recipientPhone = contact.getPhone();
-                } else {
-                    method = Message.ContactMethod.SMS;
-                    recipientPhone = contact.getPhone();
+                Message.ContactMethod resolvedMethod = sendUsingPreferenceWithEmailFallback(
+                        contact,
+                        "Reorder Request: " + dealerName,
+                        messageText);
+                if (resolvedMethod == null) {
+                    return false;
                 }
+                sent = true;
+                method = resolvedMethod;
+                recipientPhone = contact.getPhone();
             }
         }
 
         // 2. Send Message
-        try {
-            if (method == Message.ContactMethod.EMAIL) {
-                if (recipientEmail != null && !recipientEmail.isEmpty()) {
-                    sent = emailService.sendEmail(recipientEmail, "Reorder Request: " + dealerName, messageText);
-                } else {
+        if (contactId == null) {
+            try {
+                if (!settingsService.isEnabled("smsEnabled")) {
                     return false;
                 }
-            } else if (method == Message.ContactMethod.CALL) {
-                if (recipientPhone != null && !recipientPhone.isEmpty()) {
-                    callService.makeCall(recipientPhone, messageText);
-                    sent = true;
-                } else {
-                    return false;
-                }
-            } else {
-                // SMS
                 if (recipientPhone != null && !recipientPhone.isEmpty()) {
                     sent = smsService.sendSms(recipientPhone, messageText);
                 } else {
                     return false;
                 }
+            } catch (Exception e) {
+                System.err.println("❌ Failed to send reorder message: " + e.getMessage());
+                return false;
             }
-        } catch (Exception e) {
-            System.err.println("❌ Failed to send reorder message: " + e.getMessage());
-            return false;
         }
 
         // 3. Log message
@@ -312,7 +256,8 @@ public class MessageService {
                     String contactName = "Unknown";
 
                     if (message.getContactId() != null) {
-                        contactName = contactRepository.findById(message.getContactId())
+                        Long messageContactId = message.getContactId();
+                        contactName = contactRepository.findById(Objects.requireNonNull(messageContactId))
                                 .map(Contact::getName)
                                 .orElse(message.getRecipientName() != null ? message.getRecipientName()
                                         : "Unknown Contact");
@@ -329,5 +274,57 @@ public class MessageService {
                             message.getStatus().name());
                 })
                 .collect(Collectors.toList());
+    }
+
+    private Message.ContactMethod sendUsingPreferenceWithEmailFallback(
+            Contact contact,
+            String subject,
+            String messageText) {
+        Contact.ContactMethod preferredMethod = contact.getPreferredContactMethod() != null
+                ? contact.getPreferredContactMethod()
+                : Contact.ContactMethod.EMAIL;
+
+        try {
+            if (preferredMethod == Contact.ContactMethod.SMS
+                    && settingsService.isEnabled("smsEnabled")
+                    && hasValue(contact.getPhone())
+                    && smsService.sendSms(contact.getPhone(), messageText)) {
+                return Message.ContactMethod.SMS;
+            }
+
+            if (preferredMethod == Contact.ContactMethod.CALL
+                    && settingsService.isEnabled("callEnabled")
+                    && hasValue(contact.getPhone())) {
+                callService.makeCall(contact.getPhone(), messageText);
+                return Message.ContactMethod.CALL;
+            }
+
+            if (preferredMethod == Contact.ContactMethod.EMAIL
+                    && hasValue(contact.getEmail())
+                    && emailService.sendEmail(contact.getEmail(), subject, messageText)) {
+                return Message.ContactMethod.EMAIL;
+            }
+
+            if (hasValue(contact.getEmail())
+                    && emailService.sendEmail(contact.getEmail(), subject, messageText)) {
+                return Message.ContactMethod.EMAIL;
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Failed to send message to " + contact.getName() + ": " + e.getMessage());
+            try {
+                if (hasValue(contact.getEmail())
+                        && emailService.sendEmail(contact.getEmail(), subject, messageText)) {
+                    return Message.ContactMethod.EMAIL;
+                }
+            } catch (Exception ignored) {
+                // Email fallback also failed; continue gracefully.
+            }
+        }
+
+        return null;
+    }
+
+    private boolean hasValue(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 }

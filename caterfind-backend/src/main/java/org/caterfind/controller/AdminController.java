@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.caterfind.service.AdminService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -22,6 +24,8 @@ public class AdminController {
 
     @Autowired
     private AdminService adminService;
+
+    private static final Logger log = LoggerFactory.getLogger(AdminController.class);
 
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboardData() {
@@ -93,8 +97,10 @@ public class AdminController {
     @PutMapping("/settings")
     public ResponseEntity<?> saveSettings(@RequestBody Map<String, Object> payload) {
         try {
+            log.info("Admin saveSettings called with payload: {}", payload);
             return ResponseEntity.ok(adminService.saveSettings(payload));
         } catch (Exception e) {
+            log.error("Failed to save admin settings", e);
             return ResponseEntity.badRequest().body(error(e.getMessage()));
         }
     }

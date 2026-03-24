@@ -14,6 +14,9 @@ import com.twilio.type.PhoneNumber;
 @ConditionalOnProperty(name = "app.calling.provider", havingValue = "twilio", matchIfMissing = true)
 public class TwilioCallService implements VoiceCallService {
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private SettingsService settingsService;
+
     @Value("${twilio.phoneNumber}")
     private String from;
 
@@ -22,6 +25,10 @@ public class TwilioCallService implements VoiceCallService {
 
     @Override
     public void makeCall(String to, String message) throws Exception {
+        if (!settingsService.isEnabled("callEnabled")) {
+            return;
+        }
+
         URI uri = new URI(
                 callbackUrl + "/twiml?msg=" +
                         URLEncoder.encode(message, "UTF-8"));

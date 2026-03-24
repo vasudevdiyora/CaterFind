@@ -51,9 +51,14 @@ public class AdminService {
     @Autowired
     private PlatformSettingRepository platformSettingRepository;
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AdminService.class);
+
     private static final Set<String> BOOLEAN_SETTING_KEYS = Set.of(
             "emailNotifications",
             "smsNotifications",
+            "translationEnabled",
+            "smsEnabled",
+            "callEnabled",
             "newUserNotification",
             "trialBookingNotification",
             "reportNotification",
@@ -71,6 +76,9 @@ public class AdminService {
     private static final Set<String> ALLOWED_SETTING_KEYS = Set.of(
             "emailNotifications",
             "smsNotifications",
+            "translationEnabled",
+            "smsEnabled",
+            "callEnabled",
             "newUserNotification",
             "trialBookingNotification",
             "reportNotification",
@@ -321,7 +329,8 @@ public class AdminService {
                     .orElseGet(PlatformSetting::new);
             setting.setSettingKey(key);
             setting.setSettingValue(String.valueOf(normalizedValue));
-            platformSettingRepository.save(setting);
+            PlatformSetting saved = platformSettingRepository.save(setting);
+            log.info("Saved platform setting {} = {} (id={})", key, setting.getSettingValue(), saved.getId());
         }
 
         return merged;
@@ -530,6 +539,9 @@ public class AdminService {
 
         defaults.put("emailNotifications", true);
         defaults.put("smsNotifications", false);
+        defaults.put("translationEnabled", false);
+        defaults.put("smsEnabled", false);
+        defaults.put("callEnabled", false);
         defaults.put("newUserNotification", true);
         defaults.put("trialBookingNotification", true);
         defaults.put("reportNotification", true);

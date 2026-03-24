@@ -129,12 +129,12 @@ const ClientMessages = ({ user }) => {
     };
 
     return (
-        <div className="page-shell p-0">
+        <div className="page-shell">
             <div className="messages-container">
                 {/* Conversations List */}
                 <div className={`conversations-sidebar ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
                     <div className="p-4 border-b border-slate-200">
-                        <h1 className="text-xl font-bold text-slate-800 mb-4">Messages</h1>
+                        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-4">Messages</h1>
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                             <input

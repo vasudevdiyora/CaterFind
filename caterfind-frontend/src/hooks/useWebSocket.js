@@ -15,16 +15,18 @@ const useWebSocket = (userId, userRole) => {
     const [conversations, setConversations] = useState([]);
     const stompClient = useRef(null);
     const reconnectTimeout = useRef(null);
+    // Cache of messageIds we've already acked (DELIVERED or READ) to avoid duplicates
+    const ackedMessageIds = useRef(new Set());
 
     const handleIncomingMessage = (data) => {
-        console.log('[WS DEBUG] handleIncomingMessage', data);
+        
         switch (data.type) {
             case 'NEW_MESSAGE':
                 handleNewMessage(data);
                 break;
             case 'CONVERSATIONS_LIST':
                 const convs = data.conversations || [];
-                console.log('[WS DEBUG] CONVERSATIONS_LIST received, count=', convs.length);
+                
                 // Only update conversation list here. History should be loaded lazily
                 // when the user clicks a conversation to avoid race conditions.
                 setConversations(convs);
@@ -125,37 +127,59 @@ const useWebSocket = (userId, userRole) => {
                             [convId]: deduped
                         };
                     });
+                    // Do not auto-send DELIVERED for history; delivery should be triggered
+                    // when the client actually receives messages in real-time or when the
+                    // user views the conversation. Sending here caused premature status updates.
                 } catch (err) {
                     console.error('Error applying MESSAGE_HISTORY payload:', err);
                 }
                 break;
+            case 'MESSAGE_STATUS_UPDATE':
+                try {
+                    const mId = data.id;
+                    const convId = data.conversationId;
+                    if (!mId || !convId) break;
+                    setMessages(prev => {
+                        const arr = Array.isArray(prev[convId]) ? [...prev[convId]] : [];
+                        const idx = arr.findIndex(x => x && x.id === mId);
+                        if (idx !== -1) {
+                            arr[idx] = { ...arr[idx], status: data.status || arr[idx].status, deliveredAt: data.deliveredAt || arr[idx].deliveredAt, readAt: data.readAt || arr[idx].readAt };
+                        }
+                        return { ...prev, [convId]: arr };
+                    });
+                } catch (err) {
+                    console.error('Error updating message status', err);
+                }
+                break;
             case 'MESSAGE_SENT':
-                console.log('Message sent confirmation');
+                
                 break;
             case 'CONVERSATION_STARTED':
                 if (data.conversation) {
+                    
                     setConversations(prev => {
-                        // Check if conversation already exists
-                        const exists = prev.some(conv => 
-                            conv.id === data.conversation.id || 
-                            conv.participantId === data.conversation.participantId
-                        );
-                        if (exists) {
-                            return prev; // Don't add duplicate
+                        // If conversation exists, replace it with the updated object
+                        const idx = prev.findIndex(conv => conv.id === data.conversation.id || conv.participantId === data.conversation.participantId);
+                        if (idx !== -1) {
+                            const copy = [...prev];
+                            copy[idx] = { ...copy[idx], ...data.conversation };
+                            
+                            return copy;
                         }
+                        
                         return [...prev, data.conversation];
                     });
                 }
                 break;
             default:
-                console.log('Unknown message type:', data.type);
+                
         }
     };
 
     const connect = useCallback(() => {
         // Prevent creating multiple concurrent clients
         if (stompClient.current && stompClient.current.connected) {
-            console.log('STOMP client already connected - skipping connect');
+            
             return;
         }
         try {
@@ -167,7 +191,7 @@ const useWebSocket = (userId, userRole) => {
                     role: userRole
                 },
                 debug: (str) => {
-                    console.log('STOMP:', str);
+                    
                 },
                 reconnectDelay: 3000,
                 heartbeatIncoming: 4000,
@@ -175,7 +199,7 @@ const useWebSocket = (userId, userRole) => {
             });
 
             client.onConnect = () => {
-                console.log('STOMP Connected');
+                
                 // If a pending deactivate timeout exists (from a recent unmount), cancel it
                 if (reconnectTimeout.current) {
                     clearTimeout(reconnectTimeout.current);
@@ -186,9 +210,9 @@ const useWebSocket = (userId, userRole) => {
                 // Subscribe to user-specific messages
                     client.subscribe(`/user/queue/messages`, (message) => {
                         try {
-                            console.log('[WS DEBUG] raw /user/queue/messages payload:', message.body);
+                            
                             const data = JSON.parse(message.body);
-                            console.log('[WS DEBUG] parsed /user/queue/messages:', data);
+                            
                             handleIncomingMessage(data);
                         } catch (error) {
                             console.error('Error parsing message:', error);
@@ -200,7 +224,7 @@ const useWebSocket = (userId, userRole) => {
                     try {
                         const data = JSON.parse(message.body);
                         // Simple notification handling: expose the notification for UI and log
-                        console.log('Notification received:', data);
+                        
                         setLastNotification(data);
                     } catch (error) {
                         console.error('Error parsing notification:', error);
@@ -212,7 +236,7 @@ const useWebSocket = (userId, userRole) => {
                     destination: '/app/chat.conversations',
                     body: JSON.stringify({ userId: userId })
                 });
-                console.log('[WS DEBUG] published /app/chat.conversations for userId=', userId);
+                
             };
 
             client.onStompError = (frame) => {
@@ -310,14 +334,68 @@ const useWebSocket = (userId, userRole) => {
             };
         });
         
-        // Update conversation list with new message
-        setConversations(prev => 
-            prev.map(conv => 
-                conv.id === conversationId 
-                    ? { ...conv, lastMessage: incoming.content || incoming.text, lastMessageTime: incoming.timestamp }
-                    : conv
-            )
-        );
+        // Update conversation list with new message: update preview, unread count and move to front
+        setConversations(prev => {
+            const existing = Array.isArray(prev) ? [...prev] : [];
+
+            let found = false;
+            const updated = existing.map(conv => {
+                if (conv.id === conversationId) {
+                    found = true;
+                    // If the incoming message is from another user, increment unread
+                    const isFromOther = incoming.senderId !== userId;
+                    const prevUnread = conv.unreadCount || 0;
+                    return {
+                        ...conv,
+                        lastMessage: incoming.content || incoming.text,
+                        lastMessageTime: incoming.timestamp,
+                        lastMessageSenderId: incoming.senderId || conv.lastMessageSenderId,
+                        unreadCount: isFromOther ? prevUnread + 1 : prevUnread
+                    };
+                }
+                return conv;
+            });
+
+            // If conversation wasn't present, create a lightweight entry at the front
+            if (!found) {
+                const newConv = {
+                    id: conversationId,
+                    participantId: incoming.senderId === userId ? incoming.recipientId : incoming.senderId,
+                    participantName: incoming.senderName || 'User',
+                    lastMessage: incoming.content || incoming.text,
+                    lastMessageTime: incoming.timestamp,
+                    lastMessageSenderId: incoming.senderId,
+                    unreadCount: incoming.senderId !== userId ? 1 : 0
+                };
+                return [newConv, ...updated];
+            }
+
+            // Move the updated conversation to the front so newest appears first
+            const moved = [];
+            let movedConv = null;
+            updated.forEach(conv => {
+                if (conv.id === conversationId) movedConv = conv;
+                else moved.push(conv);
+            });
+            if (movedConv) return [movedConv, ...moved];
+            return updated;
+        });
+
+        // Acknowledge delivery back to server (so sender can see double tick)
+        try {
+            if (incoming.id != null && incoming.senderId !== userId && stompClient.current && stompClient.current.connected) {
+                if (!ackedMessageIds.current.has(incoming.id)) {
+                    const ack = { type: 'DELIVERED', messageId: incoming.id, conversationId: incoming.conversationId, userId };
+                    stompClient.current.publish({ destination: '/app/chat.ack', body: JSON.stringify(ack) });
+                    ackedMessageIds.current.add(incoming.id);
+                    console.log('[WS DEBUG] sent DELIVERED ack for message', incoming.id);
+                } else {
+                    // already acked
+                }
+            }
+        } catch (err) {
+            console.error('Failed to send DELIVERED ack', err);
+        }
     };
 
     const sendMessage = useCallback((conversationId, recipientId, text) => {
@@ -367,10 +445,42 @@ const useWebSocket = (userId, userRole) => {
                 destination: '/app/chat.history',
                 body: JSON.stringify(body)
             });
+            // After requesting history, also request server to mark messages as delivered when history arrives
         } else {
             console.warn('Cannot request history, STOMP client not connected');
         }
     }, [userId]);
+
+    /**
+     * Mark all messages in a conversation as READ (send read ack for each message id)
+     */
+    const markConversationRead = useCallback((conversationId) => {
+        try {
+            const convMsgs = stompClient.current && messages ? (messages[conversationId] || []) : [];
+            if (!convMsgs || convMsgs.length === 0) return;
+            const toRead = convMsgs.filter(m => m && m.senderId !== userId && m.status !== 'read');
+            toRead.forEach(m => {
+                try {
+                    if (m.id != null && stompClient.current && stompClient.current.connected && !ackedMessageIds.current.has(m.id)) {
+                        const ack = { type: 'READ', messageId: m.id, conversationId, userId };
+                        stompClient.current.publish({ destination: '/app/chat.ack', body: JSON.stringify(ack) });
+                        ackedMessageIds.current.add(m.id);
+                        console.log('[WS DEBUG] sent READ ack for message', m.id);
+                    }
+                } catch (e) {
+                    console.error('Failed to send READ ack for', m.id, e);
+                }
+            });
+            // Clear unread count locally immediately so UI updates without refresh
+            try {
+                setConversations(prev => (Array.isArray(prev) ? prev.map(conv => conv.id === conversationId ? { ...conv, unreadCount: 0 } : conv) : prev));
+            } catch (e) {
+                console.error('Failed to clear unread count locally', e);
+            }
+        } catch (err) {
+            console.error('markConversationRead error', err);
+        }
+    }, [messages, userId]);
 
     const startConversation = useCallback((recipientId, recipientName, recipientRole) => {
         if (stompClient.current && stompClient.current.connected) {
@@ -408,7 +518,8 @@ const useWebSocket = (userId, userRole) => {
         lastNotification,
         sendMessage,
         loadMessageHistory,
-        startConversation
+        startConversation,
+        markConversationRead
     };
 };
 

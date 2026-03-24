@@ -75,7 +75,7 @@ const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId }) => {
     if (!isOpen) return null;
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={<div><h2 className="text-2xl font-bold text-foreground">Fix Meeting</h2><p className="text-sm text-muted-foreground mt-1">Send a request to {catererName}</p></div>} className="max-w-2xl">
+        <Modal isOpen={isOpen} onClose={onClose} title={<div><h2 className="text-2xl font-bold text-foreground">Request Meeting</h2><p className="text-sm text-muted-foreground mt-1">Send a request to {catererName}</p></div>} className="max-w-2xl">
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
                     {/* Error Message */}
                     {error && (
@@ -172,14 +172,14 @@ const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId }) => {
                             type="button"
                             onClick={onClose}
                             disabled={submitting}
-                            className="flex-1 px-6 py-3 bg-card border border-border hover:bg-secondary text-foreground rounded-lg transition-colors font-medium"
+                            className="secondary-button flex-1"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="flex-1 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="primary-button flex-1"
                         >
                             {submitting ? 'Sending...' : 'Send Request'}
                         </button>

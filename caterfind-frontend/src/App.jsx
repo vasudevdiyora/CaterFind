@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -48,6 +48,7 @@ function App() {
   const location = useLocation();
   const { showConfirm } = useDialog();
   const [authChecked, setAuthChecked] = useState(false);
+  const logoutDialogOpenRef = useRef(false);
 
   // Authentication state
   const [user, setUser] = useState(() => {
@@ -135,15 +136,24 @@ function App() {
    * Clears user info and returns to landing page.
    */
   const handleLogout = async () => {
-    const shouldLogout = await showConfirm('Are you sure you want to logout?', {
-      title: 'Logout',
-      confirmText: 'Logout'
-    });
+    if (logoutDialogOpenRef.current) {
+      return;
+    }
 
-    if (!shouldLogout) return;
+    logoutDialogOpenRef.current = true;
+    try {
+      const shouldLogout = await showConfirm('Are you sure you want to logout?', {
+        title: 'Logout',
+        confirmText: 'Logout'
+      });
 
-    authSession.clear();
-    setUser(null);
+      if (!shouldLogout) return;
+
+      authSession.clear();
+      setUser(null);
+    } finally {
+      logoutDialogOpenRef.current = false;
+    }
   };
 
   if (!authChecked) {

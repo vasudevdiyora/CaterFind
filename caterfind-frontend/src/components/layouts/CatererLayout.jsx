@@ -91,7 +91,7 @@ const CatererLayout = ({ children, user, onLogout }) => {
     const activeTitle = activeNavItem?.label || 'Workspace';
 
     return (
-        <div className="flex h-screen bg-background overflow-hidden">
+        <div className="flex h-screen bg-slate-50 overflow-hidden">
             {/* If caterer not approved, show review message instead of full layout */}
             {user?.accountStatus && user?.accountStatus !== 'ACTIVE' ? (
                 <div className="flex-1 flex items-center justify-center p-8">
@@ -141,7 +141,10 @@ const CatererLayout = ({ children, user, onLogout }) => {
 
                             {/* Navigation Links */}
                             <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
-                                {navItems.map(({ path, icon: Icon, label }) => (
+                                {navItems.map(({ path, icon, label }) => {
+                                    const NavIcon = icon;
+
+                                    return (
                                     <RouterNavLink
                                         key={path}
                                         to={path}
@@ -155,12 +158,13 @@ const CatererLayout = ({ children, user, onLogout }) => {
                                     >
                                         {({ isActive }) => (
                                             <>
-                                                <Icon className={cn("w-4 h-4 transition-colors", isActive ? "text-sky-600" : "text-slate-400 group-hover:text-slate-600")} />
+                                                <NavIcon className={cn("w-4 h-4 transition-colors", isActive ? "text-sky-600" : "text-slate-400 group-hover:text-slate-600")} />
                                                 {!sidebarCollapsed && <span>{label}</span>}
                                             </>
                                         )}
                                     </RouterNavLink>
-                                ))}
+                                    );
+                                })}
                             </nav>
 
                             {/* Logout Button */}
@@ -203,7 +207,10 @@ const CatererLayout = ({ children, user, onLogout }) => {
 
                                 {/* Navigation Links */}
                                 <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
-                                    {navItems.map(({ path, icon: Icon, label }) => (
+                                    {navItems.map(({ path, icon, label }) => {
+                                        const NavIcon = icon;
+
+                                        return (
                                         <RouterNavLink
                                             key={path}
                                             to={path}
@@ -217,12 +224,13 @@ const CatererLayout = ({ children, user, onLogout }) => {
                                         >
                                             {({ isActive }) => (
                                                 <>
-                                                    <Icon className={cn("w-4 h-4 transition-colors", isActive ? "text-sky-600" : "text-slate-400 group-hover:text-slate-600")} />
+                                                    <NavIcon className={cn("w-4 h-4 transition-colors", isActive ? "text-sky-600" : "text-slate-400 group-hover:text-slate-600")} />
                                                     <span>{label}</span>
                                                 </>
                                             )}
                                         </RouterNavLink>
-                                    ))}
+                                        );
+                                    })}
                                 </nav>
 
                                 {/* Logout Button */}
@@ -245,14 +253,14 @@ const CatererLayout = ({ children, user, onLogout }) => {
                         sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"
                     )}>
                         {/* Top Header */}
-                        <header className="sticky top-0 z-30 bg-card/90 backdrop-blur border-b border-border px-4 lg:px-6 py-3">
+                        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3">
                             <div className="flex items-center gap-4">
-                                <button onClick={handleMenuClick} className="p-2 -ml-2">
+                                <button onClick={handleMenuClick} className="p-2 -ml-2 rounded-lg hover:bg-slate-100 transition-colors">
                                     <Menu className="w-6 h-6" />
                                 </button>
                                 <div className="min-w-0">
                                     <h1 className="font-extrabold text-lg truncate tracking-tight">{activeTitle}</h1>
-                                    <p className="text-xs text-muted-foreground truncate hidden sm:block">Manage faster with denser, readable controls</p>
+                                    <p className="text-xs text-slate-500 truncate hidden sm:block">Manage faster with denser, readable controls</p>
                                 </div>
                                 <div className="ml-auto hidden md:flex items-center gap-2 text-xs">
                                     <span className="px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200 font-semibold">Caterer</span>
@@ -262,7 +270,7 @@ const CatererLayout = ({ children, user, onLogout }) => {
                         </header>
 
                         {/* Page Content (scroll container) */}
-                        <main className="flex-1 page-shell py-3 lg:py-4 overflow-y-auto overflow-x-hidden touch-scroll">
+                        <main className="flex-1 page-shell py-4 lg:py-6 overflow-y-auto overflow-x-hidden touch-scroll">
                             {children}
                         </main>
                     </div>

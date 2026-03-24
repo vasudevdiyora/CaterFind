@@ -56,8 +56,8 @@ const ReportModal = ({ isOpen, onClose, content, contentId, contentType }) => {
                 </div>
 
                 <div className="flex gap-3 justify-end">
-                    <button type="button" onClick={onClose} disabled={submitting} className="px-4 py-2 bg-card border border-border rounded-lg">Cancel</button>
-                    <button type="submit" disabled={submitting} className="px-4 py-2 bg-primary text-white rounded-lg">{submitting ? 'Sending...' : 'Submit Report'}</button>
+                    <button type="button" onClick={onClose} disabled={submitting} className="secondary-button">Cancel</button>
+                    <button type="submit" disabled={submitting} className="primary-button">{submitting ? 'Sending...' : 'Submit Report'}</button>
                 </div>
             </form>
         </Modal>

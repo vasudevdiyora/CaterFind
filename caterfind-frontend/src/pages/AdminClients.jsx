@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Eye, XCircle, MapPin, Calendar, MessageSquare } from 'lucide-react';
+import { Search, Eye, MapPin, Calendar, MessageSquare } from 'lucide-react';
 import { adminAPI } from '../services/api';
 import Modal from '../components/Modal';
 
@@ -52,31 +52,31 @@ const AdminClients = () => {
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h1 className="text-3xl font-bold text-foreground">Clients Management</h1>
-                <p className="text-muted-foreground mt-1">Manage and monitor all clients on the platform</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Clients Management</h1>
+                <p className="text-sm sm:text-base text-slate-600 mt-1">Manage and monitor all clients on the platform</p>
             </div>
 
             {error && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg p-4">
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
                     {error}
                 </div>
             )}
 
             {loading && (
-                <div className="bg-card border border-border rounded-lg p-4 text-sm text-muted-foreground">
+                <div className="bg-white border border-slate-200 rounded-lg p-4 text-sm text-slate-500 shadow-sm">
                     Loading clients...
                 </div>
             )}
 
             {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-card border border-border rounded-lg p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                     <div className="text-2xl font-bold text-foreground">
                         {clients.length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Total Clients</div>
+                    <div className="text-sm text-slate-600">Total Clients</div>
                 </div>
-                <div className="bg-card border border-border rounded-lg p-4">
+                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                     <div className="text-2xl font-bold text-green-500">
                         {clients.filter(c => {
                             const lastActive = toDate(c.lastActive);
@@ -86,41 +86,89 @@ const AdminClients = () => {
                             return diffDays <= 7;
                         }).length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Active (Last 7 days)</div>
+                    <div className="text-sm text-slate-600">Active (Last 7 days)</div>
                 </div>
-                <div className="bg-card border border-border rounded-lg p-4">
-                    <div className="text-2xl font-bold text-blue-500">
+                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                    <div className="text-2xl font-bold text-sky-600">
                         {clients.reduce((sum, c) => sum + c.totalTrials, 0)}
                     </div>
-                    <div className="text-sm text-muted-foreground">Total Trials Booked</div>
+                    <div className="text-sm text-slate-600">Total Trials Booked</div>
                 </div>
-                <div className="bg-card border border-border rounded-lg p-4">
-                    <div className="text-2xl font-bold text-purple-500">
+                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                    <div className="text-2xl font-bold text-slate-900">
                         {clients.reduce((sum, c) => sum + c.activeConversations, 0)}
                     </div>
-                    <div className="text-sm text-muted-foreground">Active Conversations</div>
+                    <div className="text-sm text-slate-600">Active Conversations</div>
                 </div>
             </div>
 
             {/* Search */}
-            <div className="bg-card border border-border rounded-lg p-4">
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
                     <input
                         type="text"
                         placeholder="Search clients..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-input border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        className="w-full h-9 pl-10 pr-4 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300"
                     />
                 </div>
             </div>
 
+            {/* Mobile Cards */}
+            <div className="md:hidden space-y-4">
+                {filteredClients.length === 0 && (
+                    <div className="text-center py-8 text-slate-500 bg-white border border-slate-200 rounded-xl shadow-sm">
+                        No clients found
+                    </div>
+                )}
+
+                {filteredClients.map((client, index) => (
+                    <div key={client.id || index} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <div className="text-base font-semibold text-slate-900">{client.name}</div>
+                                <div className="text-sm text-slate-600">{client.email}</div>
+                                <div className="text-sm text-slate-600">{client.phone}</div>
+                            </div>
+                            <button
+                                onClick={() => setSelectedClient(client)}
+                                className="primary-button"
+                                title="View Details"
+                            >
+                                <Eye size={16} className="mr-2" />
+                                Details
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <div className="text-slate-500">Location</div>
+                                <div className="text-slate-800 inline-flex items-center gap-1"><MapPin size={14} className="text-slate-400" />{client.location}</div>
+                            </div>
+                            <div>
+                                <div className="text-slate-500">Last Active</div>
+                                <div className="text-slate-800">{toDate(client.lastActive)?.toLocaleDateString() || 'N/A'}</div>
+                            </div>
+                            <div>
+                                <div className="text-slate-500">Trials</div>
+                                <div className="text-slate-800 inline-flex items-center gap-1"><Calendar size={14} className="text-sky-500" />{client.totalTrials}</div>
+                            </div>
+                            <div>
+                                <div className="text-slate-500">Conversations</div>
+                                <div className="text-slate-800 inline-flex items-center gap-1"><MessageSquare size={14} className="text-emerald-500" />{client.activeConversations}</div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
             {/* Clients Table */}
-            <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <div className="hidden md:block bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-secondary border-b border-border">
+                        <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Name
@@ -142,9 +190,9 @@ const AdminClients = () => {
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-border">
+                        <tbody className="divide-y divide-slate-200">
                             {filteredClients.map((client, index) => (
-                                <tr key={client.id || index} className="hover:bg-secondary/50">
+                                <tr key={client.id || index} className="hover:bg-slate-50">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm font-medium text-foreground">
                                             {client.name}
@@ -163,7 +211,7 @@ const AdminClients = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center gap-3">
                                             <div className="flex items-center gap-1">
-                                                <Calendar size={14} className="text-blue-500" />
+                                                <Calendar size={14} className="text-sky-500" />
                                                 <span className="text-sm text-foreground">{client.totalTrials}</span>
                                             </div>
                                             <div className="flex items-center gap-1">
@@ -180,7 +228,7 @@ const AdminClients = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <button
                                             onClick={() => setSelectedClient(client)}
-                                            className="p-1 text-blue-500 hover:bg-blue-500/10 rounded"
+                                            className="p-1 text-sky-500 hover:bg-sky-500/10 rounded"
                                             title="View Details"
                                         >
                                             <Eye size={18} />

@@ -132,8 +132,8 @@ const Register = ({ onLogin }) => {
         : { title: 'Create an Account', subtitle: 'Start discovering amazing caterers' };
 
     return (
-        <div className="login-container">
-            <div className="login-card !max-w-2xl">
+        <div className="login-container !bg-slate-50">
+            <div className="login-card !max-w-4xl">
                 <Link to="/" className="back-button">
                     <ArrowLeft size={16} /> Back to Home
                 </Link>
@@ -146,93 +146,139 @@ const Register = ({ onLogin }) => {
                     <p>{subtitle}</p>
                 </div>
 
-                <form className="space-y-6" onSubmit={handleSubmit}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                        {/* Common Fields */}
-                        <h3 className="col-span-full form-section-header">Account Details</h3>
-                        <FormInput id="email" label="Email Address" type="email" value={email} onChange={setEmail} icon={<Mail />} required />
-                        <div />
-                        <FormInput id="password" label="Password" type={showPassword ? "text" : "password"} value={password} onChange={setPassword} icon={<Lock />} required>
-                            <PasswordToggle visible={showPassword} setVisible={setShowPassword} />
-                        </FormInput>
-                        <FormInput id="confirmPassword" label="Confirm Password" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={setConfirmPassword} icon={<Lock />} required>
-                            <PasswordToggle visible={showConfirmPassword} setVisible={setShowConfirmPassword} />
-                        </FormInput>
-
-                        {/* Role-Specific Fields */}
-                        <h3 className="col-span-full form-section-header pt-4">{role === 'CATERER' ? 'Business Information' : 'Personal Information'}</h3>
-                        {role === 'CATERER' ? (
-                            <>
-                                <FormInput id="businessName" label="Business Name" value={businessName} onChange={setBusinessName} icon={<ChefHat />} required />
-                                <FormInput id="ownerName" label="Owner's Full Name" value={ownerName} onChange={setOwnerName} icon={<User />} required />
-                            </>
-                        ) : (
-                            <FormInput id="clientName" label="Full Name" value={clientName} onChange={setClientName} icon={<User />} required />
-                        )}
-                        <FormInput id="primaryPhone" label="Contact Phone" type="tel" value={primaryPhone} onChange={setPrimaryPhone} icon={<Phone />} required />
-
-                        {role === 'CATERER' && (
-                            <>
-                                <FormInput id="panNumber" label="PAN Number" value={panNumber} onChange={setPanNumber} icon={<Hash />} />
-
-                                <FormInput id="aadharNumber" label="Aadhaar Number" value={aadharNumber} onChange={setAadharNumber} icon={<Hash />} />
-
-                                <div className="form-group">
-                                    <label>Profile Image</label>
-                                    <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e.target.files?.[0], setProfileImageUrl)} />
-                                    {profileImageUrl && <p className="text-xs text-slate-600 mt-1">Uploaded: {profileImageUrl}</p>}
-                                </div>
-
-                                <div className="form-group">
-                                    <label>PAN Document (optional)</label>
-                                    <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e.target.files?.[0], setPanDocumentUrl)} />
-                                    {panDocumentUrl && <p className="text-xs text-slate-600 mt-1">Uploaded: {panDocumentUrl}</p>}
-                                </div>
-
-                                <div className="form-group">
-                                    <label>Aadhaar Document (optional)</label>
-                                    <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e.target.files?.[0], setAadharDocumentUrl)} />
-                                    {aadharDocumentUrl && <p className="text-xs text-slate-600 mt-1">Uploaded: {aadharDocumentUrl}</p>}
-                                </div>
-                            </>
-                        )}
-
-                        <h3 className="col-span-full form-section-header pt-4">Location</h3>
-                        <FormInput id="pincode" label="Pincode" value={pincode} onChangeRaw={handlePincodeChange} icon={<Hash />} maxLength={6} loading={pincodeLoading} error={pincodeError} />
-                        <div className="form-group">
-                            <label>State</label>
-                            <select className="form-input" value={selectedState} onChange={e => setSelectedState(e.target.value)} required>
-                                <option value="">Select State</option>
-                                {states.map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                        </div>
-                        <div className="form-group">
-                            <label>City</label>
-                            <select className="form-input" value={city} onChange={e => setCity(e.target.value)} required disabled={!selectedState}>
-                                <option value="">Select City</option>
-                                {getCities(selectedState).map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                        </div>
-                        <FormInput id="area" label="Area / Locality" value={area} onChange={setArea} icon={<MapPin />} required />
-
-                        {role === 'CATERER' && (
-                            <>
-                                <FormInput id="streetAddress" label="Street Address" value={streetAddress} onChange={setStreetAddress} icon={<Home />} required wrapperClass="col-span-full" />
-                                <FormInput id="latitude" label="Latitude" value={latitude} onChange={setLatitude} icon={<LocateFixed />} placeholder="e.g., 28.6139" />
-                                <FormInput id="longitude" label="Longitude" value={longitude} onChange={setLongitude} icon={<LocateFixed />} placeholder="e.g., 77.2090">
-                                    <button type="button" onClick={handleUseCurrentLocation} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-sky-600 hover:underline" disabled={locating}>
-                                        {locating ? 'Locating...' : 'Use Current'}
-                                    </button>
+                <form className="space-y-8" onSubmit={handleSubmit}>
+                    <div className="space-y-6">
+                        <section className="bg-white border border-slate-200 rounded-lg shadow-sm p-5 sm:p-6">
+                            <h3 className="text-base font-semibold text-slate-900 mb-5">Account Details</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormInput id="email" label="Email Address" type="email" value={email} onChange={setEmail} icon={<Mail />} required wrapperClass="md:col-span-2" />
+                                <FormInput id="password" label="Password" type={showPassword ? 'text' : 'password'} value={password} onChange={setPassword} icon={<Lock />} required>
+                                    <PasswordToggle visible={showPassword} setVisible={setShowPassword} />
                                 </FormInput>
-                            </>
+                                <FormInput id="confirmPassword" label="Confirm Password" type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={setConfirmPassword} icon={<Lock />} required>
+                                    <PasswordToggle visible={showConfirmPassword} setVisible={setShowConfirmPassword} />
+                                </FormInput>
+                            </div>
+                        </section>
+
+                        <section className="bg-white border border-slate-200 rounded-lg shadow-sm p-5 sm:p-6">
+                            <h3 className="text-base font-semibold text-slate-900 mb-5">{role === 'CATERER' ? 'Business Information' : 'Personal Information'}</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {role === 'CATERER' ? (
+                                    <>
+                                        <FormInput id="businessName" label="Business Name" value={businessName} onChange={setBusinessName} icon={<ChefHat />} required />
+                                        <FormInput id="ownerName" label="Owner's Full Name" value={ownerName} onChange={setOwnerName} icon={<User />} required />
+                                    </>
+                                ) : (
+                                    <FormInput id="clientName" label="Full Name" value={clientName} onChange={setClientName} icon={<User />} required />
+                                )}
+                                <FormInput id="primaryPhone" label="Contact Phone" type="tel" value={primaryPhone} onChange={setPrimaryPhone} icon={<Phone />} required wrapperClass={role === 'CLIENT' ? 'md:col-span-1' : ''} />
+                            </div>
+                        </section>
+
+                        {role === 'CATERER' && (
+                            <section className="bg-white border border-slate-200 rounded-lg shadow-sm p-5 sm:p-6">
+                                <h3 className="text-base font-semibold text-slate-900 mb-5">Verification Details</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormInput id="panNumber" label="PAN Number" value={panNumber} onChange={setPanNumber} icon={<Hash />} placeholder="ABCDE1234F" />
+                                    <FormInput id="aadharNumber" label="Aadhaar Number" value={aadharNumber} onChange={setAadharNumber} icon={<Hash />} placeholder="1234 5678 9012" />
+
+                                    <div className="space-y-1.5">
+                                        <label className="block text-sm font-medium text-slate-700">Profile Image</label>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => handleFileUpload(e.target.files?.[0], setProfileImageUrl)}
+                                            className="w-full h-10 px-3 border border-slate-200 rounded-md bg-white text-sm text-slate-700 file:mr-3 file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                                        />
+                                        {profileImageUrl && <p className="text-xs text-slate-500 mt-1">Uploaded: {profileImageUrl}</p>}
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="block text-sm font-medium text-slate-700">PAN Document (optional)</label>
+                                        <input
+                                            type="file"
+                                            accept="image/*,application/pdf"
+                                            onChange={(e) => handleFileUpload(e.target.files?.[0], setPanDocumentUrl)}
+                                            className="w-full h-10 px-3 border border-slate-200 rounded-md bg-white text-sm text-slate-700 file:mr-3 file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                                        />
+                                        <p className="text-xs text-slate-400 mt-1">Upload clear PAN copy for faster verification.</p>
+                                        {panDocumentUrl && <p className="text-xs text-slate-500 mt-1">Uploaded: {panDocumentUrl}</p>}
+                                    </div>
+
+                                    <div className="space-y-1.5 md:col-span-2">
+                                        <label className="block text-sm font-medium text-slate-700">Aadhaar Document (optional)</label>
+                                        <input
+                                            type="file"
+                                            accept="image/*,application/pdf"
+                                            onChange={(e) => handleFileUpload(e.target.files?.[0], setAadharDocumentUrl)}
+                                            className="w-full h-10 px-3 border border-slate-200 rounded-md bg-white text-sm text-slate-700 file:mr-3 file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                                        />
+                                        <p className="text-xs text-slate-400 mt-1">Ensure Aadhaar details are clearly readable.</p>
+                                        {aadharDocumentUrl && <p className="text-xs text-slate-500 mt-1">Uploaded: {aadharDocumentUrl}</p>}
+                                    </div>
+                                </div>
+                            </section>
                         )}
+
+                        <section className="bg-white border border-slate-200 rounded-lg shadow-sm p-5 sm:p-6">
+                            <h3 className="text-base font-semibold text-slate-900 mb-5">Location Details</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormInput id="pincode" label="Pincode" value={pincode} onChangeRaw={handlePincodeChange} icon={<Hash />} maxLength={6} loading={pincodeLoading} error={pincodeError} />
+
+                                <div className="space-y-1.5">
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">State</label>
+                                    <select
+                                        className="w-full h-10 px-3 border border-slate-200 rounded-md bg-white text-slate-700 placeholder:text-slate-400 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                                        value={selectedState}
+                                        onChange={e => setSelectedState(e.target.value)}
+                                        required
+                                    >
+                                        <option value="">Select State</option>
+                                        {states.map(s => <option key={s} value={s}>{s}</option>)}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">City</label>
+                                    <select
+                                        className="w-full h-10 px-3 border border-slate-200 rounded-md bg-white text-slate-700 placeholder:text-slate-400 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                                        value={city}
+                                        onChange={e => setCity(e.target.value)}
+                                        required
+                                        disabled={!selectedState}
+                                    >
+                                        <option value="">Select City</option>
+                                        {getCities(selectedState).map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </div>
+
+                                <FormInput id="area" label="Area / Locality" value={area} onChange={setArea} icon={<MapPin />} required />
+
+                                {role === 'CATERER' && (
+                                    <>
+                                        <FormInput id="streetAddress" label="Street Address" value={streetAddress} onChange={setStreetAddress} icon={<Home />} required wrapperClass="md:col-span-2" />
+                                        <FormInput id="latitude" label="Latitude" value={latitude} onChange={setLatitude} icon={<LocateFixed />} placeholder="e.g., 28.6139" />
+                                        <FormInput id="longitude" label="Longitude" value={longitude} onChange={setLongitude} icon={<LocateFixed />} placeholder="e.g., 77.2090">
+                                            <button type="button" onClick={handleUseCurrentLocation} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-sky-600 hover:underline" disabled={locating}>
+                                                {locating ? 'Locating...' : 'Use Current'}
+                                            </button>
+                                        </FormInput>
+                                    </>
+                                )}
+                            </div>
+                        </section>
                     </div>
 
-                    {error && <div className="error-alert col-span-full"><AlertCircle size={20} /><span>{error}</span></div>}
+                    {error && <div className="error-alert"><AlertCircle size={20} /><span>{error}</span></div>}
 
-                    <div className="pt-4">
-                        <button type="submit" className="primary-button w-full !text-base !py-3" disabled={loading}>
-                            {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <>Create Account <ArrowRight size={20} className="ml-2" /></>}
+                    <div className="mt-8">
+                        <button
+                            type="submit"
+                            className="w-full h-11 rounded-lg font-semibold bg-sky-500 hover:bg-sky-600 text-white inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                            disabled={loading}
+                        >
+                            {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <>Create Account <ArrowRight size={18} /></>}
                         </button>
                     </div>
                 </form>
@@ -248,14 +294,14 @@ const Register = ({ onLogin }) => {
 };
 
 const FormInput = ({ id, label, type = 'text', value, onChange, onChangeRaw, icon, required, children, wrapperClass = '', loading, error, ...props }) => (
-    <div className={`form-group ${wrapperClass}`}>
-        <label htmlFor={id}>{label}</label>
+    <div className={`space-y-1.5 ${wrapperClass}`}>
+        <label htmlFor={id} className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
         <div className="input-wrapper">
             {icon && <div className="input-icon">{React.cloneElement(icon, { size: 18 })}</div>}
             <input
                 id={id}
                 type={type}
-                className={`form-input ${icon ? 'with-icon' : ''} ${children ? 'pr-24' : ''}`}
+                className={`form-input w-full h-10 px-3 border border-slate-200 rounded-md bg-white text-slate-700 placeholder:text-slate-400 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 ${icon ? 'with-icon' : ''} ${children ? 'pr-24' : ''}`}
                 value={value}
                 onChange={onChangeRaw || (e => onChange(e.target.value))}
                 required={required}

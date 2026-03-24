@@ -109,13 +109,13 @@ const AdminDashboard = () => {
     ];
 
     return (
-        <div className="space-y-6">
+        <div className="page-shell space-y-6">
             {/* Header */}
             <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-white via-sky-50/40 to-white p-5 md:p-6 shadow-sm">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
-                        <p className="mt-1 text-slate-600">Monitor platform health, growth, and daily operations.</p>
+                        <h1 className="text-lg sm:text-xl lg:text-2xl font-bold tracking-tight text-slate-900">Dashboard</h1>
+                        <p className="mt-1 text-sm sm:text-base text-slate-600">Monitor platform health, growth, and daily operations.</p>
                     </div>
                     <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm">
                         <Clock3 size={16} className="text-slate-500" />
@@ -137,7 +137,7 @@ const AdminDashboard = () => {
             )}
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {statCards.map((stat, index) => {
                     const Icon = stat.icon;
                     return (

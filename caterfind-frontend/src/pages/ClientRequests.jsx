@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, MapPin, Users, MessageCircle, Check, X, Clock, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { meetingRequestAPI, profileAPI } from '../services/api';
+import { meetingRequestAPI, profileAPI, chatAPI } from '../services/api';
 import MeetingAcceptModal from '../components/MeetingAcceptModal';
 import { useDialog } from '../components/DialogProvider';
 
@@ -16,9 +16,11 @@ const ClientRequests = ({ user }) => {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all'); // all, pending, accepted, rejected
     const [error, setError] = useState('');
+    const [counts, setCounts] = useState({ total: 0, pending: 0, accepted: 0, rejected: 0 });
     const [acceptModalOpen, setAcceptModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [businessProfile, setBusinessProfile] = useState(null);
+    const [messagesUnread, setMessagesUnread] = useState(0);
 
     useEffect(() => {
         if (user?.userId) {
@@ -26,19 +28,39 @@ const ClientRequests = ({ user }) => {
         }
     }, [user, filter]);
 
+    // Load unread conversations count for badge
+    useEffect(() => {
+        let mounted = true;
+        const loadUnread = async () => {
+            try {
+                const convs = await chatAPI.getConversations();
+                console.debug('[ClientRequests] loaded conversations', convs);
+                if (!mounted) return;
+                const total = (convs || []).reduce((acc, c) => acc + (Number(c.unreadCount || c.unread || c.unread_count || 0) || 0), 0);
+                setMessagesUnread(total);
+            } catch (e) {
+                // ignore
+            }
+        };
+        loadUnread();
+        const id = setInterval(loadUnread, 10000);
+        return () => { mounted = false; clearInterval(id); };
+    }, []);
+
     const loadRequests = async () => {
         try {
             setLoading(true);
             setError('');
-            
             const data = await meetingRequestAPI.getCatererRequests(filter);
-            
-            // Transform API response
-            const transformedRequests = data.map(req => ({
+
+            // If filter is not 'all', also fetch the full list to compute counts
+            const allData = filter === 'all' ? data : await meetingRequestAPI.getCatererRequests('all');
+
+            const transform = (arr) => (arr || []).map(req => ({
                 id: req.id,
                 clientId: req.clientId,
                 clientName: req.clientName,
-                status: req.status, 
+                status: req.status,
                 date: req.eventDate,
                 location: req.eventLocation,
                 guests: req.numberOfGuests,
@@ -46,8 +68,17 @@ const ClientRequests = ({ user }) => {
                 message: req.message,
                 createdAt: req.createdAt,
             }));
-            
+
+            const transformedRequests = transform(data || []);
+            const transformedAll = transform(allData || []);
+
             setRequests(transformedRequests);
+
+            // Compute counts from the full list
+            const pending = transformedAll.filter(r => r.status?.toUpperCase() === 'PENDING').length;
+            const accepted = transformedAll.filter(r => r.status?.toUpperCase() === 'ACCEPTED').length;
+            const rejected = transformedAll.filter(r => r.status?.toUpperCase() === 'REJECTED').length;
+            setCounts({ total: transformedAll.length, pending, accepted, rejected });
         } catch (error) {
             console.error('Error loading requests:', error);
             setError('Failed to load requests. Please try again.');
@@ -185,12 +216,12 @@ const ClientRequests = ({ user }) => {
         return req.status?.toUpperCase() === filter.toUpperCase();
     });
 
-    const pendingCount = requests.filter(req => req.status?.toUpperCase() === 'PENDING').length;
-    const acceptedCount = requests.filter(req => req.status?.toUpperCase() === 'ACCEPTED').length;
-    const rejectedCount = requests.filter(req => req.status?.toUpperCase() === 'REJECTED').length;
+    const pendingCount = counts.pending;
+    const acceptedCount = counts.accepted;
+    const rejectedCount = counts.rejected;
 
     const filterOptions = [
-        { key: 'all', label: 'All', count: requests.length },
+        { key: 'all', label: 'All', count: counts.total },
         { key: 'pending', label: 'Pending', count: pendingCount },
         { key: 'accepted', label: 'Accepted', count: acceptedCount },
         { key: 'rejected', label: 'Rejected', count: rejectedCount },
@@ -223,14 +254,14 @@ const ClientRequests = ({ user }) => {
     }
 
     return (
-        <div className="page-shell space-y-8">
+        <div className="page-shell space-y-4 sm:space-y-6">
             {/* Header Section */}
             <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-white via-sky-50/40 to-white p-5 md:p-6 shadow-sm">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Client Requests</h1>
-                        <p className="text-slate-600 mt-1">Manage incoming event inquiries and bookings.</p>
-                    </div>
+                        <div>
+                            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 tracking-tight">Client Requests</h1>
+                            <p className="text-sm sm:text-base text-slate-600 mt-1">Manage incoming event inquiries and bookings.</p>
+                        </div>
 
                     <div className="flex flex-wrap gap-2">
                         <div className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
@@ -246,10 +277,15 @@ const ClientRequests = ({ user }) => {
                     <div className="flex items-center gap-2 ml-4">
                         <button
                             onClick={() => navigate('/owner/messages')}
-                            className="py-2 px-3 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-semibold flex items-center gap-2"
+                            className="py-2 px-3 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-semibold flex items-center gap-2 h-10 sm:h-9 w-full sm:w-auto"
                         >
                             <MessageCircle size={16} />
                             Client Messages
+                            {messagesUnread > 0 && (
+                                <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold leading-none text-white bg-rose-600 rounded-full">
+                                    {messagesUnread}
+                                </span>
+                            )}
                         </button>
                     </div>
                 </div>

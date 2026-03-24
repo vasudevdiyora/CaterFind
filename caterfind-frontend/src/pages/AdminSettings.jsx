@@ -81,7 +81,7 @@ const AdminSettings = () => {
         <button
             onClick={onToggle}
             className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors ${
-                enabled ? 'bg-primary' : 'bg-secondary'
+                enabled ? 'bg-sky-500' : 'bg-slate-300'
             }`}
         >
             <span
@@ -95,15 +95,15 @@ const AdminSettings = () => {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-                    <p className="text-muted-foreground mt-1">Manage platform configuration and preferences</p>
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Settings</h1>
+                    <p className="text-sm sm:text-base text-slate-600 mt-1">Manage platform configuration and preferences</p>
                 </div>
                 <button
                     onClick={handleSave}
                     disabled={loading}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                    className="primary-button w-full sm:w-auto"
                 >
                     <Save size={18} />
                     <span>Save Changes</span>
@@ -111,27 +111,27 @@ const AdminSettings = () => {
             </div>
 
             {saved && (
-                <div className="bg-green-500/10 border border-green-500/20 text-green-500 rounded-lg p-4">
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg p-4">
                     Settings saved successfully!
                 </div>
             )}
 
             {error && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg p-4">
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
                     {error}
                 </div>
             )}
 
             {loading && (
-                <div className="bg-card border border-border rounded-lg p-4 text-sm text-muted-foreground">
+                <div className="bg-white border border-slate-200 rounded-lg p-4 text-sm text-slate-500 shadow-sm">
                     Loading settings...
                 </div>
             )}
 
             {/* Notification Settings */}
-            <div className="bg-card border border-border rounded-lg p-6">
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-6">
-                    <Bell className="text-primary" size={24} />
+                    <Bell className="text-sky-600" size={22} />
                     <h2 className="text-xl font-semibold text-foreground">Notification Settings</h2>
                 </div>
                 <div className="space-y-4">
@@ -189,9 +189,9 @@ const AdminSettings = () => {
             </div>
 
             {/* Platform Settings */}
-            <div className="bg-card border border-border rounded-lg p-6">
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-6">
-                    <Globe className="text-primary" size={24} />
+                    <Globe className="text-sky-600" size={22} />
                     <h2 className="text-xl font-semibold text-foreground">Platform Settings</h2>
                 </div>
                 <div className="space-y-4">
@@ -229,9 +229,9 @@ const AdminSettings = () => {
             </div>
 
             {/* Commission Settings */}
-            <div className="bg-card border border-border rounded-lg p-6">
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-6">
-                    <DollarSign className="text-primary" size={24} />
+                    <DollarSign className="text-sky-600" size={22} />
                     <h2 className="text-xl font-semibold text-foreground">Commission Settings</h2>
                 </div>
                 <div className="space-y-4">
@@ -244,7 +244,7 @@ const AdminSettings = () => {
                                 type="number"
                                 value={settings.commissionPercentage}
                                 onChange={(e) => handleChange('commissionPercentage', Number(e.target.value))}
-                                className="w-32 px-4 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                                className="w-32 h-9 px-3 bg-white border border-slate-200 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300"
                                 min="0"
                                 max="100"
                             />
@@ -264,7 +264,7 @@ const AdminSettings = () => {
                                 type="number"
                                 value={settings.minimumCommission}
                                 onChange={(e) => handleChange('minimumCommission', Number(e.target.value))}
-                                className="w-32 px-4 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                                className="w-32 h-9 px-3 bg-white border border-slate-200 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300"
                                 min="0"
                             />
                         </div>
@@ -276,9 +276,9 @@ const AdminSettings = () => {
             </div>
 
             {/* Security Settings */}
-            <div className="bg-card border border-border rounded-lg p-6">
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-6">
-                    <Shield className="text-primary" size={24} />
+                    <Shield className="text-sky-600" size={22} />
                     <h2 className="text-xl font-semibold text-foreground">Security Settings</h2>
                 </div>
                 <div className="space-y-4">
@@ -310,7 +310,7 @@ const AdminSettings = () => {
                             type="number"
                             value={settings.sessionTimeout}
                             onChange={(e) => handleChange('sessionTimeout', Number(e.target.value))}
-                            className="w-32 px-4 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                            className="w-32 h-9 px-3 bg-white border border-slate-200 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300"
                             min="5"
                             max="120"
                         />

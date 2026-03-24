@@ -78,67 +78,67 @@ const AdminCaterers = () => {
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h1 className="text-3xl font-bold text-foreground">Caterers Management</h1>
-                <p className="text-muted-foreground mt-1">Manage and monitor all caterers on the platform</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Caterers Management</h1>
+                <p className="text-sm sm:text-base text-slate-600 mt-1">Manage and monitor all caterers on the platform</p>
             </div>
 
             {error && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg p-4">
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
                     {error}
                 </div>
             )}
 
             {loading && (
-                <div className="bg-card border border-border rounded-lg p-4 text-sm text-muted-foreground">
+                <div className="bg-white border border-slate-200 rounded-lg p-4 text-sm text-slate-500 shadow-sm">
                     Loading caterers...
                 </div>
             )}
 
             {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-card border border-border rounded-lg p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                     <div className="text-2xl font-bold text-foreground">
                         {caterers.length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Total Caterers</div>
+                    <div className="text-sm text-slate-600">Total Caterers</div>
                 </div>
-                <div className="bg-card border border-border rounded-lg p-4">
+                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                     <div className="text-2xl font-bold text-green-500">
                         {caterers.filter(c => c.status === 'active').length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Active</div>
+                    <div className="text-sm text-slate-600">Active</div>
                 </div>
-                <div className="bg-card border border-border rounded-lg p-4">
+                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                     <div className="text-2xl font-bold text-yellow-500">
                         {caterers.filter(c => c.status === 'pending').length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Pending Approval</div>
+                    <div className="text-sm text-slate-600">Pending Approval</div>
                 </div>
-                <div className="bg-card border border-border rounded-lg p-4">
+                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                     <div className="text-2xl font-bold text-red-500">
                         {caterers.filter(c => c.status === 'suspended').length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Suspended</div>
+                    <div className="text-sm text-slate-600">Suspended</div>
                 </div>
             </div>
 
             {/* Filters */}
-            <div className="bg-card border border-border rounded-lg p-4">
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1 relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
                         <input
                             type="text"
                             placeholder="Search caterers..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-input border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                            className="w-full h-9 pl-10 pr-4 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300"
                         />
                     </div>
                     <select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        className="px-4 py-2 bg-input border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        className="h-9 px-4 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300"
                     >
                         <option value="all">All Status</option>
                         <option value="active">Active</option>
@@ -148,11 +148,99 @@ const AdminCaterers = () => {
                 </div>
             </div>
 
+            {/* Mobile Cards */}
+            <div className="md:hidden space-y-4">
+                {filteredCaterers.length === 0 && (
+                    <div className="text-center py-8 text-slate-500 bg-white border border-slate-200 rounded-xl shadow-sm">
+                        No caterers found
+                    </div>
+                )}
+
+                {filteredCaterers.map((caterer, index) => (
+                    <div key={caterer.id || index} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <div className="text-base font-semibold text-slate-900">{caterer.businessName}</div>
+                                <div className="text-sm text-slate-600">{caterer.ownerName}</div>
+                            </div>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusBadge(caterer.status)}`}>
+                                {caterer.status.charAt(0).toUpperCase() + caterer.status.slice(1)}
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <div className="text-slate-500">Contact</div>
+                                <div className="text-slate-800 truncate">{caterer.email}</div>
+                                <div className="text-slate-600">{caterer.phone}</div>
+                            </div>
+                            <div>
+                                <div className="text-slate-500">Location</div>
+                                <div className="text-slate-800 inline-flex items-center gap-1"><MapPin size={14} className="text-slate-400" />{caterer.location}</div>
+                            </div>
+                            <div>
+                                <div className="text-slate-500">Rating</div>
+                                <div className="text-slate-800 inline-flex items-center gap-1"><Star size={14} className="text-yellow-500 fill-yellow-500" />{caterer.rating > 0 ? caterer.rating.toFixed(1) : 'N/A'}</div>
+                            </div>
+                            <div>
+                                <div className="text-slate-500">Orders</div>
+                                <div className="text-slate-800">{caterer.totalOrders}</div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                            {caterer.status === 'pending' && (
+                                <>
+                                    <button
+                                        onClick={() => handleStatusChange(caterer.id, 'active')}
+                                        disabled={updatingId === caterer.id}
+                                        className="secondary-button w-full"
+                                    >
+                                        Approve
+                                    </button>
+                                    <button
+                                        onClick={() => handleStatusChange(caterer.id, 'suspended')}
+                                        disabled={updatingId === caterer.id}
+                                        className="secondary-button w-full"
+                                    >
+                                        Reject
+                                    </button>
+                                </>
+                            )}
+                            {caterer.status === 'active' && (
+                                <button
+                                    onClick={() => handleStatusChange(caterer.id, 'suspended')}
+                                    disabled={updatingId === caterer.id}
+                                    className="secondary-button w-full"
+                                >
+                                    Suspend
+                                </button>
+                            )}
+                            {caterer.status === 'suspended' && (
+                                <button
+                                    onClick={() => handleStatusChange(caterer.id, 'active')}
+                                    disabled={updatingId === caterer.id}
+                                    className="secondary-button w-full"
+                                >
+                                    Activate
+                                </button>
+                            )}
+                            <button
+                                onClick={() => setSelectedCaterer(caterer)}
+                                className="primary-button w-full"
+                            >
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
             {/* Caterers Table */}
-            <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <div className="hidden md:block bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-secondary border-b border-border">
+                        <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Business
@@ -174,9 +262,9 @@ const AdminCaterers = () => {
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-border">
+                        <tbody className="divide-y divide-slate-200">
                             {filteredCaterers.map((caterer, index) => (
-                                <tr key={caterer.id || index} className="hover:bg-secondary/50">
+                                <tr key={caterer.id || index} className="hover:bg-slate-50">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div>
                                             <div className="text-sm font-medium text-foreground">
@@ -257,7 +345,7 @@ const AdminCaterers = () => {
                                             )}
                                             <button
                                                 onClick={() => setSelectedCaterer(caterer)}
-                                                className="p-1 text-blue-500 hover:bg-blue-500/10 rounded"
+                                                className="p-1 text-sky-500 hover:bg-sky-500/10 rounded"
                                                 title="View Details"
                                             >
                                                 <Eye size={18} />

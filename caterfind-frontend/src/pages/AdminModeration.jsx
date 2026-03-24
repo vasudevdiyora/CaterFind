@@ -87,89 +87,89 @@ const AdminModeration = () => {
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h1 className="text-3xl font-bold text-foreground">Content Moderation</h1>
-                <p className="text-muted-foreground mt-1">Review and manage flagged content and reports</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Content Moderation</h1>
+                <p className="text-sm sm:text-base text-slate-600 mt-1">Review and manage flagged content and reports</p>
             </div>
 
             {error && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg p-4">
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
                     {error}
                 </div>
             )}
 
             {loading && (
-                <div className="bg-card border border-border rounded-lg p-4 text-sm text-muted-foreground">
+                <div className="bg-white border border-slate-200 rounded-lg p-4 text-sm text-slate-500 shadow-sm">
                     Loading moderation reports...
                 </div>
             )}
 
             {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-card border border-border rounded-lg p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                     <div className="text-2xl font-bold text-foreground">
                         {flaggedItems.length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Total Reports</div>
+                    <div className="text-sm text-slate-600">Total Reports</div>
                 </div>
-                <div className="bg-card border border-border rounded-lg p-4">
+                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                     <div className="text-2xl font-bold text-yellow-500">
                         {flaggedItems.filter(i => i.status === 'pending').length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Pending Review</div>
+                    <div className="text-sm text-slate-600">Pending Review</div>
                 </div>
-                <div className="bg-card border border-border rounded-lg p-4">
+                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                     <div className="text-2xl font-bold text-green-500">
                         {flaggedItems.filter(i => i.status === 'resolved').length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Resolved</div>
+                    <div className="text-sm text-slate-600">Resolved</div>
                 </div>
-                <div className="bg-card border border-border rounded-lg p-4">
+                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                     <div className="text-2xl font-bold text-red-500">
                         {flaggedItems.filter(i => i.status === 'removed').length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Content Removed</div>
+                    <div className="text-sm text-slate-600">Content Removed</div>
                 </div>
             </div>
 
             {/* Filters */}
-            <div className="bg-card border border-border rounded-lg p-4">
-                <div className="flex gap-2">
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                <div className="flex flex-wrap gap-2">
                     <button
                         onClick={() => setFilter('all')}
-                        className={`px-4 py-2 rounded-lg transition-colors ${
+                        className={`h-9 px-4 rounded-lg text-sm font-medium transition-colors ${
                             filter === 'all' 
-                                ? 'bg-primary text-primary-foreground' 
-                                : 'bg-secondary text-foreground hover:bg-secondary/80'
+                                ? 'bg-sky-500 text-white' 
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                         }`}
                     >
                         All
                     </button>
                     <button
                         onClick={() => setFilter('pending')}
-                        className={`px-4 py-2 rounded-lg transition-colors ${
+                        className={`h-9 px-4 rounded-lg text-sm font-medium transition-colors ${
                             filter === 'pending' 
-                                ? 'bg-primary text-primary-foreground' 
-                                : 'bg-secondary text-foreground hover:bg-secondary/80'
+                                ? 'bg-sky-500 text-white' 
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                         }`}
                     >
                         Pending
                     </button>
                     <button
                         onClick={() => setFilter('resolved')}
-                        className={`px-4 py-2 rounded-lg transition-colors ${
+                        className={`h-9 px-4 rounded-lg text-sm font-medium transition-colors ${
                             filter === 'resolved' 
-                                ? 'bg-primary text-primary-foreground' 
-                                : 'bg-secondary text-foreground hover:bg-secondary/80'
+                                ? 'bg-sky-500 text-white' 
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                         }`}
                     >
                         Resolved
                     </button>
                     <button
                         onClick={() => setFilter('removed')}
-                        className={`px-4 py-2 rounded-lg transition-colors ${
+                        className={`h-9 px-4 rounded-lg text-sm font-medium transition-colors ${
                             filter === 'removed' 
-                                ? 'bg-primary text-primary-foreground' 
-                                : 'bg-secondary text-foreground hover:bg-secondary/80'
+                                ? 'bg-sky-500 text-white' 
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                         }`}
                     >
                         Removed
@@ -180,16 +180,16 @@ const AdminModeration = () => {
             {/* Flagged Items */}
             <div className="space-y-4">
                 {filteredItems.map((item) => (
-                    <div key={item.id} className="bg-card border border-border rounded-lg p-6">
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-start gap-4 flex-1">
+                    <div key={item.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 mb-1">
+                            <div className="flex items-start gap-4 flex-1 min-w-0">
                                 <div className={`p-3 rounded-lg ${
-                                    item.type === 'message' ? 'bg-blue-500/10' : 'bg-purple-500/10'
+                                    item.type === 'message' ? 'bg-sky-500/10' : 'bg-slate-200/80'
                                 }`}>
                                     {item.type === 'message' ? (
-                                        <MessageSquare className="text-blue-500" size={24} />
+                                        <MessageSquare className="text-sky-500" size={20} />
                                     ) : (
-                                        <User className="text-purple-500" size={24} />
+                                        <User className="text-slate-600" size={20} />
                                     )}
                                 </div>
                                 <div className="flex-1">
@@ -204,10 +204,10 @@ const AdminModeration = () => {
                                             {item.reason}
                                         </span>
                                     </div>
-                                    <div className="bg-secondary/50 border border-border rounded p-3 mb-3">
+                                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 mb-3">
                                         <p className="text-sm text-foreground">{item.content}</p>
                                     </div>
-                                    <div className="flex items-center gap-6 text-xs text-muted-foreground">
+                                    <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                                         <div className="flex items-center gap-1">
                                             <User size={14} />
                                             <span>Reported User: <span className="text-foreground">{item.reportedUser}</span></span>
@@ -224,11 +224,11 @@ const AdminModeration = () => {
                                 </div>
                             </div>
                             {item.status === 'pending' && (
-                                <div className="flex gap-2 ml-4">
+                                <div className="grid grid-cols-2 gap-2 lg:ml-4 w-full lg:w-auto">
                                     <button
                                         onClick={() => handleAction(item.id, 'approve')}
                                         disabled={updatingId === item.id}
-                                        className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                        className="secondary-button w-full"
                                     >
                                         <CheckCircle size={18} />
                                         <span>Dismiss</span>
@@ -236,7 +236,7 @@ const AdminModeration = () => {
                                     <button
                                         onClick={() => handleAction(item.id, 'remove')}
                                         disabled={updatingId === item.id}
-                                        className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                        className="secondary-button w-full"
                                     >
                                         <XCircle size={18} />
                                         <span>Remove</span>
@@ -248,7 +248,7 @@ const AdminModeration = () => {
                 ))}
 
                 {filteredItems.length === 0 && (
-                    <div className="bg-card border border-border rounded-lg p-12 text-center">
+                    <div className="bg-white border border-slate-200 rounded-xl p-12 text-center shadow-sm">
                         <AlertTriangle className="mx-auto text-muted-foreground mb-4" size={48} />
                         <h3 className="text-lg font-semibold text-foreground mb-2">No flagged content</h3>
                         <p className="text-muted-foreground">

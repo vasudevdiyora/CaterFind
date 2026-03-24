@@ -17,18 +17,18 @@ import {
     Compass,
     ArrowRight
 } from 'lucide-react';
-import { profileAPI, discoveryAPI, fileAPI } from '../services/api';
+import { profileAPI, discoveryAPI, fileAPI, authAPI } from '../services/api';
 import '../styles/Table.css'; // For buttons, modals
 import '../styles/Contacts.css'; // For filter pills
 import Modal from '../components/Modal';
 
 const CATERER_FALLBACK_IMAGE = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="%23e0f2fe"/><stop offset="100%" stop-color="%23f8fafc"/></linearGradient></defs><rect width="800" height="500" fill="url(%23g)"/><circle cx="140" cy="110" r="54" fill="%23bae6fd"/><circle cx="710" cy="420" r="82" fill="%23e2e8f0"/><text x="50%" y="52%" dominant-baseline="middle" text-anchor="middle" fill="%230f172a" font-family="Arial,sans-serif" font-size="34" font-weight="700">CaterFind</text><text x="50%" y="61%" dominant-baseline="middle" text-anchor="middle" fill="%23475569" font-family="Arial,sans-serif" font-size="18">Caterer Profile Image</text></svg>';
+const DEFAULT_DISCOVERY_LOCATION = 'your area';
 
 const ClientHome = ({ user }) => {
     const [caterers, setCaterers] = useState([]);
     const [allCaterers, setAllCaterers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [searching, setSearching] = useState(false);
     const [searchError, setSearchError] = useState('');
     const [locationNotice, setLocationNotice] = useState('');
     const [locatingPosition, setLocatingPosition] = useState(false);
@@ -46,7 +46,14 @@ const ClientHome = ({ user }) => {
     const [compareIds, setCompareIds] = useState([]);
     const [showCompareModal, setShowCompareModal] = useState(false);
 
-    const [currentLocation, setCurrentLocation] = useState('Delhi NCR');
+    const [currentLocation, setCurrentLocation] = useState(() => {
+        try {
+            const saved = localStorage.getItem('clientLocation');
+            return saved?.trim() || DEFAULT_DISCOVERY_LOCATION;
+        } catch {
+            return DEFAULT_DISCOVERY_LOCATION;
+        }
+    });
     const [clientCoordinates, setClientCoordinates] = useState({ lat: null, lng: null });
     const initialSearchDone = useRef(false);
     const navigate = useNavigate();
@@ -86,10 +93,42 @@ const ClientHome = ({ user }) => {
                     setClientCoordinates({ lat: parsed.lat, lng: parsed.lng });
                 }
             }
-        } catch (e) {
+        } catch {
             // ignore localStorage errors
         }
     }, []);
+
+    // Load profile city as the default discovery location.
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadProfileLocation = async () => {
+            if (!user?.userId) return;
+
+            try {
+                const profile = await authAPI.getProfile();
+                if (!isMounted) return;
+
+                const profileCity = (profile?.city || profile?.location || '').trim();
+                if (!profileCity) return;
+
+                const saved = localStorage.getItem('clientLocation');
+                const usingGpsLocation = (saved || '').trim().toLowerCase() === 'your current location';
+                if (usingGpsLocation) return;
+
+                setCurrentLocation(profileCity);
+                localStorage.setItem('clientLocation', profileCity);
+            } catch {
+                // ignore profile location fetch failures
+            }
+        };
+
+        loadProfileLocation();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [user?.userId]);
 
     useEffect(() => {
         const loadShortlist = async () => {
@@ -101,7 +140,7 @@ const ClientHome = ({ user }) => {
             try {
                 const data = await discoveryAPI.getShortlist();
                 setShortlistedIds(Array.isArray(data?.ids) ? data.ids : []);
-            } catch (e) {
+            } catch {
                 setShortlistedIds([]);
             }
         };
@@ -113,7 +152,7 @@ const ClientHome = ({ user }) => {
         try {
             const data = await profileAPI.getAll();
             setAllCaterers(Array.isArray(data) ? data : []);
-        } catch (error) {
+        } catch {
             setAllCaterers([]);
         }
     };
@@ -122,7 +161,7 @@ const ClientHome = ({ user }) => {
         if (!initialSearchDone.current) {
             setLoading(true);
         } else {
-            setSearching(true);
+            // keep prior content while searching
         }
         setSearchError('');
 
@@ -138,7 +177,7 @@ const ClientHome = ({ user }) => {
                 sortBy,
             });
             // Log raw discovery response for debugging (remove in production)
-            try { console.debug('discovery.raw', data && data.length ? data[0] : data); } catch (e) {}
+            console.debug('discovery.raw', data && data.length ? data[0] : data);
 
             // Normalize incoming caterer objects to ensure consistent keys
             const normalized = Array.isArray(data) ? data.map(item => {
@@ -174,7 +213,7 @@ const ClientHome = ({ user }) => {
                 }
 
                 // Debug any items still zero (helps trace mapping issues)
-                try { if (count === 0) console.debug('discovery.item.zeroCount', item); } catch (e) {}
+                if (count === 0) console.debug('discovery.item.zeroCount', item);
 
                 return {
                     ...item,
@@ -190,18 +229,17 @@ const ClientHome = ({ user }) => {
             if (!allCaterers.length && normalized.length) {
                 setAllCaterers(normalized);
             }
-        } catch (error) {
+        } catch {
             setSearchError('Failed to load discovery results. Showing fallback list.');
 
             try {
                 const fallback = await profileAPI.getAll();
                 setCaterers(Array.isArray(fallback) ? fallback : []);
-            } catch (fallbackError) {
+            } catch {
                 setCaterers([]);
             }
         } finally {
             setLoading(false);
-            setSearching(false);
             initialSearchDone.current = true;
         }
     };
@@ -221,6 +259,18 @@ const ClientHome = ({ user }) => {
                 .filter(Boolean)
         )].sort((a, b) => a.localeCompare(b));
     }, [allCaterers, selectedCity]);
+
+    const displayLocation = useMemo(() => {
+        if (selectedArea !== 'all') {
+            return selectedArea;
+        }
+
+        if (selectedCity !== 'all') {
+            return selectedCity;
+        }
+
+        return currentLocation || DEFAULT_DISCOVERY_LOCATION;
+    }, [selectedArea, selectedCity, currentLocation]);
 
     const shortlistedSet = useMemo(() => new Set(shortlistedIds), [shortlistedIds]);
 
@@ -265,7 +315,7 @@ const ClientHome = ({ user }) => {
                 }
                 return c;
             }));
-        } catch (e) {
+        } catch {
             alert('Failed to update shortlist.');
         }
     };
@@ -480,15 +530,15 @@ const ClientHome = ({ user }) => {
     );
 
     return (
-        <div className="page-shell py-8 pb-32">
-            <header className="text-center mb-8">
-                <h1 className="text-4xl font-extrabold text-slate-800 mb-2">Find the Perfect Caterer</h1>
-                <p className="text-lg text-slate-500">Discover top-rated caterers for your next event in <span className="font-semibold text-sky-600">{currentLocation}</span>.</p>
+        <div className="page-shell py-4 md:py-6 pb-32">
+            <header className="text-center mb-6 sm:mb-8">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-800 mb-2">Find the Perfect Caterer</h1>
+                <p className="text-sm sm:text-base lg:text-lg text-slate-600">Discover top-rated caterers for your next event in <span className="font-semibold text-sky-600">{displayLocation}</span>.</p>
             </header>
 
             {/* Search and Location Bar */}
-            <div className="max-w-3xl mx-auto mb-8 p-2 bg-white rounded-full shadow-lg border border-slate-200 flex items-center gap-2">
-                <div className="relative flex-grow">
+            <div className="max-w-3xl mx-auto mb-6 sm:mb-8 p-2 bg-white rounded-2xl sm:rounded-full shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center gap-2">
+                <div className="relative flex-grow w-full">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                     <input
                         type="text"
@@ -498,7 +548,7 @@ const ClientHome = ({ user }) => {
                         onChange={e => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <button onClick={handleLocateMe} className="secondary-button rounded-full !px-4">
+                <button onClick={handleLocateMe} className="secondary-button w-full sm:w-auto rounded-xl sm:rounded-full !px-4">
                     {locatingPosition ? <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div> : <LocateFixed size={20} />}
                 </button>
             </div>
@@ -509,10 +559,10 @@ const ClientHome = ({ user }) => {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* Filters Sidebar */}
                 <aside className="lg:col-span-1 lg:self-start">
-                    <div className="surface-card lg:sticky lg:top-4 max-h-[calc(100dvh-7rem)] overflow-y-auto pr-1">
+                    <div className="surface-card lg:sticky lg:top-4 max-h-[calc(100dvh-7rem)] overflow-y-auto">
                         {renderFilters()}
                     </div>
                 </aside>
@@ -520,7 +570,7 @@ const ClientHome = ({ user }) => {
                 {/* Caterer Grid */}
                 <main className="lg:col-span-3">
                     {loading ? (
-                        <div className="dense-grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                        <div className="dense-grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
                             {[1, 2, 3, 4, 5, 6].map((skeleton) => (
                                 <div key={skeleton} className="surface-card overflow-hidden animate-pulse">
                                     <div className="h-40 bg-slate-100" />
@@ -541,7 +591,7 @@ const ClientHome = ({ user }) => {
                             <p>Try adjusting your search or filter criteria.</p>
                         </div>
                     ) : (
-                        <div className="dense-grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                        <div className="dense-grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
                             {filteredCaterers.map((caterer, index) => renderCatererCard(caterer, index))}
                         </div>
                     )}

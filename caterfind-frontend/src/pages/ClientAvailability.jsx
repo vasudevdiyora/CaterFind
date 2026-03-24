@@ -100,6 +100,12 @@ const ClientAvailability = ({ catererId, onBack, embedded = false, showBack = tr
         <div className={wrapperClass}>
             {!embedded && (
                  <header className="page-header">
+                    {showBack && typeof onBack === 'function' && (
+                        <button type="button" onClick={onBack} className="secondary-button mb-3 inline-flex items-center gap-2">
+                            <ArrowLeft size={16} />
+                            Back
+                        </button>
+                    )}
                     <h1 className="page-title">
                         <CalendarIcon /> Availability Calendar
                     </h1>
@@ -111,7 +117,7 @@ const ClientAvailability = ({ catererId, onBack, embedded = false, showBack = tr
 
             <div className={calendarClass}>
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-slate-200">
+                <div className="flex items-center justify-between p-5 border-b border-slate-200">
                     <button
                         onClick={goToPrevMonth}
                         className="icon-button"
@@ -131,7 +137,7 @@ const ClientAvailability = ({ catererId, onBack, embedded = false, showBack = tr
                     </button>
                 </div>
 
-                <div className="p-4">
+                <div className="p-5">
                     {/* Days of Week */}
                     <div className="grid grid-cols-7 gap-2 mb-2 text-center">
                         {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
@@ -157,7 +163,7 @@ const ClientAvailability = ({ catererId, onBack, embedded = false, showBack = tr
                     </div>
 
                     {/* Legend */}
-                    <div className="flex items-center justify-center gap-6 mt-6">
+                    <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-6">
                         <div className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
                             <span className="text-sm text-slate-600">Available</span>

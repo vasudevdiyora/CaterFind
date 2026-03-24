@@ -63,7 +63,7 @@ function DishLibrary({ user }) {
 
             setAvailableCategories([...new Set([...defaultCategories, ...dishCategories])]);
             setAvailableLabels([...new Set([...defaultLabels, ...dishLabels])]);
-        } catch (error) {
+        } catch {
             // Error fetching dishes
         } finally {
             setLoading(false);
@@ -132,7 +132,7 @@ function DishLibrary({ user }) {
         try {
             await dishAPI.delete(id);
             fetchDishes();
-        } catch (error) {
+        } catch {
             // Error deleting dish
         }
     };
@@ -160,7 +160,7 @@ function DishLibrary({ user }) {
             }
             setShowModal(false);
             fetchDishes();
-        } catch (error) {
+        } catch {
             // Error saving dish
         }
     };
@@ -222,14 +222,14 @@ function DishLibrary({ user }) {
     };
 
     return (
-        <div className="page-shell">
+        <div className="page-shell space-y-6">
             <div className="contacts-header">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-3">
                         <Utensils className="w-6 h-6" />
                         Dish Library
                     </h1>
-                    <button className="primary-button" onClick={handleAddDish}>
+                    <button className="primary-button w-full sm:w-auto" onClick={handleAddDish}>
                         <Plus className="w-4 h-4 mr-2" />
                         Add Dish
                     </button>
@@ -240,12 +240,12 @@ function DishLibrary({ user }) {
                         <input
                             type="text"
                             placeholder="Search dishes by name or description..."
-                            className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg w-full focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none"
+                            className="h-9 pl-10 pr-4 border border-slate-300 rounded-lg w-full focus:ring-2 focus:ring-sky-200 focus:border-sky-300 outline-none"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <div className="flex gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:w-[420px]">
                         <select
                             className="form-select"
                             value={selectedCategory}
@@ -266,13 +266,13 @@ function DishLibrary({ user }) {
                 </div>
             </div>
 
-            <div className="mt-6">
+            <div>
                 {loading ? (
-                    <div className="text-center p-8">Loading dishes...</div>
+                    <div className="surface-card p-8 text-center text-slate-500">Loading dishes...</div>
                 ) : filteredDishes.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                         {filteredDishes.map(dish => (
-                            <div key={dish.id} className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden flex flex-col">
+                            <div key={dish.id} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
                                     <div className="h-40 w-full bg-slate-100 overflow-hidden">
                                     <img src={fileAPI.getImageUrl(dish.imageUrl) || 'https://via.placeholder.com/400x300'} alt={dish.name} className="w-full h-full object-cover" />
                                 </div>
@@ -309,7 +309,7 @@ function DishLibrary({ user }) {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center p-8">
+                    <div className="surface-card text-center p-8">
                         <div className="flex flex-col items-center gap-2 text-slate-500">
                             <UtensilsCrossed className="w-10 h-10" />
                             <span className="font-semibold">No Dishes Found</span>

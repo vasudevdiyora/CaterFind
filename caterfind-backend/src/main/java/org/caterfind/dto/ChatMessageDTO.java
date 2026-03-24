@@ -15,6 +15,8 @@ public class ChatMessageDTO {
     private String text;
     private LocalDateTime timestamp;
     private String status; // sending, sent, delivered, read
+    private LocalDateTime deliveredAt;
+    private LocalDateTime readAt;
     // Optional client-supplied id to correlate optimistic messages
     private String clientMessageId;
 
@@ -97,6 +99,22 @@ public class ChatMessageDTO {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public LocalDateTime getDeliveredAt() {
+        return deliveredAt;
+    }
+
+    public void setDeliveredAt(LocalDateTime deliveredAt) {
+        this.deliveredAt = deliveredAt;
+    }
+
+    public LocalDateTime getReadAt() {
+        return readAt;
+    }
+
+    public void setReadAt(LocalDateTime readAt) {
+        this.readAt = readAt;
     }
 
     public String getClientMessageId() {

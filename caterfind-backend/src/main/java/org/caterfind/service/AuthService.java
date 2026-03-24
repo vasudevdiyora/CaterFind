@@ -429,7 +429,7 @@ public class AuthService {
                 + "If you did not request this, please ignore this email.";
         emailService.sendEmail(normalizedNew, subject, body);
 
-        System.out.println("✅ Email change OTP sent to: " + normalizedNew + " | OTP: " + otp);
+        // System.out.println("✅ Email change OTP sent to: " + normalizedNew + " | OTP: " + otp);
         return "OTP sent to " + normalizedNew + ". Please verify to complete the email change.";
     }
 
@@ -479,6 +479,6 @@ public class AuthService {
             });
         }
 
-        System.out.println("✅ Email changed from " + normalizedCurrent + " to " + normalizedNew);
+        // System.out.println("✅ Email changed from " + normalizedCurrent + " to " + normalizedNew);
     }
 }

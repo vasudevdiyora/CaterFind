@@ -21,6 +21,9 @@ const Chat = ({ user }) => {
     const [pendingLoadConv, setPendingLoadConv] = useState(null);
     const messagesEndRef = useRef(null);
 
+
+    
+
     // WebSocket hook - use full API (conversations/messages are provided by hook)
     const { isConnected, lastMessage, conversations: wsConversations, messages: wsMessages, loadMessageHistory, sendMessage: sendViaWS, startConversation, markConversationRead } = useWebSocket(user?.userId, user?.role);
 
@@ -32,99 +35,76 @@ const Chat = ({ user }) => {
         // keep effect for potential side-effects when lastMessage arrives
     }, [lastMessage]);
 
-    // Scroll to bottom when the selected conversation's WS messages change
-    useEffect(() => {
-        if (selectedConversation && selectedConversation.id) {
+    // Helper: scroll to bottom of messages list
+    function scrollToBottom() {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Load messages helper (can be called before websocket connection)
+    async function loadMessages(conversationOrPartner) {
+        try {
+            const convId = conversationOrPartner?.id || conversationOrPartner;
+            if (convId && !isConnected) {
+                setPendingLoadConv(convId);
+                return;
+            }
+            if (convId && loadMessageHistory) {
+                await loadMessageHistory(convId);
+            } else if (conversationOrPartner && conversationOrPartner.partner) {
+                const partnerId = conversationOrPartner.partner.id;
+                const found = (wsConversations || []).find(c => c.participantId === partnerId || c.participantId?.toString() === partnerId?.toString());
+                if (found) await loadMessageHistory(found.id);
+            }
             scrollToBottom();
+        } catch (error) {
+            console.error("Failed to load messages", error);
         }
-    }, [wsMessages, selectedConversation]);
+    }
+
+    // Select a conversation and request history
+    function handleSelectConversation(conv) {
+        setSelectedConversation(conv);
+
+        if (conv && conv.id) {
+            loadMessages(conv.id);
+            try { markConversationRead(conv.id); } catch (e) { console.error(e); }
+        } else {
+            console.error('Conversation ID missing!', conv);
+        }
+    }
 
     // Handle Navigation from other pages (e.g. "Message" button on request)
     useEffect(() => {
         if (location.state?.openConversationWith) {
             const targetId = location.state.openConversationWith;
             const targetName = location.state.clientName || location.state.catererName || 'User';
-            
+
             // Try to find an existing conversation in websocket-provided list first
             const existingWs = (wsConversations || []).find(c => c.participantId === targetId || c.participantId?.toString() === targetId?.toString());
-            if (existingWs) {
-                // build conversation object expected by UI
-                const conv = {
-                    id: existingWs.id,
-                    partner: { id: existingWs.participantId, name: existingWs.participantName },
-                    lastMessage: { content: existingWs.lastMessage }
-                };
-                handleSelectConversation(conv);
-            } else {
-                // Use temporary selection and request startConversation (will create if missing)
-                const tempConv = { partner: { id: targetId, name: targetName } };
-                setSelectedConversation(tempConv);
-                // trigger startConversation which will notify both users
-                startConversation(targetId, targetName, 'CLIENT');
-            }
-            
-            // Clear state
-            navigate(location.pathname, { replace: true });
+
+            const t = setTimeout(() => {
+                if (existingWs) {
+                    const conv = {
+                        id: existingWs.id,
+                        partner: { id: existingWs.participantId, name: existingWs.participantName },
+                        lastMessage: { content: existingWs.lastMessage }
+                    };
+                    handleSelectConversation(conv);
+                } else {
+                    const tempConv = { partner: { id: targetId, name: targetName } };
+                    setSelectedConversation(tempConv);
+                    startConversation(targetId, targetName, 'CLIENT');
+                }
+
+                // Clear state
+                navigate(location.pathname, { replace: true });
+            }, 0);
+
+            return () => clearTimeout(t);
         }
     }, [location.state, wsConversations, navigate]);
 
-    // removed local `messages` state; scrolling is handled via wsMessages effect above
-
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
-
-    // Conversations are provided by the websocket hook; no REST fallback function
-
-    const loadMessages = async (conversationOrPartner) => {
-        try {
-            console.log('loadMessages called with:', conversationOrPartner);
-            // If we have a conversation id, request via WebSocket history loader
-            const convId = conversationOrPartner?.id || conversationOrPartner;
-            // If websocket not connected, save pending load and return
-            if (convId && !isConnected) {
-                console.log('WS not connected, saving pending load:', convId);
-                setPendingLoadConv(convId);
-                return;
-            }
-            if (convId && loadMessageHistory) {
-                console.log('Calling loadMessageHistory with:', convId);
-                // If conversation id is numeric, call loadMessageHistory
-                await loadMessageHistory(convId);
-                // messages will be populated from `wsMessages`
-            } else if (conversationOrPartner && conversationOrPartner.partner) {
-                // No conversation id - try to find websocket conversation by participant id
-                const partnerId = conversationOrPartner.partner.id;
-                const found = (wsConversations || []).find(c => c.participantId === partnerId || c.participantId?.toString() === partnerId?.toString());
-                if (found) {
-                    await loadMessageHistory(found.id);
-                } else {
-                    // Fallback to REST if available (older API)
-                    console.warn('No websocket conversation found; REST fallback ignored to avoid local state conflicts');
-                }
-            } else {
-                // fallback: nothing to load
-            }
-            scrollToBottom();
-        } catch (error) {
-            console.error("Failed to load messages", error);
-        }
-    };
-
-    const handleSelectConversation = (conv) => {
-        console.log('Selected conversation:', conv);
-        console.log('Selected conversation ID:', conv?.id);
-
-        setSelectedConversation(conv);
-
-        if (conv && conv.id) {
-            console.log('Requesting messages via loadMessages for:', conv.id);
-            loadMessages(conv.id);
-            try { markConversationRead(conv.id); } catch (e) { console.error(e); }
-        } else {
-            console.error('Conversation ID missing!', conv);
-        }
-    };
+    // removed local `messages` state; scrolling handled by scrollToBottom
 
     // When websocket messages for the selected conversation update, mark them as read
     useEffect(() => {
@@ -145,10 +125,13 @@ const Chat = ({ user }) => {
     // When websocket becomes connected, trigger any pending history load
     useEffect(() => {
         if (isConnected && pendingLoadConv) {
-            console.log('WebSocket connected — loading pending conversation history for:', pendingLoadConv);
-            if (pendingLoadConv.id) loadMessages(pendingLoadConv.id);
-            else loadMessages(pendingLoadConv);
-            setPendingLoadConv(null);
+            // WebSocket connected — loading pending conversation history
+            const t = setTimeout(() => {
+                if (pendingLoadConv.id) loadMessages(pendingLoadConv.id);
+                else loadMessages(pendingLoadConv);
+                setPendingLoadConv(null);
+            }, 0);
+            return () => clearTimeout(t);
         }
     }, [isConnected, pendingLoadConv]);
 
@@ -249,7 +232,7 @@ const Chat = ({ user }) => {
                             filteredConversations.map((conv) => (
                                 <button
                                     key={conv.id}
-                                    onClick={(e) => { e.stopPropagation(); console.log('CLICK WORKING', conv); handleSelectConversation(conv); }}
+                                    onClick={(e) => { e.stopPropagation(); handleSelectConversation(conv); }}
                                     className={`w-full p-4 flex items-start gap-3 hover:bg-white hover:shadow-sm transition-all border-b border-slate-100 cursor-pointer ${selectedConversation?.id === conv.id ? 'bg-white shadow-sm border-l-4 border-l-sky-500' : ''}`}
                                     style={{ zIndex: 9999 }}
                                 >

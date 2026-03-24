@@ -111,15 +111,15 @@ Frontend will start on **http://localhost:5173**
 
 ### Caterer Account (Full Access)
 - **Email:** admin@caterfind.com
-- **Password:** admin123
+- **Password:** (demo account)
 
 ### Client Account
 - **Email:** client@test.com
-- **Password:** client123
+- **Password:** (demo account)
 
 ### Admin Account
 - **Email:** superadmin@caterfind.com
-- **Password:** admin@123
+- **Password:** (demo account)
 
 ---
 

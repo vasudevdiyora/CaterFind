@@ -32,13 +32,13 @@ const ClientRequests = ({ user }) => {
     useEffect(() => {
         let mounted = true;
         const loadUnread = async () => {
-            try {
+                try {
                 const convs = await chatAPI.getConversations();
-                console.debug('[ClientRequests] loaded conversations', convs);
+                // debug logs removed for production
                 if (!mounted) return;
                 const total = (convs || []).reduce((acc, c) => acc + (Number(c.unreadCount || c.unread || c.unread_count || 0) || 0), 0);
                 setMessagesUnread(total);
-            } catch (e) {
+            } catch {
                 // ignore
             }
         };
@@ -96,8 +96,8 @@ const ClientRequests = ({ user }) => {
         try {
             const profile = await profileAPI.get(user?.userId || user?.id);
             setBusinessProfile(profile || null);
-        } catch (err) {
-            console.warn('Could not load business profile for default address', err);
+        } catch {
+            // console.warn('Could not load business profile for default address');
             setBusinessProfile(null);
         }
     };

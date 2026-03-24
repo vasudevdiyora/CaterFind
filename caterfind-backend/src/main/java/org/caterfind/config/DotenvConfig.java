@@ -36,7 +36,7 @@ public class DotenvConfig implements ApplicationContextInitializer<ConfigurableA
                     new MapPropertySource("dotenvProperties", dotenvMap)
             );
 
-            System.out.println("✓ Successfully loaded .env file with " + dotenvMap.size() + " variables");
+            // System.out.println("✓ Successfully loaded .env file with " + dotenvMap.size() + " variables");
 
         } catch (Exception e) {
             System.err.println("⚠ Warning: Could not load .env file: " + e.getMessage());

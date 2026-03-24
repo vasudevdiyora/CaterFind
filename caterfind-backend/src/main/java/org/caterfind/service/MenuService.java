@@ -186,7 +186,7 @@ public class MenuService {
             String subject = "Menu Proposal for " + menu.getEventLocation();
             String body = buildMenuEmailBody(menu);
             emailService.sendEmail(recipientEmail, subject, body);
-            System.out.println("✅ Menu email sent to: " + recipientEmail);
+            // System.out.println("✅ Menu email sent to: " + recipientEmail);
         } catch (Exception e) {
             System.err.println("⚠️ Failed to send menu email: " + e.getMessage());
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,

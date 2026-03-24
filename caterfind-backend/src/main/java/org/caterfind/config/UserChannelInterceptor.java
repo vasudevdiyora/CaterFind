@@ -21,13 +21,13 @@ public class UserChannelInterceptor implements ChannelInterceptor {
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
             String userId = accessor.getFirstNativeHeader("userId");
             
-            System.out.println("WebSocket CONNECT: userId=" + userId);
+            // System.out.println("WebSocket CONNECT: userId=" + userId);
             
             if (userId != null) {
                 // Create a simple principal with the userId
                 Principal principal = new SimplePrincipal(userId);
                 accessor.setUser(principal);
-                System.out.println("Set user principal: " + userId);
+                // System.out.println("Set user principal: " + userId);
             }
         }
         

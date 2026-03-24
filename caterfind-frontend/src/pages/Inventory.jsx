@@ -64,16 +64,22 @@ function Inventory({ user }) {
     }
 
     useEffect(() => {
-        fetchItems();
-        fetchContacts();
+        // Schedule fetches to avoid synchronous setState within effect
+        const t1 = setTimeout(() => fetchItems(), 0);
+        const t2 = setTimeout(() => fetchContacts(), 0);
+        return () => { clearTimeout(t1); clearTimeout(t2); };
     }, []);
 
     useEffect(() => {
-        if (selectedCategory === 'All') {
-            setFilteredItems(items);
-        } else {
-            setFilteredItems(items.filter(item => item.category === selectedCategory));
-        }
+        // Schedule filter update to avoid synchronous setState within effect
+        const t = setTimeout(() => {
+            if (selectedCategory === 'All') {
+                setFilteredItems(items);
+            } else {
+                setFilteredItems(items.filter(item => item.category === selectedCategory));
+            }
+        }, 0);
+        return () => clearTimeout(t);
     }, [selectedCategory, items]);
 
     const handleQuantityChange = async (itemId, delta) => {

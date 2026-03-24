@@ -62,7 +62,7 @@ function MenuBuilder({ user }) {
 
     // Loading state
     const [loading, setLoading] = useState(false);
-    const eventDateInputRef = useRef(null);
+    const _eventDateInputRef = useRef(null);
     const finalMenuListRef = useRef(null);
     const autoScrollFrameRef = useRef(null);
     const autoScrollVelocityRef = useRef(0);

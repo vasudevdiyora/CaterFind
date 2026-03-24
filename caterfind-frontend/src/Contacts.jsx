@@ -21,7 +21,9 @@ export default function Contacts() {
   };
 
   useEffect(() => {
-    fetchContacts();
+    // Schedule fetch to avoid synchronous setState inside effect
+    const t = setTimeout(() => fetchContacts(), 0);
+    return () => clearTimeout(t);
   }, []);
 
   const handleChange = (e) => {

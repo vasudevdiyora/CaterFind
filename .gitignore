@@ -87,3 +87,7 @@ tmp/
 # Ignore all markdown files except README.md
 *.md
 !README.md
+
+# Build artifacts (explicit)
+/caterfind-frontend/dist/
+caterfind-backend/target/

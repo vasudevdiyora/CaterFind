@@ -30,8 +30,8 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
             try {
                 const contacts = await contactAPI.getAll(catererId);
                 setAllContacts(Array.isArray(contacts) ? contacts : []);
-            } catch (err) {
-                console.error('Failed to load contacts:', err);
+            } catch (_err) {
+                console.error('Failed to load contacts:', _err);
                 setAllContacts([]);
             }
 
@@ -58,7 +58,7 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
                         email = contact.email;
                         contactId = contact.id;
                     }
-                } catch (err) {
+                } catch {
                     // Error fetching contact details
                 }
             }
@@ -108,8 +108,8 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
                 setContactMethod(contact.preferredContactMethod || 'SMS');
                 setMessage(`Hi ${contact.name}, please send ${quantity} ${item.unit} of ${item.itemName} to CaterFind Kitchen.`);
             }
-        } catch (err) {
-            console.error('Error loading contact:', err);
+        } catch (_err) {
+            console.error('Error loading contact:', _err);
         }
     };
 
@@ -153,7 +153,7 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
             } else {
                 alert('Failed: ' + (response?.message || 'Unknown error'));
             }
-        } catch (error) {
+        } catch {
             alert('Failed to send reorder. Please try again.');
         } finally {
             setLoading(false);

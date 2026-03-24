@@ -60,9 +60,8 @@ const MeetingAcceptModal = ({ isOpen, onClose, request, defaultPlace = '', onCon
                             payload.meetingLongitude = Number(arr[0].lon);
                         }
                     }
-                } catch (err) {
+                } catch {
                     // ignore geocoding errors; server will fallback
-                    console.warn('Client geocode failed', err);
                 }
             }
 

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.caterfind.entity.Contact;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +21,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class TranslationService {
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private SettingsService settingsService;
 
     @Value("${openai.api.key}")
     private String apiKey;
@@ -40,6 +44,10 @@ public class TranslationService {
                             Contact.Language source,
                             Contact.Language target) {
 
+        if (!settingsService.isEnabled("translationEnabled")) {
+            return text;
+        }
+
         if (source == target) {
             return text;
         }
@@ -52,7 +60,6 @@ public class TranslationService {
             return callOpenAI(text, source, target);
         } catch (Exception e) {
             System.err.println("Translation failed: " + e.getMessage());
-            e.printStackTrace();
             // Return original text if translation fails
             return text;
         }
@@ -70,10 +77,14 @@ public class TranslationService {
 
         // Create the prompt for translation
         String prompt = String.format(
-            "Translate the following text from %s to %s. " +
-            "Provide ONLY the translation, no explanations or additional text:\n\n%s",
-            sourceLang, targetLang, text
-        );
+            """
+            Translate the following text from %s to %s. Provide ONLY the translation, no explanations or additional text:
+
+            %s
+            """,
+            sourceLang,
+            targetLang,
+            text);
 
         // Build request body
         Map<String, Object> requestBody = new HashMap<>();
@@ -100,14 +111,15 @@ public class TranslationService {
         // survive the HTTP response decoding. Spring's StringHttpMessageConverter defaults
         // to ISO-8859-1 when the Content-Type has no charset, which corrupts Unicode.
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(new MediaType("application", "json", StandardCharsets.UTF_8));
+        headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("Authorization", "Bearer " + apiKey);
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+        String resolvedApiUrl = Objects.requireNonNull(apiUrl, "openai.api.url must be configured");
 
         // Receive as raw bytes and decode as UTF-8 to avoid ISO-8859-1 corruption
         ResponseEntity<byte[]> response = restTemplate.postForEntity(
-            apiUrl,
+            resolvedApiUrl,
             entity,
             byte[].class
         );
@@ -130,16 +142,12 @@ public class TranslationService {
      * Converts Language enum to human-readable language name.
      */
     private String getLanguageName(Contact.Language language) {
-        switch (language) {
-            case ENGLISH:
-                return "English";
-            case HINDI:
-                return "Hindi";
-            case GUJARATI:
-                return "Gujarati";
-            default:
-                return "English";
-        }
+        return switch (language) {
+            case ENGLISH -> "English";
+            case HINDI -> "Hindi";
+            case GUJARATI -> "Gujarati";
+            default -> "English";
+        };
     }
 
     public Map<Long, String> batchTranslate(

@@ -76,17 +76,24 @@ export function DialogProvider({ children }) {
   const value = useMemo(() => ({ showAlert, showConfirm }), [showAlert, showConfirm]);
   const isConfirmDialog = activeDialog?.type === 'confirm';
   const dialogIcon = isConfirmDialog ? AlertTriangle : BadgeCheck;
-  const dialogAccent = isConfirmDialog
-    ? {
-      iconWrap: 'bg-amber-50 text-amber-600 border-amber-200',
-      primaryButton: 'bg-amber-500 hover:bg-amber-600 focus-visible:ring-amber-400',
-      ribbon: 'from-amber-50 via-transparent to-transparent'
-    }
-    : {
-      iconWrap: 'bg-sky-50 text-sky-600 border-sky-200',
-      primaryButton: 'bg-sky-500 hover:bg-sky-600 focus-visible:ring-sky-400',
-      ribbon: 'from-sky-50 via-transparent to-transparent'
+  const dialogAccent = {
+    iconWrap: 'bg-sky-50 text-sky-600 border-sky-200',
+    primaryButton: 'bg-sky-500 hover:bg-sky-600 focus-visible:ring-sky-400',
+    ribbon: 'from-sky-50 via-transparent to-transparent'
+  };
+
+  // When a dialog is active, allow Enter to confirm the dialog (useful for keyboard users)
+  useEffect(() => {
+    if (!activeDialog) return;
+    const onKey = (e) => {
+      if (e.key === 'Enter') {
+        // Confirm by default on Enter
+        closeDialog(true);
+      }
     };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [activeDialog, closeDialog]);
 
   return (
     <DialogContext.Provider value={value}>
@@ -101,12 +108,12 @@ export function DialogProvider({ children }) {
         className="max-w-xl w-full !bg-transparent !border-0 !shadow-none !p-0 overflow-visible"
       >
         <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_20px_70px_rgba(2,6,23,0.18)]">
-          <div className={`absolute inset-x-0 top-0 h-16 bg-gradient-to-r ${dialogAccent.ribbon}`} />
-          <div className="absolute -top-10 -right-10 h-28 w-28 rounded-full bg-slate-100/70 blur-xl" />
+          <div className={`absolute inset-x-0 top-0 h-16 bg-gradient-to-r ${dialogAccent.ribbon} pointer-events-none`} />
+          <div className="absolute -top-10 -right-10 h-28 w-28 rounded-full bg-slate-100/70 blur-xl pointer-events-none" />
 
           <button
             type="button"
-            className="absolute top-4 right-4 h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors flex items-center justify-center"
+            className="absolute top-4 right-4 h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors flex items-center justify-center z-20 pointer-events-auto"
             onClick={() => closeDialog(false)}
             aria-label="Close dialog"
           >

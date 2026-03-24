@@ -45,6 +45,24 @@ function Inventory({ user }) {
         { name: 'OTHER', emoji: '📦' }
     ];
 
+    async function fetchItems() {
+        try {
+            const data = await inventoryAPI.getAll(user.userId);
+            setItems(data);
+        } catch {
+            // Error fetching inventory
+        }
+    }
+
+    async function fetchContacts() {
+        try {
+            const data = await contactAPI.getAll(user.userId);
+            setContacts(data);
+        } catch {
+            // Error fetching contacts
+        }
+    }
+
     useEffect(() => {
         fetchItems();
         fetchContacts();
@@ -58,31 +76,13 @@ function Inventory({ user }) {
         }
     }, [selectedCategory, items]);
 
-    const fetchItems = async () => {
-        try {
-            const data = await inventoryAPI.getAll(user.userId);
-            setItems(data);
-        } catch (error) {
-            // Error fetching inventory
-        }
-    };
-
-    const fetchContacts = async () => {
-        try {
-            const data = await contactAPI.getAll(user.userId);
-            setContacts(data);
-        } catch (error) {
-            // Error fetching contacts
-        }
-    };
-
     const handleQuantityChange = async (itemId, delta) => {
         try {
             const item = items.find(i => i.id === itemId);
             const newQuantity = Math.max(0, item.quantity + delta);
             await inventoryAPI.update(itemId, { ...item, quantity: newQuantity });
             fetchItems();
-        } catch (error) {
+        } catch {
             // Error updating quantity
         }
     };
@@ -98,7 +98,7 @@ function Inventory({ user }) {
         try {
             await inventoryAPI.delete(id);
             fetchItems();
-        } catch (error) {
+        } catch {
             // Error deleting item
         }
     };
@@ -147,7 +147,7 @@ function Inventory({ user }) {
                 dealerContactId: '' // Reset ID
             });
             fetchItems();
-        } catch (error) {
+        } catch {
             // Error saving item
         }
     };
@@ -190,14 +190,14 @@ function Inventory({ user }) {
     };
 
     return (
-        <div className="page-shell">
+        <div className="page-shell space-y-6">
             <div className="contacts-header">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-3">
                         <Package className="w-6 h-6" />
                         Inventory
                     </h1>
-                    <button className="primary-button" onClick={() => {
+                    <button className="primary-button w-full sm:w-auto" onClick={() => {
                         setEditingItem(null);
                         setFormData({ itemName: '', category: 'GRAIN', quantity: '', unit: 'kg', minThreshold: '', dealerName: '', dealerContact: '', dealerContactId: '' });
                         setShowModal(true);
@@ -223,7 +223,58 @@ function Inventory({ user }) {
             </div>
 
             {/* Inventory Table */}
-            <div className="table-container">
+            <div className="md:hidden space-y-4">
+                {filteredItems.map(item => (
+                    <div key={item.id} className={`surface-card p-5 space-y-4 ${isLowStock(item) ? 'border-red-200' : ''}`}>
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xl">{getCategoryEmoji(item.category)}</span>
+                                <div>
+                                    <p className="text-base font-semibold text-slate-900">{item.itemName}</p>
+                                    <p className="text-sm text-slate-600">{item.category}</p>
+                                </div>
+                            </div>
+                            <span className={`table-cell-badge ${isLowStock(item) ? 'danger' : 'success'}`}>
+                                {isLowStock(item) ? 'Low Stock' : 'In Stock'}
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <p className="text-slate-500">Quantity</p>
+                                <div className="quantity-control mt-1">
+                                    <button className="qty-btn" onClick={() => handleQuantityChange(item.id, -1)}><Minus size={14} /></button>
+                                    <span className="qty-value">{item.quantity} {item.unit}</span>
+                                    <button className="qty-btn" onClick={() => handleQuantityChange(item.id, 1)}><Plus size={14} /></button>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-slate-500">Dealer</p>
+                                <p className="text-slate-800 mt-1">{item.dealerName || 'N/A'}</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                            {isLowStock(item) && (
+                                <button className="secondary-button w-full" onClick={() => handleReorder(item)}>
+                                    <Send size={14} className="mr-2" />
+                                    Re-order
+                                </button>
+                            )}
+                            <button className="secondary-button w-full" onClick={() => handleEdit(item)}>
+                                <Pencil size={14} className="mr-2" />
+                                Edit
+                            </button>
+                            <button className="secondary-button w-full" onClick={() => handleDelete(item.id)}>
+                                <Trash2 size={14} className="mr-2" />
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="table-container hidden md:block">
                 <table className="data-table">
                     <thead>
                         <tr>

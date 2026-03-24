@@ -123,6 +123,39 @@ public class ChatService {
     }
 
     /**
+     * Mark the message as delivered (set status and deliveredAt)
+     */
+    @Transactional
+    public ChatMessage markMessageDelivered(Long messageId) {
+        ChatMessage msg = messageRepository.findById(messageId).orElse(null);
+        if (msg == null) return null;
+        // If already delivered, return null to indicate no change
+        if (msg.getDeliveredAt() != null) return null;
+        msg.setDeliveredAt(LocalDateTime.now());
+        msg.setStatus("delivered");
+        messageRepository.save(msg);
+        return msg;
+    }
+
+    /**
+     * Mark the message as read (set status and readAt)
+     */
+    @Transactional
+    public ChatMessage markMessageRead(Long messageId) {
+        ChatMessage msg = messageRepository.findById(messageId).orElse(null);
+        if (msg == null) return null;
+        // If already read, return null to indicate no change (prevents duplicate notify loops)
+        if (msg.getReadAt() != null) {
+            return null;
+        }
+
+        msg.setReadAt(LocalDateTime.now());
+        msg.setStatus("read");
+        messageRepository.save(msg);
+        return msg;
+    }
+
+    /**
      * Get all conversations for a user.
      */
     public List<Map<String, Object>> getUserConversations(Long userId) {
@@ -155,7 +188,9 @@ public class ChatService {
             convMap.put("participantRole", participantRole);
             convMap.put("lastMessage", lastMessage);
             convMap.put("lastMessageTime", lastMessageTime);
-            convMap.put("unreadCount", 0);
+            // Compute unread count for this conversation (messages not sent by the requesting user and not read)
+            long unread = messages.stream().filter(m -> m.getSenderId() != null && !m.getSenderId().equals(userId) && m.getReadAt() == null).count();
+            convMap.put("unreadCount", (int) unread);
 
             return convMap;
         }).collect(Collectors.toList());
@@ -176,7 +211,7 @@ public class ChatService {
         // cases where clients do not send a valid 'since' or parse issues filter out messages.
         List<ChatMessage> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
 
-        System.out.println("ChatService.getMessageHistory: conversationId=" + conversationId + ", requestedSince=" + (since != null ? since.toString() : "<none>") + ", returnedCount=" + (messages != null ? messages.size() : 0));
+        
 
         return messages.stream().map(msg -> {
             ChatMessageDTO dto = new ChatMessageDTO("NEW_MESSAGE");
@@ -187,6 +222,8 @@ public class ChatService {
             dto.setText(msg.getText());
             dto.setTimestamp(msg.getCreatedAt());
             dto.setStatus(msg.getStatus());
+            dto.setDeliveredAt(msg.getDeliveredAt());
+            dto.setReadAt(msg.getReadAt());
             return dto;
         }).collect(Collectors.toList());
     }
@@ -229,7 +266,8 @@ public class ChatService {
         convMap.put("participantRole", participantRole);
         convMap.put("lastMessage", lastMessage);
         convMap.put("lastMessageTime", lastMessageTime);
-        convMap.put("unreadCount", 0);
+        long unread = messages.stream().filter(m -> m.getSenderId() != null && !m.getSenderId().equals(requestingUserId) && m.getReadAt() == null).count();
+        convMap.put("unreadCount", (int) unread);
 
         return convMap;
     }

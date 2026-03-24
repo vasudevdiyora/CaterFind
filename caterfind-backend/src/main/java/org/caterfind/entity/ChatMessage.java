@@ -43,6 +43,12 @@ public class ChatMessage {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "delivered_at")
+    private LocalDateTime deliveredAt;
+
+    @Column(name = "read_at")
+    private LocalDateTime readAt;
+
     // Automatically set createdAt timestamp before persisting
     @PrePersist
     protected void onCreate() {
@@ -99,6 +105,22 @@ public class ChatMessage {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public LocalDateTime getDeliveredAt() {
+        return deliveredAt;
+    }
+
+    public void setDeliveredAt(LocalDateTime deliveredAt) {
+        this.deliveredAt = deliveredAt;
+    }
+
+    public LocalDateTime getReadAt() {
+        return readAt;
+    }
+
+    public void setReadAt(LocalDateTime readAt) {
+        this.readAt = readAt;
     }
 
     public LocalDateTime getCreatedAt() {

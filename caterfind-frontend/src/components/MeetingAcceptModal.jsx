@@ -15,13 +15,13 @@ const MeetingAcceptModal = ({ isOpen, onClose, request, defaultPlace = '', onCon
     useEffect(() => {
         if (!request) return;
         // Pre-fill date from request.event date
-        try {
-            if (request.date) {
-                const d = new Date(request.date);
+        if (request.date) {
+            const d = new Date(request.date);
+            if (!Number.isNaN(d.getTime())) {
                 const iso = d.toISOString().slice(0, 10);
                 setMeetingDate(iso);
             }
-        } catch (e) {}
+        }
 
         // Default place is passed in
         setMeetingPlace(defaultPlace || '');
@@ -95,8 +95,8 @@ const MeetingAcceptModal = ({ isOpen, onClose, request, defaultPlace = '', onCon
                 </div>
 
                 <div className="flex items-center justify-end gap-2">
-                    <button type="button" onClick={onClose} className="px-4 py-2 bg-white border border-slate-200 rounded">Cancel</button>
-                    <button type="submit" disabled={submitting} className="px-4 py-2 bg-emerald-600 text-white rounded">
+                    <button type="button" onClick={onClose} className="secondary-button">Cancel</button>
+                    <button type="submit" disabled={submitting} className="primary-button">
                         {submitting ? 'Sending...' : 'Confirm & Accept'}
                     </button>
                 </div>

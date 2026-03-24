@@ -89,20 +89,20 @@ const ClientMeetingRequests = ({ user }) => {
 
     if (loading) {
         return (
-            <div className="page-shell justify-center items-center">
-                <p>Loading your requests...</p>
+            <div className="page-shell">
+                <div className="surface-card p-6 text-sm text-slate-500">Loading your requests...</div>
             </div>
         );
     }
 
     return (
-        <div className="page-shell">
-            <header className="page-header">
-                <h1 className="page-title"><Calendar /> My Meeting Requests</h1>
-                <p className="page-subtitle">Track all your meeting requests and their status.</p>
+        <div className="page-shell space-y-6">
+            <header className="rounded-2xl border border-slate-200 bg-gradient-to-r from-white via-sky-50/35 to-white p-5 sm:p-6 shadow-sm">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2"><Calendar className="text-sky-600" /> My Meeting Requests</h1>
+                <p className="text-sm sm:text-base text-slate-600 mt-1">Track all your meeting requests and their status.</p>
             </header>
 
-            <div className="surface-card p-4 sm:p-6">
+            <div className="surface-card p-5 sm:p-6">
                 {/* Filter Pills */}
                 <div className="flex flex-wrap gap-2 mb-6">
                     {([
@@ -144,7 +144,7 @@ const ClientMeetingRequests = ({ user }) => {
                         {filteredRequests.map((request, index) => {
                             const statusInfo = getStatusInfo(request.status);
                             return (
-                                <div key={request.id || index} className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors">
+                                <div key={request.id || index} className="border border-slate-200 rounded-xl p-5 hover:bg-slate-50 transition-colors shadow-sm">
                                     <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                                         <div className="flex items-start gap-4">
                                             <div className="mt-1">{statusInfo.icon}</div>
@@ -162,7 +162,7 @@ const ClientMeetingRequests = ({ user }) => {
                                         </div>
                                     </div>
 
-                                    <div className="mt-4 pt-4 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                                    <div className="mt-4 pt-4 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                                         <div className="flex items-center gap-2 text-slate-600">
                                             <Calendar size={16} className="text-slate-400" />
                                             <div>

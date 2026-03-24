@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Send, User, ArrowLeft, MessageSquare, Check, CheckCheck } from 'lucide-react';
+import { Search, Send, ArrowLeft, MessageSquare, Check, CheckCheck } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useWebSocket from '../hooks/useWebSocket';
 import { chatAPI } from '../services/api'; 
@@ -18,12 +18,11 @@ const Chat = ({ user }) => {
     // const [messages, setMessages] = useState([]);
     const [messageText, setMessageText] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
-    const [loading, setLoading] = useState(false);
     const [pendingLoadConv, setPendingLoadConv] = useState(null);
     const messagesEndRef = useRef(null);
 
     // WebSocket hook - use full API (conversations/messages are provided by hook)
-    const { isConnected, lastMessage, conversations: wsConversations, messages: wsMessages, loadMessageHistory, sendMessage: sendViaWS, startConversation } = useWebSocket(user?.userId, user?.role);
+    const { isConnected, lastMessage, conversations: wsConversations, messages: wsMessages, loadMessageHistory, sendMessage: sendViaWS, startConversation, markConversationRead } = useWebSocket(user?.userId, user?.role);
 
     // Use websocket messages as single source of truth
     const currentMessages = wsMessages?.[selectedConversation?.id] || [];
@@ -80,7 +79,6 @@ const Chat = ({ user }) => {
     const loadMessages = async (conversationOrPartner) => {
         try {
             console.log('loadMessages called with:', conversationOrPartner);
-            setLoading(true);
             // If we have a conversation id, request via WebSocket history loader
             const convId = conversationOrPartner?.id || conversationOrPartner;
             // If websocket not connected, save pending load and return
@@ -110,8 +108,6 @@ const Chat = ({ user }) => {
             scrollToBottom();
         } catch (error) {
             console.error("Failed to load messages", error);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -124,10 +120,27 @@ const Chat = ({ user }) => {
         if (conv && conv.id) {
             console.log('Requesting messages via loadMessages for:', conv.id);
             loadMessages(conv.id);
+            try { markConversationRead(conv.id); } catch (e) { console.error(e); }
         } else {
             console.error('Conversation ID missing!', conv);
         }
     };
+
+    // When websocket messages for the selected conversation update, mark them as read
+    useEffect(() => {
+        try {
+            const convId = selectedConversation?.id;
+            if (!convId) return;
+            const msgs = wsMessages?.[convId] || [];
+            if (!msgs || msgs.length === 0) return;
+            const unread = msgs.filter(m => m && m.senderId !== user.userId && m.status !== 'read');
+            if (unread.length > 0) {
+                try { markConversationRead(convId); } catch (e) { console.error(e); }
+            }
+        } catch (err) {
+            console.error('Error in mark-as-read effect', err);
+        }
+    }, [wsMessages, selectedConversation, markConversationRead, user.userId]);
 
     // When websocket becomes connected, trigger any pending history load
     useEffect(() => {
@@ -180,7 +193,8 @@ const Chat = ({ user }) => {
     const mappedConversations = (wsConversations || []).map(c => ({
         id: c.id,
         partner: { id: c.participantId, name: c.participantName, role: c.participantRole },
-        lastMessage: { content: c.lastMessage, timestamp: c.lastMessageTime }
+        lastMessage: { content: c.lastMessage, timestamp: c.lastMessageTime, senderId: c.lastMessageSenderId || null },
+        unreadCount: c.unreadCount || 0
     }));
 
     const filteredConversations = mappedConversations.filter(conv =>
@@ -194,18 +208,18 @@ const Chat = ({ user }) => {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-8rem)]">
+        <div className="flex flex-col h-[calc(100vh-7.5rem)]">
             {/* Page Header */}
-            <div className="mb-6 flex-shrink-0">
-                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Messages</h1>
-                <p className="text-slate-500 mt-1">Chat specific client or caterers.</p>
+            <div className="mb-4 sm:mb-6 flex-shrink-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Messages</h1>
+                <p className="text-sm sm:text-base text-slate-600 mt-1">Chat with clients and caterers in real time.</p>
             </div>
 
             {/* Chat Container */}
             <div className="flex-1 min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex">
                 
                 {/* Sidebar (Conversation List) */}
-                <div className={`${selectedConversation ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-80 border-r border-slate-100 bg-slate-50/50`}>
+                <div className={`${selectedConversation ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-80 border-r border-slate-200 bg-slate-50/40`}>
                     <div className="p-4 border-b border-slate-200 bg-white">
                         <div className="flex justify-between items-center mb-4">
                             <span className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${isConnected ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
@@ -220,7 +234,7 @@ const Chat = ({ user }) => {
                                 placeholder="Search conversations..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-700 placeholder:text-slate-400"
+                                className="w-full h-9 pl-9 pr-4 bg-slate-100 border border-transparent rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 transition-all font-medium text-slate-700 placeholder:text-slate-400"
                             />
                         </div>
                     </div>
@@ -232,24 +246,27 @@ const Chat = ({ user }) => {
                                 <p className="text-sm">No conversations found</p>
                             </div>
                         ) : (
-                            filteredConversations.map((conv, index) => (
+                            filteredConversations.map((conv) => (
                                 <button
                                     key={conv.id}
                                     onClick={(e) => { e.stopPropagation(); console.log('CLICK WORKING', conv); handleSelectConversation(conv); }}
-                                    className={`w-full p-4 flex items-start gap-3 hover:bg-white hover:shadow-sm transition-all border-b border-slate-100 cursor-pointer ${selectedConversation?.id === conv.id ? 'bg-white shadow-sm border-l-4 border-l-primary' : ''}`}
+                                    className={`w-full p-4 flex items-start gap-3 hover:bg-white hover:shadow-sm transition-all border-b border-slate-100 cursor-pointer ${selectedConversation?.id === conv.id ? 'bg-white shadow-sm border-l-4 border-l-sky-500' : ''}`}
                                     style={{ zIndex: 9999 }}
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-semibold flex-shrink-0">
+                                    <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-700 font-semibold flex-shrink-0">
                                         {conv.partner.name?.[0]?.toUpperCase()}
                                     </div>
                                     <div className="flex-1 min-w-0 text-left">
                                         <div className="flex justify-between items-baseline mb-1">
                                             <span className="font-semibold text-slate-700 truncate">{conv.partner.name}</span>
-                                            <span className="text-xs text-slate-400 whitespace-nowrap ml-2">
-                                                {formatTime(conv.lastMessage?.timestamp)}
-                                            </span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-slate-400 whitespace-nowrap ml-2">{formatTime(conv.lastMessage?.timestamp)}</span>
+                                                    {conv.unreadCount > 0 && (
+                                                        <span className="text-xs bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full">{conv.unreadCount}</span>
+                                                    )}
+                                                </div>
                                         </div>
-                                        <p className="text-sm text-slate-500 truncate">
+                                        <p className={`text-sm truncate ${conv.unreadCount > 0 ? 'text-slate-800 font-semibold' : 'text-slate-500'}`}>
                                             {conv.lastMessage?.senderId === user.userId && 'You: '}
                                             {conv.lastMessage?.content || 'Started a conversation'}
                                         </p>
@@ -273,14 +290,14 @@ const Chat = ({ user }) => {
                     ) : (
                         <>
                             {/* Chat Header */}
-                            <div className="p-4 bg-white border-b border-slate-200 flex items-center gap-3 shadow-sm z-10">
+                            <div className="p-4 sm:p-5 bg-white border-b border-slate-200 flex items-center gap-3 shadow-sm z-10">
                                 <button 
                                     onClick={() => setSelectedConversation(null)}
                                     className="md:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-full"
                                 >
                                     <ArrowLeft size={20} />
                                 </button>
-                                <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold shadow-sm">
+                                <div className="w-10 h-10 rounded-full bg-sky-500 text-white flex items-center justify-center font-bold shadow-sm">
                                     {selectedConversation.partner?.name?.[0]?.toUpperCase()}
                                 </div>
                                 <div className="flex-1">
@@ -293,13 +310,13 @@ const Chat = ({ user }) => {
                             </div>
 
                             {/* Messages List */}
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/30">
+                            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-slate-50/30">
                                 {currentMessages.map((msg, index) => {
                                     const isMe = msg.senderId === user.userId;
                                     const key = msg.id || msg.clientMessageId || index;
                                     return (
                                         <div key={key} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                            <div className={`max-w-[80%] md:max-w-[60%] rounded-2xl px-5 py-3 shadow-sm ${
+                                            <div className={`max-w-[85%] md:max-w-[65%] rounded-2xl px-4 sm:px-5 py-3 shadow-sm ${
                                                 isMe 
                                                 ? 'bg-primary text-primary-foreground rounded-br-none' 
                                                 : 'bg-white text-slate-700 border border-slate-200 rounded-bl-none'
@@ -308,7 +325,14 @@ const Chat = ({ user }) => {
                                                 <div className={`text-[10px] mt-1 flex items-center justify-end gap-1 ${isMe ? 'opacity-80' : 'text-slate-400'}`}>
                                                     <span>{formatTime(msg.timestamp)}</span>
                                                     {isMe && (
-                                                        msg.status === 'sent' ? <Check size={12} /> : <CheckCheck size={12} />
+                                                        msg.status === 'sending' ? <Check size={12} /> : (
+                                                            msg.status === 'sent' ? <Check size={12} /> : (
+                                                                msg.status === 'delivered' ? <CheckCheck size={12} /> : (
+                                                                    // read
+                                                                    <CheckCheck size={12} className="text-sky-500" />
+                                                                )
+                                                            )
+                                                        )
                                                     )}
                                                 </div>
                                             </div>
@@ -319,7 +343,7 @@ const Chat = ({ user }) => {
                             </div>
 
                             {/* Input Area */}
-                            <div className="p-4 bg-white border-t border-slate-200">
+                            <div className="p-4 sm:p-5 bg-white border-t border-slate-200">
                                 <div className="flex gap-2 max-w-4xl mx-auto">
                                     <input
                                         type="text"
@@ -327,12 +351,12 @@ const Chat = ({ user }) => {
                                         onChange={(e) => setMessageText(e.target.value)}
                                         onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                                         placeholder="Type your message..."
-                                        className="flex-1 px-4 py-3 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all font-medium text-slate-700 placeholder:text-slate-400"
+                                        className="flex-1 h-11 px-4 bg-slate-100 border border-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 focus:bg-white transition-all font-medium text-slate-700 placeholder:text-slate-400"
                                     />
                                     <button 
                                         onClick={handleSendMessage}
                                         disabled={!messageText.trim()}
-                                        className="p-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md active:scale-95"
+                                        className="h-11 w-11 flex items-center justify-center bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95"
                                     >
                                         <Send size={20} />
                                     </button>

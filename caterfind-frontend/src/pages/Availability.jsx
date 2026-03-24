@@ -235,7 +235,6 @@ const Availability = ({ user }) => {
         const past = isPastDate(day);
         const viewable = isViewableDate(day);
         const editable = canAddEvent(day);
-        const hasEvent = events.some(e => e.eventDate === key);
 
         let baseClass = "h-10 w-10 flex items-center justify-center rounded-lg text-sm transition-colors relative font-medium";
 
@@ -326,7 +325,7 @@ const Availability = ({ user }) => {
             await loadEvents();
             setSuccess('Event deleted');
             setTimeout(() => setSuccess(''), 3000);
-        } catch (error) {
+        } catch {
             setError('Failed to delete event');
         }
     };
@@ -343,18 +342,18 @@ const Availability = ({ user }) => {
     };
 
     return (
-        <div className="page-shell py-6 space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="page-shell space-y-6">
+            <div className="flex items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold flex items-center gap-2 text-slate-900">
+                    <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-slate-900">
                         <span className="text-sky-600"><CalendarIcon className="h-6 w-6" /></span> Availability Calendar
                     </h1>
-                    <p className="text-slate-500 mt-1">Select a date to manage availability or add events</p>
+                    <p className="text-sm sm:text-base text-slate-600 mt-1">Select a date to manage availability or add events</p>
                 </div>
             </div>
 
             {/* Side-by-side layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6">
                 {/* Left side - Calendar */}
                 <div className="surface-card p-6 bg-white border border-slate-200 shadow-sm relative z-0">
                     {/* Header */}
@@ -448,7 +447,7 @@ const Availability = ({ user }) => {
 
                     {/* Legend */}
                     <div className="flex flex-col gap-4 mt-8 pt-6 border-t border-slate-100">
-                        <div className="flex items-center justify-center gap-6">
+                        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
                                 <span className="text-sm text-slate-600">Available</span>
@@ -503,13 +502,7 @@ const Availability = ({ user }) => {
                             )}
                             {success && (
                                 <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2 text-emerald-700">
-                                    {/* Success Icon */}
                                     <span className="text-sm">{success}</span>
-                                </div>
-                            )}
-                            {success && (
-                                <div className="mb-4 p-3 bg-green-900/30 border border-green-500/50 rounded-lg text-green-200 text-sm">
-                                    {success}
                                 </div>
                             )}
 
@@ -555,7 +548,7 @@ const Availability = ({ user }) => {
                                         />
                                     </div>
 
-                                    <div className="flex gap-3 pt-2">
+                                    <div className="flex flex-col sm:flex-row gap-3 pt-2">
                                         <button
                                             onClick={handleSaveEvent}
                                             disabled={loading}
@@ -565,7 +558,7 @@ const Availability = ({ user }) => {
                                         </button>
                                         <button
                                             onClick={closePanel}
-                                            className="secondary-button"
+                                            className="secondary-button w-full sm:w-auto"
                                         >
                                             Cancel
                                         </button>

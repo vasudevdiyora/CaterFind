@@ -31,14 +31,14 @@ const ClientProfile = ({ user }) => {
                 name: data.name || user?.displayName || '',
                 email: data.email || user?.email || '',
                 phone: data.phone || '',
-                location: data.city || '',
+                location: data.city || data.location || '',
                 memberSince: data.createdAt
                     ? new Date(data.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
                     : ''
             };
             setProfile(formatted);
             setEditData(formatted);
-        } catch (err) {
+        } catch {
             const fallback = {
                 name: user?.displayName || '',
                 email: user?.email || '',
@@ -73,7 +73,7 @@ const ClientProfile = ({ user }) => {
             const payload = {
                 name: editData.name,
                 phone: editData.phone,
-                city: editData.location
+                location: editData.location
             };
             await authAPI.updateProfile(payload);
             setProfile(prev => ({ ...prev, ...editData }));
@@ -112,13 +112,13 @@ const ClientProfile = ({ user }) => {
             <header className="max-w-4xl mx-auto rounded-2xl border border-slate-200 bg-gradient-to-r from-white via-sky-50/35 to-white px-6 py-5 shadow-sm">
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                     <div>
-                        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
+                        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
                             <span className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-sky-100 text-sky-700">
                                 <User size={22} />
                             </span>
                             My Profile
                         </h1>
-                        <p className="text-slate-600 mt-2">View and manage your personal information.</p>
+                        <p className="text-sm sm:text-base text-slate-600 mt-2">View and manage your personal information.</p>
                     </div>
 
                     {!editing && (
@@ -136,7 +136,7 @@ const ClientProfile = ({ user }) => {
                         <p className="text-sm text-slate-500">Keep your details up to date for better recommendations.</p>
                     </div>
 
-                    <form onSubmit={handleSave} className="p-6 space-y-6">
+                    <form onSubmit={handleSave} className="p-5 sm:p-6 space-y-6">
                         {successMsg && (
                             <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-3 rounded-lg flex items-center gap-3">
                                 <CheckCircle size={20} />
@@ -150,7 +150,7 @@ const ClientProfile = ({ user }) => {
                             </div>
                         )}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <ProfileField
                                 icon={<User size={16} />}
                                 label="Full Name"
@@ -197,7 +197,7 @@ const ClientProfile = ({ user }) => {
                         )}
 
                         {editing && (
-                            <div className="flex justify-end items-center gap-4 pt-4 border-t border-slate-200">
+                            <div className="flex flex-col-reverse sm:flex-row justify-end items-center gap-3 sm:gap-4 pt-4 border-t border-slate-200">
                                 <button type="button" onClick={handleCancel} className="secondary-button">
                                     <X size={16} className="mr-2" /> Cancel
                                 </button>

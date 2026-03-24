@@ -15,6 +15,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.user.SimpUserRegistry;
 import org.springframework.stereotype.Controller;
 
 /**
@@ -29,6 +30,9 @@ public class ChatController {
     
     @Autowired
     private ChatService chatService;
+    
+    @Autowired
+    private SimpUserRegistry simpUserRegistry;
 
 
 
@@ -37,7 +41,7 @@ public class ChatController {
      */
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload ChatMessageDTO message, SimpMessageHeaderAccessor headerAccessor) {
-        System.out.println("Received message from " + message.getSenderId() + " to " + message.getRecipientId());
+        
         
         // Determine actual conversation ID
         Long actualConversationId = message.getConversationId();
@@ -64,6 +68,15 @@ public class ChatController {
             "sent"
         );
 
+        // If recipient currently has an active WebSocket session, mark as delivered server-side
+        try {
+            if (message.getRecipientId() != null && simpUserRegistry.getUser(message.getRecipientId().toString()) != null) {
+                savedMessage = chatService.markMessageDelivered(savedMessage.getId());
+            }
+        } catch (Exception ex) {
+            // best-effort: if SimpUserRegistry not available or error occurs, ignore
+        }
+
         // Send to recipient
         ChatMessageDTO newMessage = new ChatMessageDTO("NEW_MESSAGE");
         newMessage.setId(savedMessage.getId());
@@ -79,7 +92,7 @@ public class ChatController {
         } catch (Exception ignore) {
         }
 
-        System.out.println("Sending message to user: " + message.getRecipientId() + " with conversation: " + actualConversationId);
+        
         
         // Send to specific user
         messagingTemplate.convertAndSendToUser(
@@ -110,7 +123,66 @@ public class ChatController {
             confirmation
         );
         
-        System.out.println("Message sent and saved successfully");
+        
+    }
+
+    /**
+     * Handle delivery/read acknowledgements from clients.
+     * Payload: { type: 'DELIVERED'|'READ', messageId: <id>, conversationId: <id>, userId: <userId> }
+     */
+    @MessageMapping("/chat.ack")
+    public void handleAck(@Payload Map<String, Object> ack, SimpMessageHeaderAccessor headerAccessor) {
+        try {
+            String type = ack.get("type").toString();
+            Long messageId = Long.parseLong(ack.get("messageId").toString());
+            Long ackingUserId = null;
+            try {
+                if (ack.get("userId") != null) ackingUserId = Long.parseLong(ack.get("userId").toString());
+            } catch (Exception ignore) {
+            }
+            
+
+            ChatMessage updated = null;
+            if ("DELIVERED".equalsIgnoreCase(type)) {
+                updated = chatService.markMessageDelivered(messageId);
+            } else if ("READ".equalsIgnoreCase(type)) {
+                updated = chatService.markMessageRead(messageId);
+            }
+
+            if (updated != null) {
+                // notify the sender of the message about new status
+                ChatMessageDTO dto = new ChatMessageDTO("MESSAGE_STATUS_UPDATE");
+                dto.setId(updated.getId());
+                dto.setConversationId(updated.getConversationId());
+                dto.setStatus(updated.getStatus());
+                dto.setTimestamp(updated.getCreatedAt());
+                dto.setDeliveredAt(updated.getDeliveredAt());
+                dto.setReadAt(updated.getReadAt());
+
+                Long senderId = updated.getSenderId();
+                try {
+                    messagingTemplate.convertAndSendToUser(
+                        senderId.toString(),
+                        "/queue/messages",
+                        dto
+                    );
+                } catch (Exception ignored) {
+                }
+
+                // If message was marked READ, also notify both participants with updated conversation info
+                if ("read".equalsIgnoreCase(updated.getStatus()) && ackingUserId != null) {
+                    try {
+                        
+                        sendConversationToBothUsers(updated.getConversationId(), updated.getSenderId(), ackingUserId, updated.getText(), updated.getCreatedAt());
+                        
+                    } catch (Exception e) {
+                        System.err.println("Failed to send conversation update after READ ack: " + e.getMessage());
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            System.err.println("Error processing ack: " + ex.getMessage());
+        }
     }
     
     /**
@@ -124,7 +196,7 @@ public class ChatController {
             conv1 = chatService.getConversationDetails(conversationId, userId1);
             conv2 = chatService.getConversationDetails(conversationId, userId2);
         } catch (org.caterfind.exception.ResourceNotFoundException ex) {
-            System.out.println("Conversation not found when attempting to send to users: " + conversationId + " - " + ex.getMessage());
+            
             return;
         }
         
@@ -155,7 +227,7 @@ public class ChatController {
             response2
         );
         
-        System.out.println("Sent conversation " + conversationId + " to both users");
+        
     }
 
     /**
@@ -165,12 +237,12 @@ public class ChatController {
     public void getConversations(@Payload Map<String, Object> request, SimpMessageHeaderAccessor headerAccessor) {
         Long userId = Long.parseLong(request.get("userId").toString());
         
-        System.out.println("Getting conversations for user: " + userId);
+        
         
         // Get conversations from database
         List<Map<String, Object>> userConversationsList = chatService.getUserConversations(userId);
         
-        System.out.println("Found " + userConversationsList.size() + " conversations for user " + userId);
+        
         
         Map<String, Object> response = new HashMap<>();
         response.put("type", "CONVERSATIONS_LIST");
@@ -191,9 +263,9 @@ public class ChatController {
         Long conversationId = Long.parseLong(request.get("conversationId").toString());
         Long userId = Long.parseLong(request.get("userId").toString());
         // Fetch full message history for the conversation (do not filter by 'since')
-        System.out.println("Request for message history received for conversation: " + conversationId + " by user: " + userId);
+        
         List<ChatMessageDTO> messages = chatService.getMessageHistory(conversationId);
-        System.out.println("Fetched " + (messages != null ? messages.size() : 0) + " messages for conversation " + conversationId);
+        
 
         Map<String, Object> response = new HashMap<>();
         response.put("type", "MESSAGE_HISTORY");
@@ -231,7 +303,7 @@ public class ChatController {
                 response
             );
         } catch (org.caterfind.exception.ResourceNotFoundException ex) {
-            System.out.println("Conversation created but details missing: " + conversation.getId() + " - " + ex.getMessage());
+            
         }
     }
 

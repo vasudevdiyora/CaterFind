@@ -9,12 +9,13 @@ body {
   /* Root-level scroll policy for container-based scrolling:
      - full-height so child containers can manage scrolling
      - hide horizontal overflow globally to prevent page-wide horizontal scroll
-     - disable overscroll bounce/chaining at the root so scroll is contained
+      - disable vertical overscroll bounce/chaining at the root so scroll is contained
      - keep touch-action default so touchpad gestures are not blocked
   */
   height: 100%;
   overflow-x: hidden;
-  overscroll-behavior: none;
+    overscroll-behavior-y: none;
+    overscroll-behavior-x: auto;
   touch-action: auto;
 }
 
@@ -161,7 +162,7 @@ html {
   }
 
   .page-shell {
-    @apply w-full max-w-[1500px] mx-auto px-3 md:px-4 lg:px-6;
+    @apply w-full max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8;
   }
 
   /* Enable smooth native touch scrolling for scroll containers */
@@ -185,11 +186,30 @@ html {
 
   /* Accessible Button Components */
   .primary-button {
-    @apply inline-flex items-center justify-center rounded-lg bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 text-sm font-medium shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+    @apply inline-flex h-9 items-center justify-center rounded-lg bg-sky-500 px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-sky-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
   }
 
   .secondary-button {
-    @apply inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 text-sm font-medium shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+    @apply inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .form-input {
+    width: 100%;
+    min-height: 2.25rem;
+    padding: 0.5rem 0.75rem;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    color: #0f172a;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.16);
   }
 
   .form-select {
@@ -209,7 +229,7 @@ html {
   .form-select:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.16);
   }
 
   .form-select:disabled {
@@ -248,3 +268,4 @@ html {
     line-height: 1;
   }
 }
+

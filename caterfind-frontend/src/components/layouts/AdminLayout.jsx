@@ -56,10 +56,10 @@ const AdminLayout = ({ user, children, onLogout }) => {
     const isActive = (path) => location.pathname === path;
 
     return (
-        <div className="min-h-screen bg-background flex overflow-x-hidden">
+        <div className="min-h-screen bg-slate-50 flex overflow-x-hidden">
             {/* Sidebar for Desktop (fixed so Logout stays visible) */}
-            <aside style={{ zIndex: 1200 }} className="hidden md:flex fixed inset-y-0 left-0 w-[272px] flex-col bg-card border-r border-border h-full">
-                <div className="p-6 border-b border-border">
+            <aside style={{ zIndex: 1200 }} className="hidden lg:flex fixed inset-y-0 left-0 w-[272px] flex-col bg-white border-r border-slate-200 h-full">
+                <div className="p-6 border-b border-slate-200">
                     <div className="flex items-center gap-2">
                         <span className="text-2xl">🍽️</span>
                         <div>
@@ -91,7 +91,7 @@ const AdminLayout = ({ user, children, onLogout }) => {
                     })}
                 </nav>
 
-                <div className="p-4 border-t border-border">
+                <div className="p-4 border-t border-slate-200">
                     <button
                         onClick={onLogout}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
@@ -104,8 +104,8 @@ const AdminLayout = ({ user, children, onLogout }) => {
 
             {/* Mobile Sidebar (side-panel Modal) */}
             <Modal isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} side="left" className="p-0 bg-transparent !max-w-none">
-                <aside className={`fixed left-0 top-0 bottom-0 w-[272px] bg-card z-50 md:hidden transition-transform translate-x-0`}>
-                    <div className="p-6 border-b border-border flex items-center justify-between">
+                <aside className={`fixed left-0 top-0 bottom-0 w-[272px] bg-white z-50 lg:hidden transition-transform translate-x-0`}>
+                    <div className="p-6 border-b border-slate-200 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <span className="text-2xl">🍽️</span>
                             <div>
@@ -143,7 +143,7 @@ const AdminLayout = ({ user, children, onLogout }) => {
                         })}
                     </nav>
 
-                    <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
+                    <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200">
                         <button
                             onClick={onLogout}
                             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
@@ -156,18 +156,18 @@ const AdminLayout = ({ user, children, onLogout }) => {
             </Modal>
 
             {/* Main Content (offset on md+ to accommodate fixed sidebar) */}
-            <div className="flex-1 flex flex-col min-w-0 md:ml-[272px]">
+            <div className="flex-1 flex flex-col min-w-0 lg:ml-[272px]">
                 {/* Top Navbar */}
-                <nav className="h-14 md:h-16 border-b border-border bg-card/90 backdrop-blur px-4 md:px-6 flex items-center justify-between sticky top-0 z-30">
+                <nav className="h-14 md:h-16 border-b border-slate-200 bg-white/95 backdrop-blur px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30">
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="md:hidden p-2 hover:bg-secondary rounded-lg transition-colors"
+                        className="lg:hidden p-2 hover:bg-secondary rounded-lg transition-colors"
                     >
                         <Menu size={20} />
                     </button>
 
                     <div className="flex-1 md:flex items-center">
-                        <h1 className="hidden md:block font-extrabold text-lg tracking-tight">Admin Workspace</h1>
+                        <h1 className="hidden md:block font-extrabold text-lg tracking-tight text-slate-900">Admin Workspace</h1>
                     </div>
 
                     <div className="flex items-center gap-4">
@@ -176,7 +176,7 @@ const AdminLayout = ({ user, children, onLogout }) => {
                                 <User size={18} />
                             </div>
                             {user?.email && (
-                                <span className="text-sm font-medium hidden md:block text-foreground">
+                                <span className="text-sm font-medium hidden md:block text-slate-700">
                                     {user.email}
                                 </span>
                             )}
@@ -185,7 +185,7 @@ const AdminLayout = ({ user, children, onLogout }) => {
                 </nav>
 
                 {/* Page Content */}
-                <main className="flex-1 page-shell py-3 md:py-4 overflow-auto">
+                <main className="flex-1 page-shell py-4 md:py-6 overflow-y-auto overflow-x-hidden">
                     {children}
                 </main>
             </div>

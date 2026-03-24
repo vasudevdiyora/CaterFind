@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { contactAPI } from '../services/api';
 import '../styles/Contacts.css';
 import '../styles/Table.css'; // For modal and other shared styles
@@ -13,7 +13,6 @@ import { useDialog } from '../components/DialogProvider';
 function Contacts({ user }) {
     const { showConfirm } = useDialog();
     const [contacts, setContacts] = useState([]);
-    const [filteredContacts, setFilteredContacts] = useState([]);
     const [selectedLabel, setSelectedLabel] = useState('All');
     const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
@@ -38,11 +37,21 @@ function Contacts({ user }) {
 
     const availableLabels = ['Staff', 'Chef', 'Helper', 'Supplier', 'Dealer'];
 
+    const fetchContacts = async () => {
+        try {
+            const data = await contactAPI.getAll(user.userId);
+            setContacts(data);
+        } catch {
+            // Error fetching contacts
+        }
+    };
+
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchContacts();
     }, []);
 
-    useEffect(() => {
+    const filteredContacts = useMemo(() => {
         let result = contacts;
 
         if (selectedLabel !== 'All') {
@@ -59,17 +68,8 @@ function Contacts({ user }) {
             );
         }
 
-        setFilteredContacts(result);
+        return result;
     }, [selectedLabel, searchTerm, contacts]);
-
-    const fetchContacts = async () => {
-        try {
-            const data = await contactAPI.getAll(user.userId);
-            setContacts(data);
-        } catch (error) {
-            // Error fetching contacts
-        }
-    };
 
     const handleAdd = () => {
         setEditingContact(null);
@@ -95,7 +95,7 @@ function Contacts({ user }) {
         try {
             await contactAPI.delete(id);
             fetchContacts();
-        } catch (error) {
+        } catch {
             // Error deleting contact
         }
     };
@@ -124,7 +124,7 @@ function Contacts({ user }) {
             }
             setShowModal(false);
             fetchContacts();
-        } catch (error) {
+        } catch {
             // Error saving contact
         }
     };
@@ -149,14 +149,14 @@ function Contacts({ user }) {
     };
 
     return (
-        <div className="page-shell">
+        <div className="page-shell space-y-6">
             <div className="contacts-header">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-3">
                         <Users className="w-6 h-6" />
                         Contacts
                     </h1>
-                    <button className="primary-button" onClick={handleAdd}>
+                    <button className="primary-button w-full sm:w-auto" onClick={handleAdd}>
                         <Plus className="w-4 h-4 mr-2" />
                         Add Contact
                     </button>
@@ -167,7 +167,7 @@ function Contacts({ user }) {
                         <input
                             type="text"
                             placeholder="Search by name, email, or phone..."
-                            className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg w-full focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none"
+                            className="h-9 pl-10 pr-4 border border-slate-300 rounded-lg w-full focus:ring-2 focus:ring-sky-200 focus:border-sky-300 outline-none"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -186,7 +186,36 @@ function Contacts({ user }) {
                 </div>
             </div>
 
-            <div className="table-container">
+            <div className="md:hidden space-y-4">
+                {filteredContacts.map(contact => (
+                    <div key={contact.id} className="surface-card p-5 space-y-4">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="avatar-circle">{getInitials(contact.name)}</div>
+                                <div className="min-w-0">
+                                    <p className="font-semibold text-slate-900 truncate">{contact.name}</p>
+                                    <p className="text-sm text-slate-600 truncate">{contact.preferredContactMethod} • {contact.preferredLanguage}</p>
+                                </div>
+                            </div>
+                            <div className="table-cell-actions">
+                                <button className="table-icon-button" onClick={() => handleEdit(contact)}><Pencil size={16} /></button>
+                                <button className="table-icon-button danger" onClick={() => handleDelete(contact.id)}><Trash2 size={16} /></button>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                            <a href={`tel:${contact.phone}`} className="text-slate-700 hover:text-sky-600">{contact.phone}</a>
+                            <a href={`mailto:${contact.email}`} className="text-slate-700 hover:text-sky-600 truncate">{contact.email}</a>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                            {contact.labels && contact.labels.length > 0 ? (
+                                contact.labels.map(label => <span key={label} className="label-tag">{label}</span>)
+                            ) : <span className="text-slate-400 text-sm italic">No labels</span>}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="table-container hidden md:block">
                 <table className="data-table">
                     <thead>
                         <tr>

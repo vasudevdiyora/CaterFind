@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, Phone, Mail, Calendar, MessageCircle, Building, Compass, ChefHat, Sparkles, Images, MessageSquareText, UserCircle2, UtensilsCrossed } from 'lucide-react';
-import { profileAPI, fileAPI, dishAPI, reviewsAPI, moderationAPI } from '../services/api';
+import { profileAPI, fileAPI, dishAPI, reviewsAPI } from '../services/api';
 import MeetingRequestModal from '../components/MeetingRequestModal';
 import ReportModal from '../components/ReportModal';
 import { useToast } from '../components/ToastProvider';

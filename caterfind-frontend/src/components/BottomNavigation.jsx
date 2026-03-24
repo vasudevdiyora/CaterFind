@@ -41,9 +41,9 @@ const BottomNavigation = ({ userName = 'Client', mobileOpen = false, onClose = (
     useEffect(() => {
         let mounted = true;
         const load = async () => {
-            try {
+                try {
                 const convs = await chatAPI.getConversations();
-                console.debug('[BottomNavigation] loaded conversations', convs);
+                // debug logs removed for production
                 if (!mounted) return;
                 const total = (convs || []).reduce((acc, c) => acc + (Number(c.unreadCount || c.unread || c.unread_count || 0) || 0), 0);
                 setUnreadTotal(total);

@@ -176,8 +176,7 @@ const ClientHome = ({ user }) => {
                 lng: clientCoordinates.lng,
                 sortBy,
             });
-            // Log raw discovery response for debugging (remove in production)
-            console.debug('discovery.raw', data && data.length ? data[0] : data);
+            // Debug logs removed for production
 
             // Normalize incoming caterer objects to ensure consistent keys
             const normalized = Array.isArray(data) ? data.map(item => {
@@ -212,8 +211,7 @@ const ClientHome = ({ user }) => {
                     }
                 }
 
-                // Debug any items still zero (helps trace mapping issues)
-                if (count === 0) console.debug('discovery.item.zeroCount', item);
+                // Debug logs removed for production
 
                 return {
                     ...item,

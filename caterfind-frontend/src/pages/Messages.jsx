@@ -27,7 +27,7 @@ function Messages({ user }) {
         try {
             const data = await contactAPI.getAll(user.userId);
             setContacts(data);
-        } catch (error) {
+        } catch {
             // Error fetching contacts
         }
     };
@@ -36,7 +36,7 @@ function Messages({ user }) {
         try {
             const data = await messageAPI.getLogs(user.userId);
             setMessageLogs(data);
-        } catch (error) {
+        } catch {
             // Error fetching message logs
         }
     };
@@ -66,7 +66,7 @@ function Messages({ user }) {
             setSelectedContacts([]);
             setMessageText('');
             fetchMessageLogs();
-        } catch (error) {
+        } catch {
             alert('Failed to send message');
         } finally {
             setSending(false);

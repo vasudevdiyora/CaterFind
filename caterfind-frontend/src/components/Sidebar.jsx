@@ -86,6 +86,7 @@ function Sidebar({ currentPage, onNavigate, onLogout }) {
                         Logout
                     </button>
                 </div>
+                </div>
             </Modal>
         </>
     );

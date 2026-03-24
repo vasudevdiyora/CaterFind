@@ -128,7 +128,7 @@ public class CalendarEventService {
     @Transactional
     public void deleteExpiredEvents() {
         if (!cleanupEnabled) {
-            logger.debug("Calendar cleanup is disabled");
+            // logger.debug("Calendar cleanup is disabled");
             return;
         }
 

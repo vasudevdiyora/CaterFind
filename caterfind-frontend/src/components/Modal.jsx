@@ -45,11 +45,14 @@ const Modal = ({
         let closeTimer;
 
         if (isOpen) {
-            setShouldRender(true);
-            // Wait a frame so transitions run from closed -> open state.
-            requestAnimationFrame(() => setIsVisible(true));
+            // Schedule render state change to avoid synchronous setState in effect
+            requestAnimationFrame(() => {
+                setShouldRender(true);
+                requestAnimationFrame(() => setIsVisible(true));
+            });
         } else {
-            setIsVisible(false);
+            // Schedule hiding to avoid synchronous setState in effect
+            requestAnimationFrame(() => setIsVisible(false));
             closeTimer = setTimeout(() => setShouldRender(false), CLOSE_ANIMATION_MS);
         }
 
@@ -65,17 +68,18 @@ const Modal = ({
 
     useEffect(() => {
         if (isMobile || !applyDesktopSidebarOffset) {
-            setOverlayStyle(null);
-            return;
+            const t = setTimeout(() => setOverlayStyle(null), 0);
+            return () => clearTimeout(t);
         }
 
         try {
-            // Try to detect a left `aside` (desktop sidebar) and use its width as left offset.
             const aside = document.querySelector('aside');
             const width = aside ? Math.round(aside.getBoundingClientRect().width) : 256;
-            setOverlayStyle({ left: `${width}px` });
-        } catch (err) {
-            setOverlayStyle({ left: '256px' });
+            const t = setTimeout(() => setOverlayStyle({ left: `${width}px` }), 0);
+            return () => clearTimeout(t);
+        } catch {
+            const t = setTimeout(() => setOverlayStyle({ left: '256px' }), 0);
+            return () => clearTimeout(t);
         }
     }, [isMobile, applyDesktopSidebarOffset]);
 

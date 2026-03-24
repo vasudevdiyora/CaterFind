@@ -19,7 +19,7 @@ const ClientTrials = ({ user }) => {
             if (!user?.userId) throw new Error("User not authenticated");
             const data = await meetingRequestAPI.getClientRequests('accepted');
             setTrials(Array.isArray(data) ? data : []);
-        } catch (err) {
+        } catch {
             setError('Could not load your trials. Please try again.');
         } finally {
             setLoading(false);

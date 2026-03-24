@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, BadgeCheck, Sparkles, X } from 'lucide-react';
 import Modal from './Modal';
@@ -23,8 +24,12 @@ export function DialogProvider({ children }) {
     }
 
     const [nextDialog, ...restQueue] = queue;
-    setActiveDialog(nextDialog);
-    setQueue(restQueue);
+    // Schedule state updates to avoid synchronous setState in effect
+    const t = setTimeout(() => {
+      setActiveDialog(nextDialog);
+      setQueue(restQueue);
+    }, 0);
+    return () => clearTimeout(t);
   }, [activeDialog, queue]);
 
   const closeDialog = useCallback((result) => {

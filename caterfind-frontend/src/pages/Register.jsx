@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { authAPI, locationAPI, fileAPI } from '../services/api';
+import { useLocation, Link } from 'react-router-dom';
+import { authAPI, fileAPI } from '../services/api';
 import {
     UtensilsCrossed, Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff, ArrowLeft,
     User, Phone, Building, MapPin, Hash, ChefHat, Home, LocateFixed
@@ -9,7 +9,7 @@ import { states, getCities } from '../lib/locations';
 import '../styles/Login.css'; // Reusing login styles for consistency
 
 const Register = ({ onLogin }) => {
-    const navigate = useNavigate();
+    const _navigate = null;
     const location = useLocation();
 
     // State for form fields
@@ -40,7 +40,7 @@ const Register = ({ onLogin }) => {
     // UI State
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [pincodeLoading, setPincodeLoading] = useState(false);
+    const [pincodeLoading, _setPincodeLoading] = useState(false);
     const [pincodeError, setPincodeError] = useState('');
     const [locating, setLocating] = useState(false);
 

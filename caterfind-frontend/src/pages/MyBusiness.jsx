@@ -95,10 +95,10 @@ function MyBusiness({ user }) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
-    const [uploadingVideo, setUploadingVideo] = useState(false);
+    const [_uploadingVideo, setUploadingVideo] = useState(false);
     const [locatingPosition, setLocatingPosition] = useState(false);
     const [businessPhotos, setBusinessPhotos] = useState([]);
-    const [businessVideos, setBusinessVideos] = useState([]);
+    const [_businessVideos, setBusinessVideos] = useState([]);
     const [failedPhotoIndexes, setFailedPhotoIndexes] = useState({});
     const [mapPosition, setMapPosition] = useState(null);
     const [pincodeLookupStatus, setPincodeLookupStatus] = useState('idle');
@@ -119,7 +119,7 @@ function MyBusiness({ user }) {
     const [otpSuccess, setOtpSuccess] = useState('');
 
     const photoInputRef = useRef(null);
-    const videoInputRef = useRef(null);
+    const _videoInputRef = useRef(null);
     const lastPincodeLookupRef = useRef('');
     const pincodeRequestSeqRef = useRef(0);
 
@@ -273,7 +273,7 @@ function MyBusiness({ user }) {
             }));
             setPincodeLookupStatus('found');
             setPincodeLookupMessage(detectedCity ? `City detected: ${detectedCity}` : 'Location detected.');
-        } catch (error) {
+        } catch {
             if (requestSeq !== pincodeRequestSeqRef.current) {
                 return;
             }

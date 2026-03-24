@@ -89,10 +89,10 @@ public class MessageService {
                 ? contact.getPreferredLanguage() 
                 : Contact.Language.ENGLISH;
             
-            System.out.println("🔔 Broadcasting to: " + contact.getName());
-            System.out.println("   Source Language: " + sourceLanguage);
-            System.out.println("   Target Language: " + targetLanguage);
-            System.out.println("   Original Message: " + request.getMessageText());
+            // System.out.println("🔔 Broadcasting to: " + contact.getName());
+            // System.out.println("   Source Language: " + sourceLanguage);
+            // System.out.println("   Target Language: " + targetLanguage);
+            // System.out.println("   Original Message: " + request.getMessageText());
             
             String translatedMessage = translationService.translate(
                 request.getMessageText(), 
@@ -100,8 +100,8 @@ public class MessageService {
                 targetLanguage
             );
             
-            System.out.println("   Translated Message: " + translatedMessage);
-            System.out.println("   Contact Method: " + contact.getPreferredContactMethod());
+            // System.out.println("   Translated Message: " + translatedMessage);
+            // System.out.println("   Contact Method: " + contact.getPreferredContactMethod());
 
             // ========================================
             // ✅ ACTUAL SENDING ENABLED
@@ -133,23 +133,23 @@ public class MessageService {
                         method = Message.ContactMethod.CALL;
                     } catch (Exception callException) {
                         // CALL failed, fallback to SMS
-                        System.err.println("⚠️ CALL failed for " + contact.getName() + ", falling back to SMS: " + callException.getMessage());
+                            System.err.println("⚠️ CALL failed for " + contact.getName() + ", falling back to SMS: " + callException.getMessage());
                         try {
                             sent = smsService.sendSms(
                                     contact.getPhone(),
                                     translatedMessage);
                             method = Message.ContactMethod.SMS;
-                            System.out.println("✅ Fallback SMS sent successfully to " + contact.getName());
+                            // System.out.println("✅ Fallback SMS sent successfully to " + contact.getName());
                         } catch (Exception smsException) {
                             // SMS also failed, try EMAIL as last resort
-                            System.err.println("⚠️ SMS also failed, trying EMAIL as last resort");
+                                System.err.println("⚠️ SMS also failed, trying EMAIL as last resort");
                             if (contact.getEmail() != null && !contact.getEmail().isEmpty()) {
                                 sent = emailService.sendEmail(
                                         contact.getEmail(),
                                         "Message from Caterer",
                                         translatedMessage);
                                 method = Message.ContactMethod.EMAIL;
-                                System.out.println("✅ Fallback EMAIL sent successfully to " + contact.getName());
+                                // System.out.println("✅ Fallback EMAIL sent successfully to " + contact.getName());
                             }
                         }
                     }

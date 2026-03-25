@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, Phone, Mail, Calendar, MessageCircle, Building, Compass, ChefHat, Sparkles, Images, MessageSquareText, UserCircle2, UtensilsCrossed } from 'lucide-react';
+import { ArrowLeft, Star, Phone, Mail, Calendar, MessageCircle, Building, Compass, ChefHat, Sparkles, Images, MessageSquareText, UserCircle2, UtensilsCrossed, ChevronLeft, ChevronRight } from 'lucide-react';
 import { profileAPI, fileAPI, dishAPI, reviewsAPI } from '../services/api';
 import MeetingRequestModal from '../components/MeetingRequestModal';
 import ReportModal from '../components/ReportModal';
+import Modal from '../components/Modal';
 import { useToast } from '../components/ToastProvider';
 import '../styles/Table.css';
 
@@ -40,6 +41,9 @@ const CatererDetail = ({ user }) => {
     const [showMeetingModal, setShowMeetingModal] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false);
     const [reportTarget, setReportTarget] = useState(null);
+    const [photoModalOpen, setPhotoModalOpen] = useState(false);
+    const [activePhoto, setActivePhoto] = useState(null);
+    const [activePhotoIndex, setActivePhotoIndex] = useState(0);
     const toast = useToast();
 
     const sectionTitleClass = 'inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-sky-200 bg-sky-50 text-slate-900 font-extrabold tracking-tight';
@@ -52,6 +56,8 @@ const CatererDetail = ({ user }) => {
             loadRatingSummary();
         }
     }, [catererId]);
+
+    
 
     const loadReviews = async () => {
         try {
@@ -136,6 +142,26 @@ const CatererDetail = ({ user }) => {
         }
         return [];
     }, [caterer, resolveImageUrl]);
+
+    // Keyboard navigation for photo modal (declared after galleryImages to avoid TDZ)
+    useEffect(() => {
+        if (!photoModalOpen) return;
+
+        const onKey = (e) => {
+            if (e.key === 'ArrowLeft') {
+                const prev = (activePhotoIndex - 1 + galleryImages.length) % galleryImages.length;
+                setActivePhotoIndex(prev);
+                setActivePhoto(galleryImages[prev]);
+            } else if (e.key === 'ArrowRight') {
+                const next = (activePhotoIndex + 1) % galleryImages.length;
+                setActivePhotoIndex(next);
+                setActivePhoto(galleryImages[next]);
+            }
+        };
+
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [photoModalOpen, activePhotoIndex, galleryImages]);
 
     if (loading) {
         return <div className="page-shell justify-center items-center">Loading...</div>;
@@ -271,7 +297,11 @@ const CatererDetail = ({ user }) => {
                                             <img
                                                 src={url}
                                                 alt={`Gallery image ${index + 1}`}
-                                                className="w-full h-full object-cover rounded-lg"
+                                                className="w-full h-full object-cover rounded-lg cursor-pointer"
+                                                onClick={() => { setActivePhoto(url); setActivePhotoIndex(index); setPhotoModalOpen(true); }}
+                                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setActivePhoto(url); setActivePhotoIndex(index); setPhotoModalOpen(true); } }}
+                                                tabIndex={0}
+                                                role="button"
                                                 onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://via.placeholder.com/480x320?text=Gallery'; }}
                                             />
                                         </div>
@@ -411,6 +441,33 @@ const CatererDetail = ({ user }) => {
                     contentId={reportTarget?.id}
                     contentType={'review'}
                 />
+            )}
+            {photoModalOpen && (
+                <Modal isOpen={photoModalOpen} onClose={() => { setPhotoModalOpen(false); setActivePhoto(null); setActivePhotoIndex(0); }} showHeader={false} className="max-w-4xl" applyDesktopSidebarOffset>
+                    <div className="w-full h-full flex items-center justify-center p-4 relative">
+                        <button aria-label="Previous image" className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 rounded-full p-2 shadow hover:bg-white" onClick={() => {
+                            const nextIndex = (activePhotoIndex - 1 + galleryImages.length) % galleryImages.length;
+                            setActivePhotoIndex(nextIndex);
+                            setActivePhoto(galleryImages[nextIndex]);
+                        }}>
+                            <ChevronLeft />
+                        </button>
+
+                        <img src={activePhoto} alt="Gallery" className="max-w-full max-h-[80vh] object-contain rounded" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://via.placeholder.com/800x480?text=Image'; }} />
+
+                        <button aria-label="Next image" className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 rounded-full p-2 shadow hover:bg-white" onClick={() => {
+                            const nextIndex = (activePhotoIndex + 1) % galleryImages.length;
+                            setActivePhotoIndex(nextIndex);
+                            setActivePhoto(galleryImages[nextIndex]);
+                        }}>
+                            <ChevronRight />
+                        </button>
+
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-slate-900/60 text-white text-sm rounded px-3 py-1">
+                            {activePhotoIndex + 1} / {galleryImages.length}
+                        </div>
+                    </div>
+                </Modal>
             )}
         </div>
     );

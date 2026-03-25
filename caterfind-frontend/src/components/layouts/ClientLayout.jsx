@@ -1,14 +1,26 @@
 import React, { useEffect, useState } from "react";
-import { LogOut, Menu, User } from "lucide-react";
+import { ClipboardList, Home, LogOut, Menu, MessageCircle, User } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
-import BottomNavigation from "@/components/BottomNavigation";
 import { authAPI } from "@/services/api";
+import RoleSidebar from '@/components/layouts/RoleSidebar';
+import { useLocation } from 'react-router-dom';
+import PageHeader from '@/components/PageHeader';
+import { clientHeaderConfig, findHeaderForPath } from '@/lib/headerConfig';
 
 const ClientLayout = ({ user, children, onLogout }) => {
     const fallbackName = user?.displayName || user?.name || (user?.email ? user.email.split('@')[0] : 'Client');
     const [clientName, setClientName] = useState(fallbackName);
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const menuItems = [
+        { path: '/client/home', icon: Home, label: 'Home' },
+        { path: '/client/requests', icon: ClipboardList, label: 'Requests' },
+        { path: '/client/messages', icon: MessageCircle, label: 'Messages' },
+        { path: '/client/profile', icon: User, label: 'Profile' },
+    ];
 
     useEffect(() => {
         let isMounted = true;
@@ -40,15 +52,18 @@ const ClientLayout = ({ user, children, onLogout }) => {
 
     return (
         <div className="min-h-screen bg-slate-50 flex overflow-x-hidden">
-            <BottomNavigation
-                userName={clientName}
-                mobileOpen={mobileNavOpen}
-                onClose={() => setMobileNavOpen(false)}
+            <RoleSidebar
+                menuItems={menuItems}
+                roleSubtitle="Client Panel"
                 onLogout={onLogout}
+                mobileOpen={mobileNavOpen}
+                onMobileOpenChange={setMobileNavOpen}
+                onDesktopCollapseChange={setSidebarCollapsed}
+                storageKey="caterfind:sidebar:client-collapsed"
             />
 
             {/* Navbar */}
-            <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
+            <div className={`flex-1 flex flex-col min-w-0 transition-[margin] duration-300 ${sidebarCollapsed ? 'lg:ml-[76px]' : 'lg:ml-[250px]'}`}>
                 <nav className="h-14 border-b border-slate-200 bg-white px-4 flex items-center justify-between sticky top-0 z-30">
                     <div className="flex items-center gap-2">
                         <button
@@ -58,8 +73,13 @@ const ClientLayout = ({ user, children, onLogout }) => {
                         >
                             <Menu size={20} />
                         </button>
-                    <span className="text-2xl">🍽️</span>
-                    <span className="font-bold text-lg text-slate-900">CaterFind</span>
+                        {/* Dynamic page header */}
+                        <div className="min-w-0">
+                            {(() => {
+                                const header = findHeaderForPath(clientHeaderConfig, location.pathname) || { title: 'Dashboard', subtitle: 'Welcome to your workspace' };
+                                return <PageHeader title={header.title} subtitle={header.subtitle} />;
+                            })()}
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-3">

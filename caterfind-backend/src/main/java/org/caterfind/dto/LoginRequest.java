@@ -9,6 +9,7 @@ public class LoginRequest {
 
     private String email;
     private String password;
+    private String requestedRole;
 
     // Constructors
     public LoginRequest() {
@@ -17,6 +18,12 @@ public class LoginRequest {
     public LoginRequest(String email, String password) {
         this.email = email;
         this.password = password;
+    }
+
+    public LoginRequest(String email, String password, String requestedRole) {
+        this.email = email;
+        this.password = password;
+        this.requestedRole = requestedRole;
     }
 
     // Getters and Setters
@@ -34,5 +41,13 @@ public class LoginRequest {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getRequestedRole() {
+        return requestedRole;
+    }
+
+    public void setRequestedRole(String requestedRole) {
+        this.requestedRole = requestedRole;
     }
 }

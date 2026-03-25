@@ -1,370 +1,291 @@
-# CaterFind - Catering Business Management System
+# CaterFind
+
+CaterFind is a multi-role platform built with Spring Boot and React to connect caterers and clients, manage operations, and support admin-level control over communication and moderation workflows.
+
+This README documents the current implemented system behavior and architecture.
 
 ## Project Overview
 
-This is a **college project** implementing a **multi-role catering platform prototype** with caterer, client, and admin modules.
+CaterFind provides:
+- Caterer-side operational tools (contacts, inventory, messaging, meeting lifecycle)
+- Client-side discovery and request workflows
+- Admin-side governance (dashboard, moderation, and platform settings)
 
-### ⚠️ Important Scope Clarification
-
-This system is **NOT** a full production marketplace. It is an educational prototype focused on core workflow modules.
-
-**Implemented Features:**
-- ✅ Contact Management (staff, suppliers, dealers)
-- ✅ Broadcast Messaging (Email/SMS stubs)
-- ✅ Inventory Tracking with Low-Stock Alerts
-- ✅ Caterer Dashboard with Statistics
-- ✅ Client flows (browse caterers, meeting requests, profile pages)
-- ✅ Meeting request lifecycle (PENDING/ACCEPTED/REJECTED)
-- ✅ Admin panel with live API integration (dashboard, caterers, clients, moderation, settings)
-- ✅ JWT-based authentication for protected APIs
-- ✅ Forgot-password flow with OTP sent on email
-
-**Intentionally Excluded Features (NOT BUGS):**
-- ❌ Online Booking System
-- ❌ Pricing or Payment Processing
-- ❌ Predefined Packages
-- ❌ End-to-end contract/payment fulfillment pipeline
-- ❌ WhatsApp Integration
-- ❌ Enterprise analytics/BI reporting
-
----
+Core platform communication is broadcast-based for operational messaging, with runtime channel controls and fail-safe fallbacks.
 
 ## Technology Stack
 
 ### Backend
-- **Framework:** Spring Boot 2.7.18
-- **Language:** Java 17
-- **ORM:** JPA / Hibernate
-- **Database:** MySQL
-- **Build Tool:** Maven
+- Java 17
+- Spring Boot
+- Spring Data JPA / Hibernate
+- Maven
 
 ### Frontend
-- **Framework:** React (Vite)
-- **Language:** JavaScript (JSX)
-- **Styling:** Plain CSS (NO UI libraries)
-- **HTTP Client:** Fetch API
+- React (Vite)
+- JavaScript (JSX)
+- CSS
 
-### Messaging
-- **Email:** Stub implementation (logs to console)
-- **SMS:** Stub implementation (logs to console)
-- **Note:** No real API keys required
+### Data
+- Relational database (MySQL configuration included)
 
----
+## User Roles
 
-## Prerequisites
+- Admin
+  - Dashboard monitoring
+  - Caterer and client management
+  - Moderation and platform settings management
+- Caterer
+  - Contact and inventory management
+  - Broadcast communication
+  - Meeting/trial request handling
+- Client
+  - Browse caterers
+  - Create and track meeting requests
 
-Before running this project, ensure you have:
+## Admin Settings System (DB-driven)
 
-1. **Java 17** installed
-2. **Maven** installed
-3. **MySQL** installed and running
-4. **Node.js** (v16 or higher) and npm installed
+Platform settings are persisted in the `platform_settings` table and loaded dynamically at runtime.
 
----
+- Storage: `PlatformSetting` entity/table
+- Management: `AdminService` (`getSettings`, `saveSettings`)
+- Runtime access: `SettingsService`
 
-## Setup Instructions
+Implemented boolean toggles include:
+- `smsEnabled`
+- `callEnabled`
+- `translationEnabled`
+- `emailNotifications`
+- `smsNotifications`
 
-### 1. Database Setup
+These settings are read during request execution, so behavior changes apply without application restart.
 
-```bash
-# Create MySQL database
-mysql -u root -p
-CREATE DATABASE caterfind;
-EXIT;
-```
+## Feature Toggles & Runtime Control
 
-The database tables will be created automatically by Hibernate on first run.
+`SettingsService` reads toggle values from `PlatformSettingRepository` at runtime.
 
-### 2. Backend Setup
+Examples:
+- `translationEnabled`
+  - `true`: translate outbound message by contact language
+  - `false`: use original message
+- `smsEnabled`
+  - `true`: SMS path can be used
+  - `false`: SMS path is skipped and fallback applies
+- `callEnabled`
+  - `true`: voice call path can be used
+  - `false`: call path is skipped and fallback applies
 
-```bash
-# Navigate to backend directory
-cd caterfind-backend
+Design principle:
+- Toggle checks happen inside messaging/translation/calling services.
+- No static feature behavior is hardcoded.
 
-# Build the project
-mvn clean install
+## Smart Messaging System
 
-# Run the Spring Boot application
-mvn spring-boot:run
-```
+CaterFind messaging is a broadcast workflow, not a threaded chat system.
 
-Backend will start on **http://localhost:8080**
+- Message mode: one outbound message to many contacts
+- Supported channels:
+  - `EMAIL`
+  - `SMS` (Twilio)
+  - `CALL` (Twilio or Exotel)
+- Every successful outbound message is logged in the `messages` table (`Message` entity)
 
-### 3. Frontend Setup
+Important:
+- Contact messaging is broadcast-oriented and does not implement reply-thread inbox semantics.
 
-```bash
-# Navigate to frontend directory
-cd caterfind-frontend
+## Messaging Flow Architecture
 
-# Install dependencies
-npm install
+For each selected contact, the backend pipeline in `MessageService` performs:
 
-# Run the development server
-npm run dev
-```
+1. Detect source and target language
+- Source language comes from request (default ENGLISH)
+- Target language comes from contact preferred language
 
-Frontend will start on **http://localhost:5173**
+2. Translate message (if enabled)
+- `TranslationService.translate(...)` is invoked when `translationEnabled=true`
+- On disabled/failure, original message is used
 
----
+3. Resolve preferred contact method
+- Uses contact preference: `EMAIL`, `SMS`, or `CALL`
 
-## Default Login Credentials
+4. Apply runtime feature checks
+- SMS path checks `smsEnabled`
+- Call path checks `callEnabled`
+- Email is always available as the base delivery channel
 
-### Caterer Account (Full Access)
-- **Email:** admin@caterfind.com
-- **Password:** (demo account)
+5. Execute delivery with fallback
+- Preferred channel is attempted first
+- If unavailable or failed, email fallback is attempted
 
-### Client Account
-- **Email:** client@test.com
-- **Password:** (demo account)
+6. Persist audit log
+- Save message record in `messages` table with method/status metadata
 
-### Admin Account
-- **Email:** superadmin@caterfind.com
-- **Password:** (demo account)
+## Fallback Strategy
 
----
+Fallback logic is a critical runtime behavior in `MessageService`:
 
-## System Features
+- If SMS is disabled, fallback to EMAIL
+- If CALL is disabled, fallback to EMAIL
+- If preferred method fails, fallback to EMAIL
+- Email is treated as the guaranteed delivery channel (if available)
+- EMAIL acts as the final delivery fallback when recipient email is available
 
-### 1. Login Page
-- Email and password authentication
-- Role-based routing:
-  - **CATERER** → Dashboard (full access)
-  - **CLIENT** → Client module
-  - **ADMIN** → Admin panel
+Data safety guarantee:
+- Contact preferences are NEVER modified or overwritten in the database
+- All fallback decisions are runtime-only and non-persistent
 
-### 2. Dashboard
-- **Total Contacts** count
-- **Low Stock Items** count
-- **Total Messages Sent** count
-- **NO charts, graphs, or analytics** (simple stat cards only)
+## Translation System (OpenAI-based)
 
-### 3. Contact Management
-- Add, Edit, Delete contacts
-- Multi-select labels: Staff, Chef, Helper, Supplier, Dealer
-- Preferred contact method: Email or SMS
-- **Note:** These are internal contacts, NOT client event contacts
+`TranslationService` provides per-contact language translation for outbound messages.
 
-### 4. Messaging Module
-- Select multiple contacts via checkboxes
-- Compose and send broadcast messages
-- Messages sent via preferred contact method (Email or SMS)
-- View message history (audit log)
-- **CRITICAL:** This is NOT a chat system - no threading, no replies, no inbox
+Behavior:
+- If `translationEnabled=false`, original message is returned
+- If source and target languages are the same, original message is returned
+- If OpenAI call fails, original message is returned (fail-safe)
 
-### 5. Inventory Management
-- Add, Edit, Delete inventory items
-- Categories: Grain, Vegetable, Meat, Dairy, Masala, Oil, Other
-- Automatic low-stock detection (quantity < minimum threshold)
-- Optional dealer assignment from contacts
-- **Note:** NO billing, invoicing, or purchase orders
+Supported language enum values in current code:
+- ENGLISH
+- HINDI
+- GUJARATI
 
-### 6. My Business
-- View-only business profile page
-- Displays: Business name, phone, address
-- **Note:** Editing not implemented in this version
+## Multi Provider Calling System
 
----
+Voice calls are abstracted by `VoiceCallService` and selected by configuration:
 
-## API Endpoints
+- `app.calling.provider=twilio` -> `TwilioCallService`
+- `app.calling.provider=exotel` -> `ExotelCallService`
 
-### Authentication
-- `POST /auth/login` - User login
-- `POST /auth/register` - User registration
-- `POST /auth/forgot-password/request-otp` - Send OTP to email
-- `POST /auth/forgot-password/verify-otp` - Verify OTP
-- `POST /auth/forgot-password/reset` - Reset password with OTP
+Both providers honor `callEnabled` runtime toggle through `SettingsService`.
 
-### Dashboard
-- `GET /dashboard/summary?catererId={id}` - Get dashboard stats
+## External Integrations
 
-### Contacts
-- `GET /contacts?catererId={id}` - List all contacts
-- `POST /contacts?catererId={id}` - Create contact
-- `PUT /contacts/{id}` - Update contact
-- `DELETE /contacts/{id}` - Delete contact
+The current implementation uses real integrations:
 
-### Inventory
-- `GET /inventory?catererId={id}` - List all inventory
-- `GET /inventory/low-stock?catererId={id}` - List low-stock items
-- `POST /inventory?catererId={id}` - Create item
-- `PUT /inventory/{id}` - Update item
-- `DELETE /inventory/{id}` - Delete item
+- Twilio
+  - SMS via `SmsService`
+  - Calls via `TwilioCallService`
+- Exotel
+  - Calls via `ExotelCallService`
+- OpenAI
+  - Translation via `TranslationService`
+- SMTP Email
+  - Email delivery via `EmailService` and Spring Mail
 
-### Messages
-- `POST /messages/send?catererId={id}` - Send broadcast message
-- `GET /messages/logs?catererId={id}` - View message history
+## Admin Panel Features
 
-### Meeting Requests
-- `POST /api/meeting-requests` - Create request
-- `GET /api/meeting-requests/caterer` - Caterer-side requests
-- `GET /api/meeting-requests/client` - Client-side requests
-- `PUT /api/meeting-requests/{id}/accept` - Accept request
-- `PUT /api/meeting-requests/{id}/reject` - Reject request
+Implemented admin capabilities include:
+- Dashboard stats and recent activity
+- Caterer management (including status updates/approvals)
+- Client overview
+- Moderation report management
+- Platform settings management persisted in DB
 
-### Admin
-- `GET /api/admin/dashboard` - Platform summary and activity
-- `GET /api/admin/caterers` - List caterers
-- `PUT /api/admin/caterers/{id}/status` - Update caterer status
-- `GET /api/admin/clients` - List clients
-- `GET /api/admin/moderation` - List moderation reports
-- `PUT /api/admin/moderation/{id}` - Resolve/remove moderation report
-- `GET /api/admin/settings` - Fetch admin settings
-- `PUT /api/admin/settings` - Save admin settings
+Moderation actions supported by service logic:
+- Resolve
+- Remove
+- Dismiss (mapped to resolved state)
 
----
+## Database Tables (Current)
 
-## Database Schema
-
-### Tables
-1. **users** - User authentication (CATERER/CLIENT roles)
-2. **catering_profile** - Caterer business information
-3. **contacts** - Caterer's contacts (staff, suppliers, etc.)
-4. **contact_labels** - Predefined labels (Staff, Chef, Helper, Supplier, Dealer)
-5. **contact_label_mapping** - Many-to-many relationship between contacts and labels
-6. **inventory_items** - Inventory tracking with low-stock detection
-7. **messages** - Message audit log (broadcast messaging)
-
----
+Key tables in current system include:
+- `users`
+- `catering_profile`
+- `contacts`
+- `contact_labels`
+- `contact_label_mapping`
+- `inventory_items`
+- `messages`
+- `platform_settings`
+- `moderation_reports`
+- `chat_conversations`
+- `meeting_requests`
 
 ## Project Structure
 
-### Backend (`caterfind-backend/`)
-```
+### Backend (`caterfind-backend`)
+
+```text
 src/main/java/org/caterfind/
-├── Main.java                    # Spring Boot entry point
-├── entity/                      # JPA entities
-│   ├── User.java
-│   ├── CateringProfile.java
-│   ├── Contact.java
-│   ├── ContactLabel.java
-│   ├── InventoryItem.java
-│   └── Message.java
-├── repository/                  # JPA repositories
-├── service/                     # Business logic
-│   ├── AuthService.java
-│   ├── DashboardService.java
-│   ├── ContactService.java
-│   ├── InventoryService.java
+├── controller/
+├── dto/
+├── entity/
+├── repository/
+├── service/
+│   ├── AdminService.java
 │   ├── MessageService.java
-│   ├── EmailService.java        # Stub (logs to console)
-│   └── SmsService.java          # Stub (logs to console)
-├── controller/                  # REST controllers
-└── dto/                         # Data Transfer Objects
+│   ├── SettingsService.java
+│   ├── TranslationService.java
+│   ├── VoiceCallService.java
+│   ├── TwilioCallService.java
+│   ├── ExotelCallService.java
+│   ├── SmsService.java
+│   └── EmailService.java
+└── Main.java
 ```
 
-### Frontend (`caterfind-frontend/`)
-```
+### Frontend (`caterfind-frontend`)
+
+```text
 src/
-├── App.jsx                      # Main app with routing
 ├── components/
-│   └── Sidebar.jsx              # Navigation sidebar
+├── hooks/
+├── lib/
 ├── pages/
-│   ├── Login.jsx                # Login page
-│   ├── Dashboard.jsx            # Dashboard with stats
-│   ├── Contacts.jsx             # Contact management
-│   ├── Inventory.jsx            # Inventory management
-│   ├── Messages.jsx             # Broadcast messaging
-│   └── MyBusiness.jsx           # Business profile
 ├── services/
-│   └── api.js                   # API service layer
-└── styles/                      # Plain CSS files
+└── styles/
 ```
 
----
+## Configuration Notes
 
-## Why Features Are Missing
+Important runtime config examples:
+- `app.calling.provider=twilio|exotel`
+- Twilio credentials for SMS/call
+- Exotel credentials for call provider mode
+- OpenAI API key/model/url for translation
+- SMTP credentials for email channel
 
-This is a **partial submission** for a college project. The scope is intentionally limited to core discovery and management flows.
+## Production Notes
 
-### Payment and Booking Engine
-- **Why missing:** Requires contracts, pricing engine, and payment gateway orchestration
-- **Future:** Stripe/Razorpay + booking state machine
+The messaging subsystem is designed with resilience and fail-safe behavior:
+- Channel gates (`smsEnabled`, `callEnabled`, `translationEnabled`) are runtime-controlled
+- Delivery failures degrade gracefully to email fallback
+- Translation failures never block message delivery
+- Outbound communication remains auditable through DB logs
+- User/contact preference data is preserved during failure handling
 
-### Booking & Payments
-- **Why missing:** Requires complex business logic, payment gateway integration
-- **Future:** Would need Stripe/Razorpay integration
+Operational recommendation:
+- Keep feature flags managed via Admin Settings to control live behavior without restarts.
 
-### Real-time Chat
-- **Why missing:** Requires WebSocket infrastructure
-- **Current:** Simple broadcast messaging is sufficient for internal coordination
+## Quick Start
 
-### Analytics & Charts
-- **Why missing:** Out of scope for MVP
-- **Current:** Simple stat counts are sufficient
+### Backend
 
----
+```bash
+cd caterfind-backend
+mvn clean install
+mvn spring-boot:run
+```
 
-## Testing the System
+### Frontend
 
-### 1. Test Login
-- Login as caterer: `admin@caterfind.com` / `admin123`
-- Verify dashboard loads with sidebar
+```bash
+cd caterfind-frontend
+npm install
+npm run dev
+```
 
-### 2. Test Contact Management
-- Add a contact with name, phone, email
-- Select labels (e.g., "Staff", "Chef")
-- Set preferred contact method
-- Edit and delete contact
+## Environment Variables (Reference)
 
-### 3. Test Messaging
-- Go to Messages page
-- Select 2+ contacts via checkboxes
-- Type a message
-- Click Send
-- Check backend console for stub email/SMS logs
+Use `caterfind-backend/.env.example` as the baseline. Common values:
 
-### 4. Test Inventory
-- Add an inventory item (e.g., "Rice", category "Grain", quantity 5, threshold 10)
-- Verify it shows as "Low Stock" in table
-- Check dashboard shows updated low-stock count
+- Database: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`
+- Twilio: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
+- Exotel: `EXOTEL_SID`, `EXOTEL_TOKEN`, `EXOTEL_API_KEY`, `EXOTEL_SUBDOMAIN`, `EXOTEL_CALLER_ID`
+- OpenAI: `OPENAI_API_KEY`, `OPENAI_API_URL`, `OPENAI_MODEL`
+- SMTP: `MAIL_USERNAME`, `MAIL_PASSWORD`
+- Security: `JWT_SECRET`
 
-### 5. Test Client Login Rejection
-- Logout
-- Login as client: `client@test.com` / `client123`
-- Verify client routes open successfully (home, caterer detail, requests)
+## Summary
 
-### 6. Test Admin Panel
-- Login as admin: `superadmin@caterfind.com` / `admin@123`
-- Verify dashboard loads live counts
-- Verify caterer status updates persist
-- Verify settings save/reload from API
-
----
-
-## Notes for Evaluators
-
-1. **Passwords are plain text** - This is intentional for college project simplicity. In production, use BCrypt.
-
-2. **No JWT tokens** - Simple session-based auth for simplicity. In production, use JWT.
-
-3. **Email/SMS are stubs** - They log to console instead of sending real messages. No API keys needed.
-
-4. **Payments and booking contracts are intentionally missing** - This is NOT a bug for this phase.
-
-5. **Messaging is NOT a chat** - It's broadcast-only. No threading, no replies, no inbox.
-
-6. **All code is extensively commented** - Every class, method, and component has comments explaining purpose and design decisions.
-
----
-
-## Future Enhancements (Out of Scope)
-
-If this project were to be extended:
-- Online booking system
-- Payment gateway integration
-- Strong admin auth + role-based API authorization
-- Analytics dashboard with charts
-- Mobile app (React Native)
-- Email/SMS integration with real APIs
-
----
-
-## License
-
-This is a college project for educational purposes.
-
----
-
-## Contact
-
-For questions about this project, contact the development team.
+CaterFind currently implements a DB-driven, runtime-configurable communication architecture with translation, multi-provider calling, intelligent fallback, and admin governance capabilities ready for production-level extension and scaling.
+  

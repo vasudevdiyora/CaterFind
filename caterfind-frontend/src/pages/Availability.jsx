@@ -52,6 +52,18 @@ const Availability = ({ user }) => {
         }
     }, [catererId]);
 
+    // Refresh events & availability when menus change elsewhere (e.g., menu deleted)
+    useEffect(() => {
+        const onMenusUpdated = () => {
+            if (!catererId) return;
+            loadEvents();
+            loadAvailabilityForMonth(currentDate);
+        };
+
+        window.addEventListener('menusUpdated', onMenusUpdated);
+        return () => window.removeEventListener('menusUpdated', onMenusUpdated);
+    }, [catererId, currentDate]);
+
     useEffect(() => {
         if (catererId) {
             loadAvailabilityForMonth(currentDate);

@@ -3,16 +3,18 @@
  * Provides sidebar navigation for caterer pages
  * Matches Loveable's OwnerLayout structure
  */
-import { useEffect, useState } from 'react';
-import { NavLink as RouterNavLink, useLocation } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';
+import { NavLink as RouterNavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, Building2, Users, MessageSquare,
     Package, Menu, X, LogOut, Contact, Calendar, UtensilsCrossed, ClipboardList
 } from 'lucide-react';
+import logo from '@/assets/logo.png';
 
 import { cn } from '@/lib/utils';
 import Modal from '../Modal';
 import { authAPI, profileAPI } from '@/services/api';
+import '../../styles/CatererLayout.css';
 
 const CatererLayout = ({ children, user, onLogout }) => {
     // Mobile sidebar toggle state
@@ -21,6 +23,10 @@ const CatererLayout = ({ children, user, onLogout }) => {
     const fallbackCateringName = user?.displayName || user?.name || (user?.email ? user.email.split('@')[0] : 'Caterer');
     const [cateringName, setCateringName] = useState(fallbackCateringName);
     const location = useLocation();
+    const navigate = useNavigate();
+    const lastLocationRef = useRef(location.pathname);
+    const [unsavedModalOpen, setUnsavedModalOpen] = useState(false);
+    const [pendingNavPath, setPendingNavPath] = useState(null);
 
     useEffect(() => {
         let isMounted = true;
@@ -56,6 +62,70 @@ const CatererLayout = ({ children, user, onLogout }) => {
             isMounted = false;
         };
     }, [fallbackCateringName, user?.id, user?.userId]);
+
+    // Keep track of last location and intercept browser back/forward (popstate)
+    useEffect(() => {
+        lastLocationRef.current = location.pathname;
+    }, [location.pathname]);
+
+    useEffect(() => {
+        const onPopState = (e) => {
+            try {
+                if (typeof window !== 'undefined' && window.__hasUnsavedMenu) {
+                    const attempted = window.location.pathname;
+                    if (attempted !== lastLocationRef.current) {
+                        // Revert URL and show modal with pending path
+                        window.history.pushState(null, '', lastLocationRef.current);
+                        setPendingNavPath(attempted);
+                        setUnsavedModalOpen(true);
+                    }
+                }
+            } catch (err) {
+                // ignore
+            }
+        };
+
+        window.addEventListener('popstate', onPopState);
+        return () => window.removeEventListener('popstate', onPopState);
+    }, []);
+
+    const handleConfirmSaveDraft = async () => {
+        setUnsavedModalOpen(false);
+        try {
+            if (typeof window !== 'undefined' && typeof window.__saveMenuDraft === 'function') {
+                await window.__saveMenuDraft();
+            }
+        } catch (err) {
+            console.error('Failed to save draft:', err);
+        }
+        if (pendingNavPath) navigate(pendingNavPath);
+        setPendingNavPath(null);
+    };
+
+    const handleConfirmDiscard = () => {
+        setUnsavedModalOpen(false);
+        if (typeof window !== 'undefined') {
+            window.__hasUnsavedMenu = false;
+            window.__saveMenuDraft = null;
+        }
+        if (pendingNavPath) navigate(pendingNavPath);
+        setPendingNavPath(null);
+    };
+
+    const handleCancelNav = () => {
+        setUnsavedModalOpen(false);
+        setPendingNavPath(null);
+    };
+
+    const handleNavClick = (e, path) => {
+        if (typeof window !== 'undefined' && window.__hasUnsavedMenu) {
+            e.preventDefault && e.preventDefault();
+            setPendingNavPath(path);
+            setUnsavedModalOpen(true);
+            return;
+        }
+        setSidebarOpen(false);
+    };
 
     // Handle logout action
     const handleLogout = () => {
@@ -107,40 +177,51 @@ const CatererLayout = ({ children, user, onLogout }) => {
                 <>
                     {/* Desktop Sidebar (visible on lg and up) */}
                     <aside style={{ zIndex: 1200 }} className={cn(
-                        "hidden lg:flex fixed inset-y-0 left-0 bg-white border-r border-slate-200",
-                        sidebarCollapsed ? "w-16" : "w-64",
-                        "flex-col h-full"
+                        "hidden lg:flex fixed inset-y-0 left-0 bg-white border-r border-slate-200 flex-col h-full caterer-sidebar",
+                        sidebarCollapsed ? "caterer-sidebar-collapsed" : "caterer-sidebar-expanded"
                     )}>
                         <div className="flex flex-col h-full">
                             {/* Sidebar Header */}
-                            <div className="h-16 px-6 border-b border-slate-100 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-sky-500 text-white flex items-center justify-center shadow-sm">
-                                        <UtensilsCrossed className="w-5 h-5" />
-                                    </div>
-                                    {!sidebarCollapsed && (
-                                        <div>
-                                            <p className="font-bold text-slate-900 text-sm">{cateringName}</p>
-                                            <p className="text-xs text-slate-500 font-medium tracking-wide uppercase">Caterer</p>
+                            <div className={cn(
+                                "h-16 border-b border-slate-100 flex items-center",
+                                sidebarCollapsed ? "justify-center px-2" : "justify-between px-6"
+                            )}>
+                                {sidebarCollapsed ? (
+                                    <button onClick={handleMenuClick} className="inline-flex lg:inline-flex p-2 rounded-md text-slate-600 hover:bg-slate-100 transition-colors" aria-label="Expand sidebar">
+                                        <div className="w-8 h-8 rounded-lg bg-sky-500 text-white flex items-center justify-center shadow-sm">
+                                            <img src={logo} alt="CaterFind Logo" className="w-5 h-5 object-contain" />
                                         </div>
-                                    )}
-                                </div>
+                                    </button>
+                                ) : (
+                                    <>
+                                        <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-sky-500 text-white flex items-center justify-center shadow-sm">
+                                                    <img src={logo} alt="CaterFind Logo" className="w-5 h-5 object-contain" />
+                                                </div>
+                                            <div>
+                                                <p className="font-bold text-slate-900 text-sm">{cateringName}</p>
+                                                <p className="text-xs text-slate-500 font-medium tracking-wide uppercase">Caterer</p>
+                                            </div>
+                                        </div>
+
+                                        <button onClick={handleMenuClick} className="hidden lg:inline-flex p-2 rounded-md text-slate-600 hover:bg-slate-100 transition-colors" aria-label="Collapse sidebar">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5" aria-hidden="true">
+                                                <path d="M4 5h16" />
+                                                <path d="M4 12h16" />
+                                                <path d="M4 19h16" />
+                                            </svg>
+                                        </button>
+                                    </>
+                                )}
                             </div>
 
-                            {/* Collapse / expand arrow, below logo and above menu */}
-                            <div className="hidden lg:flex px-3 pt-2 pb-1 border-b border-slate-100 justify-center">
-                                <button
-                                    type="button"
-                                    className="inline-flex items-center justify-center h-7 w-10 rounded-full border border-slate-200 bg-slate-50 text-slate-500 text-xs font-semibold hover:bg-slate-100 hover:text-slate-700"
-                                    onClick={() => setSidebarCollapsed(prev => !prev)}
-                                    aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                                >
-                                    {sidebarCollapsed ? '>' : '<'}
-                                </button>
-                            </div>
+                            {/* Collapse button removed per request */}
 
                             {/* Navigation Links */}
-                            <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
+                            <nav className={cn(
+                                "flex-1 overflow-y-auto custom-scrollbar",
+                                sidebarCollapsed ? "px-2 py-4 space-y-2" : "p-4 space-y-1"
+                            )}>
                                 {navItems.map(({ path, icon, label }) => {
                                     const NavIcon = icon;
 
@@ -148,9 +229,10 @@ const CatererLayout = ({ children, user, onLogout }) => {
                                     <RouterNavLink
                                         key={path}
                                         to={path}
-                                        onClick={() => setSidebarOpen(false)}
+                                        onClick={(e) => handleNavClick(e, path)}
                                         className={({ isActive }) => cn(
-                                            "group flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
+                                            "group w-full rounded-lg font-medium transition-all duration-150 caterer-nav-item",
+                                            sidebarCollapsed ? "flex justify-center items-center px-2 py-3" : "flex items-center gap-3 px-3 py-2 text-sm",
                                             isActive
                                                 ? "bg-sky-50 text-slate-900 shadow-sm border border-sky-200"
                                                 : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
@@ -158,7 +240,11 @@ const CatererLayout = ({ children, user, onLogout }) => {
                                     >
                                         {({ isActive }) => (
                                             <>
-                                                <NavIcon className={cn("w-4 h-4 transition-colors", isActive ? "text-sky-600" : "text-slate-400 group-hover:text-slate-600")} />
+                                                <NavIcon className={cn(
+                                                    "transition-colors",
+                                                    sidebarCollapsed ? "w-6 h-6" : "w-4 h-4",
+                                                    isActive ? "text-sky-600" : "text-slate-400 group-hover:text-slate-600"
+                                                )} />
                                                 {!sidebarCollapsed && <span>{label}</span>}
                                             </>
                                         )}
@@ -168,12 +254,15 @@ const CatererLayout = ({ children, user, onLogout }) => {
                             </nav>
 
                             {/* Logout Button */}
-                            <div className="p-4 border-t border-slate-100">
+                            <div className={cn("border-t border-slate-100", sidebarCollapsed ? "p-2" : "p-4")}>
                                 <button
                                     onClick={handleLogout}
-                                    className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-red-600 transition-colors"
+                                    className={cn(
+                                        "w-full rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-red-600 transition-colors",
+                                        sidebarCollapsed ? "flex justify-center items-center px-2 py-3" : "flex items-center gap-3 px-3 py-2 text-sm"
+                                    )}
                                 >
-                                    <LogOut className="w-4 h-4" />
+                                    <LogOut className={sidebarCollapsed ? "w-6 h-6" : "w-4 h-4"} />
                                     {!sidebarCollapsed && <span>Logout</span>}
                                 </button>
                             </div>
@@ -192,7 +281,7 @@ const CatererLayout = ({ children, user, onLogout }) => {
                                 <div className="h-16 px-6 border-b border-slate-100 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-lg bg-sky-500 text-white flex items-center justify-center shadow-sm">
-                                            <UtensilsCrossed className="w-5 h-5" />
+                                            <img src={logo} alt="CaterFind Logo" className="w-5 h-5 object-contain" />
                                         </div>
                                         <div>
                                             <p className="font-bold text-slate-900 text-sm">{cateringName}</p>
@@ -200,7 +289,7 @@ const CatererLayout = ({ children, user, onLogout }) => {
                                         </div>
                                     </div>
                                     {/* Close button (mobile only) */}
-                                    <button className="lg:hidden p-2 text-slate-400 hover:text-slate-600" onClick={() => setSidebarOpen(false)}>
+                                        <button className="lg:hidden p-2 text-slate-400 hover:text-slate-600" onClick={() => setSidebarOpen(false)}>
                                         <X className="w-5 h-5" />
                                     </button>
                                 </div>
@@ -214,7 +303,7 @@ const CatererLayout = ({ children, user, onLogout }) => {
                                         <RouterNavLink
                                             key={path}
                                             to={path}
-                                            onClick={() => setSidebarOpen(false)}
+                                            onClick={(e) => handleNavClick(e, path)}
                                             className={({ isActive }) => cn(
                                                 "group flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
                                                 isActive
@@ -249,14 +338,19 @@ const CatererLayout = ({ children, user, onLogout }) => {
 
                     {/* Main Content Area */}
                     <div className={cn(
-                        "flex-1 flex flex-col min-w-0",
-                        sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"
+                        "flex-1 flex flex-col min-w-0 caterer-main-content",
+                        sidebarCollapsed ? "lg:ml-[76px]" : "lg:ml-[250px]"
                     )}>
                         {/* Top Header */}
                         <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3">
                             <div className="flex items-center gap-4">
-                                <button onClick={handleMenuClick} className="p-2 -ml-2 rounded-lg hover:bg-slate-100 transition-colors">
-                                    <Menu className="w-6 h-6" />
+                                <button
+                                    type="button"
+                                    onClick={handleMenuClick}
+                                    className="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-slate-600 hover:bg-slate-100 transition-colors"
+                                    aria-label="Open sidebar"
+                                >
+                                    <Menu className="w-5 h-5" />
                                 </button>
                                 <div className="min-w-0">
                                     <h1 className="font-extrabold text-lg truncate tracking-tight">{activeTitle}</h1>
@@ -273,6 +367,14 @@ const CatererLayout = ({ children, user, onLogout }) => {
                         <main className="flex-1 page-shell py-4 lg:py-6 overflow-y-auto overflow-x-hidden touch-scroll">
                             {children}
                         </main>
+                        <Modal isOpen={unsavedModalOpen} onClose={handleCancelNav} title="Unsaved changes">
+                            <p className="text-sm text-slate-600 mb-4">You have unsaved changes in the menu builder. Save as draft or discard your changes before leaving.</p>
+                            <div className="flex items-center gap-3 justify-end">
+                                <button className="secondary-button" onClick={handleCancelNav}>Cancel</button>
+                                <button className="secondary-button" onClick={handleConfirmDiscard}>Discard</button>
+                                <button className="primary-button" onClick={handleConfirmSaveDraft}>Save Draft</button>
+                            </div>
+                        </Modal>
                     </div>
                 </>
             )}

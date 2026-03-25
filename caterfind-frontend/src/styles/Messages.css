@@ -93,6 +93,21 @@
     margin-bottom: 16px;
 }
 
+/* Label filter controls spacing (adjusted for Messages page) */
+.recipients-controls {
+    margin-top: 8px;
+    margin-bottom: 12px;
+    align-items: center;
+}
+
+.recipients-controls .label-filter-buttons {
+    margin-right: 12px;
+}
+
+.recipients-controls .filter-pill {
+    margin-right: 6px;
+}
+
 .recipient-search-input {
     width: 100%;
     height: 42px;

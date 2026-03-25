@@ -11,6 +11,11 @@ const AdminSettings = () => {
         trialBookingNotification: true,
         reportNotification: true,
         
+        // Platform capability toggles (ensure defaults present)
+        smsEnabled: false,
+        translationEnabled: false,
+        callEnabled: false,
+
         // Platform Settings
         allowRegistrations: true,
         requireCatererApproval: true,
@@ -58,7 +63,18 @@ const AdminSettings = () => {
     }, []);
 
     const handleToggle = (key) => {
-        setSettings(prev => ({ ...prev, [key]: !prev[key] }));
+        setSettings(prev => {
+            const newVal = !prev[key];
+            const next = { ...prev, [key]: newVal };
+            // Keep SMS preference and platform capability in sync so admin changes apply system-wide
+            if (key === 'smsNotifications' && prev.smsEnabled !== newVal) {
+                next.smsEnabled = newVal;
+            }
+            if (key === 'smsEnabled' && prev.smsNotifications !== newVal) {
+                next.smsNotifications = newVal;
+            }
+            return next;
+        });
     };
 
     const handleChange = (key, value) => {
@@ -77,12 +93,13 @@ const AdminSettings = () => {
         }
     };
 
-    const Toggle = ({ enabled, onToggle }) => (
+    const Toggle = ({ enabled, onToggle, disabled = false }) => (
         <button
-            onClick={onToggle}
+            onClick={!disabled ? onToggle : undefined}
+            disabled={disabled}
             className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors ${
                 enabled ? 'bg-sky-500' : 'bg-slate-300'
-            }`}
+            } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
         >
             <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -153,6 +170,7 @@ const AdminSettings = () => {
                         <Toggle 
                             enabled={settings.smsNotifications}
                             onToggle={() => handleToggle('smsNotifications')}
+                            disabled={!settings.smsEnabled}
                         />
                     </div>
                     <div className="flex items-center justify-between py-3">
@@ -203,6 +221,36 @@ const AdminSettings = () => {
                         <Toggle 
                             enabled={settings.allowRegistrations}
                             onToggle={() => handleToggle('allowRegistrations')}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between py-3">
+                        <div>
+                            <p className="font-medium text-foreground">Enable SMS (platform-wide)</p>
+                            <p className="text-sm text-muted-foreground">Turn on/off SMS capability for the whole platform</p>
+                        </div>
+                        <Toggle
+                            enabled={settings.smsEnabled}
+                            onToggle={() => handleToggle('smsEnabled')}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between py-3">
+                        <div>
+                            <p className="font-medium text-foreground">Enable Calls (platform-wide)</p>
+                            <p className="text-sm text-muted-foreground">Turn on/off voice call capability for the whole platform</p>
+                        </div>
+                        <Toggle
+                            enabled={settings.callEnabled}
+                            onToggle={() => handleToggle('callEnabled')}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between py-3">
+                        <div>
+                            <p className="font-medium text-foreground">Enable Translation</p>
+                            <p className="text-sm text-muted-foreground">Allow message translation via translation service</p>
+                        </div>
+                        <Toggle
+                            enabled={settings.translationEnabled}
+                            onToggle={() => handleToggle('translationEnabled')}
                         />
                     </div>
                     <div className="flex items-center justify-between py-3">

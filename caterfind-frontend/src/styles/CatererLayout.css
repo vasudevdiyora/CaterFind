@@ -1,0 +1,25 @@
+.caterer-sidebar {
+    transition: width 0.3s ease;
+}
+
+.caterer-sidebar-expanded {
+    width: 250px;
+}
+
+.caterer-sidebar-collapsed {
+    width: 76px;
+}
+
+.caterer-main-content {
+    transition: margin-left 0.3s ease;
+}
+
+.caterer-nav-item {
+    display: flex;
+}
+
+.caterer-sidebar-collapsed .caterer-nav-item svg,
+.caterer-sidebar-collapsed .border-t > button svg {
+    width: 1rem !important;
+    height: 1rem !important;
+}

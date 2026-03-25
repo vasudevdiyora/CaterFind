@@ -126,11 +126,11 @@ export const authAPI = {
    * @param {string} password - User password
    * @returns {Promise} Login response with role
    */
-  login: async (email, password) => {
+  login: async (email, password, requestedRole) => {
     const response = await authFetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password, requestedRole })
     });
     return await handleResponse(response);
   },
@@ -842,7 +842,8 @@ export const menuAPI = {
     const response = await authFetch(`${API_BASE_URL}/menus/${id}`, {
       method: 'DELETE'
     });
-    return response;
+    if (response.status === 204) return null;
+    return await handleResponse(response);
   },
 
   /**

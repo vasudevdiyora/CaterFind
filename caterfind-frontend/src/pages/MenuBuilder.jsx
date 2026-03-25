@@ -62,6 +62,7 @@ function MenuBuilder({ user }) {
 
     // Loading state
     const [loading, setLoading] = useState(false);
+    const [isDirty, setIsDirty] = useState(false);
     const _eventDateInputRef = useRef(null);
     const finalMenuListRef = useRef(null);
     const autoScrollFrameRef = useRef(null);
@@ -181,6 +182,55 @@ function MenuBuilder({ user }) {
             alert('Failed to load dishes');
         }
     };
+
+    // Silent draft save used by external navigation guard. Returns saved menu or throws.
+    const saveDraftSilent = async () => {
+        const dishes = selectedDishes.map((dish, index) => ({
+            dishId: dish.id,
+            menuCategory: dish.menuCategory || 'Uncategorized',
+            displayOrder: index,
+            note: dish.note || ''
+        }));
+
+        const payload = {
+            clientName: clientDetails.clientName,
+            eventType: clientDetails.eventType,
+            mealTime: clientDetails.mealTime,
+            eventLocation: `${clientDetails.venueName}, ${clientDetails.venueAddress}`.trim(),
+            eventDate: clientDetails.eventDate,
+            numberOfGuests: Number(clientDetails.numberOfGuests) || 0,
+            contactNumber: clientDetails.contactNumber,
+            clientEmail: String(clientDetails.clientEmail || '').trim().toLowerCase(),
+            dishes,
+        };
+
+        const savedMenu = editingMenuId
+            ? await menuAPI.update(editingMenuId, payload)
+            : await menuAPI.create(user.userId, payload);
+
+        setIsDirty(false);
+        if (typeof window !== 'undefined') {
+            window.__hasUnsavedMenu = false;
+            window.__saveMenuDraft = null;
+        }
+
+        return savedMenu;
+    };
+
+    // Expose a global draft API for the layout guard
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            window.__hasUnsavedMenu = !!isDirty && currentStep < 3;
+            window.__saveMenuDraft = saveDraftSilent;
+        }
+
+        return () => {
+            if (typeof window !== 'undefined') {
+                window.__hasUnsavedMenu = false;
+                window.__saveMenuDraft = null;
+            }
+        };
+    }, [isDirty, currentStep, editingMenuId, clientDetails, selectedDishes]);
 
     const loadMenuForEdit = async (menuId) => {
         try {
@@ -312,6 +362,7 @@ function MenuBuilder({ user }) {
             value;
 
         setClientDetails(prev => ({ ...prev, [name]: normalizedValue }));
+        setIsDirty(true);
 
         setFormErrors(prev => {
             if (!prev[name]) {
@@ -332,10 +383,14 @@ function MenuBuilder({ user }) {
         if (!clientDetails.eventType) errors.eventType = 'Event type is required';
         if (!clientDetails.eventDate) errors.eventDate = 'Event date is required';
         if (!clientDetails.numberOfGuests) errors.numberOfGuests = 'Number of guests is required';
-        if (clientDetails.contactNumber && !/^\d{10}$/.test(clientDetails.contactNumber)) {
+        if (!clientDetails.contactNumber) {
+            errors.contactNumber = 'Contact number is required';
+        } else if (!/^\d{10}$/.test(clientDetails.contactNumber)) {
             errors.contactNumber = 'Must be a 10-digit phone number';
         }
-        if (clientDetails.clientEmail && !/\S+@\S+\.\S+/.test(clientDetails.clientEmail)) {
+        if (!clientDetails.clientEmail) {
+            errors.clientEmail = 'Client email is required';
+        } else if (!/\S+@\S+\.\S+/.test(clientDetails.clientEmail)) {
             errors.clientEmail = 'Must be a valid email address';
         }
         setFormErrors(errors);
@@ -385,10 +440,12 @@ function MenuBuilder({ user }) {
             displayOrder: selectedDishes.length
         };
         setSelectedDishes([...selectedDishes, newDish]);
+        setIsDirty(true);
     };
 
     const removeDishFromMenu = (dishId, index) => {
         setSelectedDishes(selectedDishes.filter((_, i) => i !== index));
+        setIsDirty(true);
     };
 
     const removeDishByIdentity = (dish) => {
@@ -399,6 +456,7 @@ function MenuBuilder({ user }) {
 
             return String(selected?.name || '').trim().toLowerCase() !== String(dish?.name || '').trim().toLowerCase();
         }));
+        setIsDirty(true);
     };
 
     const reorderSelectedDishes = (fromIndex, toIndex) => {
@@ -410,6 +468,7 @@ function MenuBuilder({ user }) {
             next.splice(toIndex, 0, movedDish);
             return next.map((dish, index) => ({ ...dish, displayOrder: index }));
         });
+        setIsDirty(true);
     };
 
     const stopAutoScroll = () => {
@@ -516,6 +575,24 @@ function MenuBuilder({ user }) {
         };
     }, []);
 
+
+    const isDishSelected = (dish) => {
+        return selectedDishes.some((selected) => {
+            if (selected?.id != null && dish?.id != null) {
+                return selected.id === dish.id;
+            }
+
+            return String(selected?.name || '').trim().toLowerCase() === String(dish?.name || '').trim().toLowerCase();
+        });
+    };
+
+    const updateSelectedDish = (index, field, value) => {
+        const updated = [...selectedDishes];
+        updated[index][field] = value;
+        setSelectedDishes(updated);
+        setIsDirty(true);
+    };
+
     const reorderCategoryBlocks = (fromIndex, toIndex) => {
         if (fromIndex === toIndex || fromIndex == null || toIndex == null) return;
 
@@ -540,29 +617,17 @@ function MenuBuilder({ user }) {
             const flattened = nextCategories.flatMap((category) => grouped.get(category) || []);
             return flattened.map((dish, index) => ({ ...dish, displayOrder: index }));
         });
-    };
-
-    const isDishSelected = (dish) => {
-        return selectedDishes.some((selected) => {
-            if (selected?.id != null && dish?.id != null) {
-                return selected.id === dish.id;
-            }
-
-            return String(selected?.name || '').trim().toLowerCase() === String(dish?.name || '').trim().toLowerCase();
-        });
-    };
-
-    const updateSelectedDish = (index, field, value) => {
-        const updated = [...selectedDishes];
-        updated[index][field] = value;
-        setSelectedDishes(updated);
+        setIsDirty(true);
     };
 
     const handleSaveMenu = async (status = 'DRAFT') => {
-        if (currentStep === 1 && !validateStep1()) return;
-        if (selectedDishes.length === 0) {
-            alert('Please add at least one dish to the menu.');
-            return;
+        // For SENT status, require validation and at least one dish.
+        if (status === 'SENT') {
+            if (currentStep === 1 && !validateStep1()) return;
+            if (selectedDishes.length === 0) {
+                alert('Please add at least one dish to the menu.');
+                return;
+            }
         }
 
         const normalizedClientEmail = String(clientDetails.clientEmail || '').trim().toLowerCase();
@@ -618,9 +683,16 @@ function MenuBuilder({ user }) {
                     console.error('Error sending menu to client:', sendError);
                     alert(`Menu is saved in history, but sending failed: ${sendError.message || 'Unknown error'}`);
                 }
+            } else if (status === 'DRAFT') {
+                // Keep draft save UX quieter but notify user.
+                alert('Menu saved as draft.');
             } else {
                 alert('Menu saved successfully!');
             }
+
+            setIsDirty(false);
+            // update global unsaved flag
+            if (typeof window !== 'undefined') window.__hasUnsavedMenu = false;
 
             navigate('/owner/menu-history');
         } catch (error) {
@@ -709,13 +781,13 @@ function MenuBuilder({ user }) {
                     <label htmlFor="contactNumber">Contact Number</label>
                     <div className="relative">
                         <span className="pointer-events-none absolute inset-y-0 left-0 flex w-12 items-center justify-center text-slate-500">+91</span>
-                        <input id="contactNumber" name="contactNumber" type="tel" className={`form-input !pl-14 ${formErrors.contactNumber ? 'error' : ''}`} value={clientDetails.contactNumber} onChange={handleInputChange} placeholder="98765 43210" />
+                        <input id="contactNumber" name="contactNumber" type="tel" className={`form-input !pl-14 ${formErrors.contactNumber ? 'error' : ''}`} value={clientDetails.contactNumber} onChange={handleInputChange} placeholder="98765 43210" required />
                     </div>
                     {formErrors.contactNumber && <p className="form-error-text">{formErrors.contactNumber}</p>}
                 </div>
                 <div className="form-group">
                     <label htmlFor="clientEmail">Client Email</label>
-                    <input id="clientEmail" name="clientEmail" type="email" className={`form-input ${formErrors.clientEmail ? 'error' : ''}`} value={clientDetails.clientEmail} onChange={handleInputChange} placeholder="e.g., john.doe@example.com" />
+                    <input id="clientEmail" name="clientEmail" type="email" className={`form-input ${formErrors.clientEmail ? 'error' : ''}`} value={clientDetails.clientEmail} onChange={handleInputChange} placeholder="e.g., john.doe@example.com" required />
                     {formErrors.clientEmail && <p className="form-error-text">{formErrors.clientEmail}</p>}
                 </div>
             </div>
@@ -751,7 +823,7 @@ function MenuBuilder({ user }) {
                             />
                         </div>
                         <div className="lg:col-span-3">
-                            <select className="form-select !py-2.5" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+                            <select className="form-select !py-2.5" value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setLabelFilter('All Labels'); }}>
                                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
                         </div>

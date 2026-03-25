@@ -2,11 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { menuAPI } from '@/services/api';
 import { Plus, ChevronDown, ChevronUp, Edit, FileClock, CalendarCheck, CalendarX, Info, Users, Building, Mail, Phone } from 'lucide-react';
+import { useDialog } from '../components/DialogProvider';
 import '../styles/Contacts.css'; // For filter pills
 import '../styles/Table.css'; // For buttons and layout elements
 
 function MenuHistory({ user }) {
     const navigate = useNavigate();
+    const { showConfirm } = useDialog();
     const [activeTab, setActiveTab] = useState('upcoming');
     const [upcomingMenus, setUpcomingMenus] = useState([]);
     const [pastMenus, setPastMenus] = useState([]);
@@ -50,7 +52,7 @@ function MenuHistory({ user }) {
                     return;
                 }
 
-                if (eventDate >= today) {
+                if (eventDate > today) {
                     upcoming.push(menu);
                     return;
                 }
@@ -114,7 +116,7 @@ function MenuHistory({ user }) {
                         Menu History
                     </h1>
                     <button
-                        onClick={() => navigate('/caterer/menu-builder')}
+                        onClick={() => navigate('/owner/menu-builder')}
                         className="primary-button"
                     >
                         <Plus className="w-4 h-4 mr-2" />
@@ -179,11 +181,36 @@ function MenuHistory({ user }) {
                                                     <span className="ml-2">{isOpen ? 'Hide' : 'Details'}</span>
                                                 </button>
                                                 <button
-                                                    onClick={() => navigate(`/caterer/menu-builder?menuId=${menu.id}`)}
+                                                    onClick={() => navigate(`/owner/menu-builder?menuId=${menu.id}`)}
                                                     className="primary-button-sm"
                                                 >
                                                     <Edit size={14} className="mr-2" />
                                                     Edit
+                                                </button>
+                                                <button
+                                                    onClick={async () => {
+                                                        try {
+                                                            const shouldDelete = await showConfirm('Delete this menu? This action cannot be undone.', {
+                                                                title: 'Delete Menu',
+                                                                confirmText: 'Delete'
+                                                            });
+                                                            if (!shouldDelete) return;
+                                                            console.log('Deleting menu id=', menu.id);
+                                                            const res = await menuAPI.delete(menu.id);
+                                                            console.log('Delete response:', res);
+                                                            // If the API returned without throwing, treat as success
+                                                            await loadMenus();
+                                                            window.dispatchEvent(new Event('menusUpdated'));
+                                                            alert('Menu deleted');
+                                                        } catch (err) {
+                                                            console.error('Failed to delete menu', err);
+                                                            alert('Failed to delete menu: ' + (err?.message || err));
+                                                        }
+                                                    }}
+                                                    className="secondary-button-sm text-rose-600 border-rose-100 hover:bg-rose-50"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m5 0V4a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2"/></svg>
+                                                    Delete
                                                 </button>
                                             </div>
                                         </div>

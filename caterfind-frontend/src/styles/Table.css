@@ -57,6 +57,18 @@
     vertical-align: middle;
 }
 
+/* Remove unwanted vertical divider lines that may appear near action cells */
+.data-table th,
+.data-table td {
+    border-right: none;
+}
+.data-table td + td {
+    border-left: none;
+}
+.table-cell-actions {
+    border-left: none;
+}
+
 .data-table tbody tr:last-child td {
     border-bottom: none;
 }
@@ -289,7 +301,8 @@
     align-items: center;
     justify-content: center;
     min-height: 2.25rem;
-    padding: 0.5rem 1rem;
+    padding: 0.625rem 1rem;
+    gap: 0.5rem;
     border: 1px solid transparent;
     border-radius: 0.5rem;
     background: #0ea5e9;
@@ -302,4 +315,70 @@
 
 .submit-button:hover {
     background: #0284c7;
+}
+
+/* ============================================================
+   REORDER MODAL SPECIFIC STYLES
+   ============================================================ */
+.reorder-modal .item-summary {
+    background: #222;
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.reorder-modal .item-summary span {
+    font-size: 24px;
+}
+
+.reorder-modal .item-summary div div {
+    color: #fff;
+}
+
+.reorder-modal .item-name {
+    font-weight: 700;
+    color: #ffffff;
+    font-size: 1rem;
+}
+
+.reorder-modal .item-stock {
+    font-size: 0.9rem;
+    color: #cbd5e1;
+    margin-top: 4px;
+}
+
+.reorder-modal .stock-value {
+    color: #ef4444;
+    font-weight: 700;
+    margin-left: 6px;
+}
+
+.reorder-modal .form-select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #444;
+    border-radius: 0.5rem;
+    background: #111;
+    color: #fff;
+    font-size: 0.95rem;
+}
+
+.reorder-modal .form-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.reorder-modal .form-textarea {
+    resize: vertical;
+    text-align: left;
+}
+
+.reorder-modal .modal-actions {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
 }

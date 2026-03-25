@@ -51,14 +51,15 @@ public class MenuService {
     }
 
     /**
-     * Get upcoming menus from today onward for a caterer.
+         * Get upcoming menus for a caterer where the event date is strictly in the future.
+         * Uses tomorrow as the start (excludes today).
      */
     public List<MenuDTO> getUpcomingMenusByCatererId(Long catererId) {
-        LocalDate today = LocalDate.now();
+        LocalDate startDate = LocalDate.now().plusDays(1);
         LocalDate farFuture = LocalDate.of(2100, 12, 31);
 
         return menuRepository
-                .findByCatererIdAndEventDateBetweenOrderByEventDateDescCreatedAtDesc(catererId, today, farFuture)
+            .findByCatererIdAndEventDateBetweenOrderByEventDateDescCreatedAtDesc(catererId, startDate, farFuture)
                 .stream()
                 .map(MenuDTO::new)
                 .collect(Collectors.toList());

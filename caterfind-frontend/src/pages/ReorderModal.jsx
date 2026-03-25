@@ -166,22 +166,12 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
 
     return (
         <Modal isOpen={true} onClose={onClose} title={<><span style={{marginRight:8}}>{contactMethod === 'EMAIL' ? <Mail size={20} /> : <MessageSquare size={20} />}</span>Reorder Item</>} className="reorder-modal">
-            <form onSubmit={handleSubmit} className="modal-form">
-                    <div className="item-summary" style={{
-                        background: '#333',
-                        padding: '10px',
-                        borderRadius: '8px',
-                        marginBottom: '15px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px'
-                    }}>
-                        <span style={{ fontSize: '24px' }}>{item.categoryEmoji || '📦'}</span>
+            <form onSubmit={handleSubmit} className="item-form">
+                    <div className="item-summary">
+                        <span>{item.categoryEmoji || '📦'}</span>
                         <div>
-                            <div style={{ fontWeight: 'bold', color: '#fff' }}>{item.itemName}</div>
-                            <div style={{ fontSize: '0.9em', color: '#aaa' }}>
-                                Current Stock: <span style={{ color: '#ef4444' }}>{item.quantity} {item.unit}</span>
-                            </div>
+                            <div className="item-name">{item.itemName}</div>
+                            <div className="item-stock">Current Stock: <span className="stock-value">{item.quantity} {item.unit}</span></div>
                         </div>
                     </div>
 
@@ -190,15 +180,7 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
                         <select 
                             value={selectedContactId || ''}
                             onChange={handleContactChange}
-                            className="form-input"
-                            style={{ 
-                                background: '#222', 
-                                color: '#fff', 
-                                border: '1px solid #444',
-                                padding: '10px',
-                                borderRadius: '6px',
-                                fontSize: '14px'
-                            }}
+                            className="form-select"
                         >
                             <option value="">Manual / Select Dealer</option>
                             {Array.isArray(allContacts) && allContacts.length > 0 ? (
@@ -270,7 +252,7 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
                             className="form-textarea"
                             rows="4"
                             required
-                            style={{ whiteSpace: 'pre-wrap' }}
+                            style={{ whiteSpace: 'pre-wrap', textAlign: 'center' }}
                         />
                     </div>
 
@@ -281,10 +263,10 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
                     )}
 
                     <div className="modal-actions">
-                        <button type="button" className="cancel-btn" onClick={onClose}>Cancel</button>
+                        <button type="button" className="cancel-button" onClick={onClose}>Cancel</button>
                         <button
                             type="submit"
-                            className="submit-btn"
+                            className="submit-button"
                             disabled={loading || !isReady}
                             style={{ background: contactMethod === 'EMAIL' ? '#2563eb' : (contactMethod === 'CALL' ? '#f59e0b' : '#f97316'), color: contactMethod === 'EMAIL' ? '#fff' : '#000' }}
                         >

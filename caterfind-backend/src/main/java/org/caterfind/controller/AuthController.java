@@ -1,7 +1,7 @@
 package org.caterfind.controller;
 
-import java.util.Map;
 import java.security.Principal;
+import java.util.Map;
 
 import org.caterfind.dto.ForgotPasswordRequest;
 import org.caterfind.dto.LoginRequest;
@@ -16,7 +16,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Authentication controller for user login.
@@ -86,10 +92,13 @@ public class AuthController {
             userRepository.save(user);
             return ResponseEntity.ok(Map.of(
                 "success", true,
+                "userId", user.getId(),
                 "name", user.getName() != null ? user.getName() : "",
                 "phone", user.getPhone() != null ? user.getPhone() : "",
                 "city", user.getCity() != null ? user.getCity() : "",
                 "email", user.getEmail(),
+                "role", user.getRole() != null ? user.getRole().name() : "",
+                "accountStatus", user.getAccountStatus() != null ? user.getAccountStatus().name() : "",
                 "createdAt", user.getCreatedAt() != null ? user.getCreatedAt().toString() : ""
             ));
         } catch (Exception e) {
@@ -110,10 +119,13 @@ public class AuthController {
             User user = userRepository.findByEmail(principal.getName())
                     .orElseThrow(() -> new RuntimeException("User not found"));
             return ResponseEntity.ok(Map.of(
+                "userId", user.getId(),
                 "name", user.getName() != null ? user.getName() : "",
                 "phone", user.getPhone() != null ? user.getPhone() : "",
                 "city", user.getCity() != null ? user.getCity() : "",
                 "email", user.getEmail(),
+                "role", user.getRole() != null ? user.getRole().name() : "",
+                "accountStatus", user.getAccountStatus() != null ? user.getAccountStatus().name() : "",
                 "createdAt", user.getCreatedAt() != null ? user.getCreatedAt().toString() : ""
             ));
         } catch (Exception e) {

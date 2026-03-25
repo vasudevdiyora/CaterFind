@@ -12,6 +12,7 @@ function Messages({ user }) {
     const [contacts, setContacts] = useState([]);
     const [selectedContacts, setSelectedContacts] = useState([]);
     const [recipientSearch, setRecipientSearch] = useState('');
+    const [labelFilter, setLabelFilter] = useState('All');
     const [messageText, setMessageText] = useState('');
     const [sourceLanguage, setSourceLanguage] = useState('ENGLISH');
     const [messageLogs, setMessageLogs] = useState([]);
@@ -112,8 +113,15 @@ function Messages({ user }) {
         { key: 'GUJARATI', code: 'GU', label: 'Gujarati' }
     ];
 
+    const availableLabels = ['All', 'Staff', 'Chef', 'Helper', 'Supplier', 'Dealer'];
+
     const normalizedSearch = recipientSearch.trim().toLowerCase();
     const filteredContacts = contacts.filter((contact) => {
+        // Label filter
+        if (labelFilter && labelFilter !== 'All') {
+            if (!Array.isArray(contact.labels) || !contact.labels.includes(labelFilter)) return false;
+        }
+
         if (!normalizedSearch) return true;
 
         const name = String(contact?.name || '').toLowerCase();
@@ -124,6 +132,18 @@ function Messages({ user }) {
 
         return name.includes(normalizedSearch) || phone.includes(normalizedSearch) || labels.includes(normalizedSearch);
     });
+
+    const areAllFilteredSelected = filteredContacts.length > 0 && filteredContacts.every(c => selectedContacts.includes(c.id));
+
+    const toggleSelectAllFiltered = () => {
+        if (areAllFilteredSelected) {
+            // deselect filtered contacts
+            setSelectedContacts(prev => prev.filter(id => !filteredContacts.some(c => c.id === id)));
+        } else {
+            // select all filtered contacts (merge with existing selections)
+            setSelectedContacts(prev => Array.from(new Set([...prev, ...filteredContacts.map(c => c.id)])));
+        }
+    };
 
     return (
         <div className="messages-page">
@@ -208,6 +228,44 @@ function Messages({ user }) {
                             value={recipientSearch}
                             onChange={(e) => setRecipientSearch(e.target.value)}
                         />
+                    </div>
+
+                    {/* Label filter buttons and select-all for filtered contacts */}
+                    <div
+                        className="recipients-controls"
+                        style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}
+                    >
+                        <div className="label-filter-buttons" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            {availableLabels.map(lbl => (
+                                <button
+                                    key={lbl}
+                                    type="button"
+                                    className={`filter-pill ${labelFilter === lbl ? 'active' : ''}`}
+                                    onClick={() => setLabelFilter(lbl)}
+                                >
+                                    {lbl}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <label
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    cursor: filteredContacts.length === 0 ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={areAllFilteredSelected}
+                                    disabled={filteredContacts.length === 0}
+                                    onChange={toggleSelectAllFiltered}
+                                />
+                                Select all ({filteredContacts.length})
+                            </label>
+                        </div>
                     </div>
 
                     <div className="recipients-grid">

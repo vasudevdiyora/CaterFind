@@ -155,6 +155,15 @@
     color: var(--text-primary);
 }
 
+/* Ensure no vertical separators appear beside action icons */
+.data-table th,
+.data-table td {
+    border-right: none;
+}
+.data-table td .table-cell-actions {
+    border-left: none;
+}
+
 /* Contact Info with Avatar */
 .contact-info {
     display: flex;

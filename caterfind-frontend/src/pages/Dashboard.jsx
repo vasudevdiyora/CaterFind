@@ -31,14 +31,16 @@ function Dashboard({ user }) {
         const fetchStats = async () => {
             if (!user?.userId) return;
             try {
-                // Fetch summary from backend
-                const today = new Date().toISOString().split('T')[0];
+                // Fetch summary from backend (upcoming = strictly future dates)
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const startDate = tomorrow.toISOString().split('T')[0];
                 const futureDate = '2100-12-31';
                 const [summary, pendingCount, pendingRequests, calendarEvents] = await Promise.all([
                     dashboardAPI.getSummary(user.userId),
                     meetingRequestAPI.getPendingCount(),
                     meetingRequestAPI.getCatererRequests('pending'),
-                    calendarAPI.getByRange(user.userId, today, futureDate)
+                    calendarAPI.getByRange(user.userId, startDate, futureDate)
                 ]);
 
                 const recentActivity = (pendingRequests || []).slice(0, 5).map((request) => ({
@@ -64,7 +66,12 @@ function Dashboard({ user }) {
             }
         };
 
+        // Fetch initially
         fetchStats();
+
+        // Re-fetch when menus change elsewhere in the app
+        const onMenusUpdated = () => fetchStats();
+        window.addEventListener('menusUpdated', onMenusUpdated);
         // load unread conversations for dashboard widget
         let mounted = true;
         const loadConvs = async () => {
@@ -82,7 +89,7 @@ function Dashboard({ user }) {
         loadConvs();
         const id = setInterval(loadConvs, 10000);
         const cleanup = () => { mounted = false; clearInterval(id); };
-        return () => { cleanup(); };
+        return () => { cleanup(); window.removeEventListener('menusUpdated', onMenusUpdated); };
     }, [user]);
 
     return (
@@ -177,7 +184,7 @@ function Dashboard({ user }) {
                     <div className="border-b border-slate-100 p-5 flex items-center justify-between">
                         <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide">Recent Activity</h3>
                         <button 
-                            onClick={() => navigate('/owner/requests')}
+                            onClick={() => navigate('/owner/clients')}
                             className="text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors"
                         >
                             View All

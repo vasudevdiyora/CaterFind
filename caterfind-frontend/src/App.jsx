@@ -61,6 +61,7 @@ function App() {
     return (params.get('role') || '').toUpperCase();
   })();
   const isValidLoginRole = ['CLIENT', 'CATERER', 'ADMIN'].includes(roleFromLoginQuery);
+  const isValidRegisterRole = ['CLIENT', 'CATERER'].includes(roleFromLoginQuery);
 
   useEffect(() => {
     const handleAuthExpired = () => {
@@ -85,9 +86,20 @@ function App() {
       }
 
       try {
-        await authAPI.getProfile();
+        const profile = await authAPI.getProfile();
         if (isMounted) {
-          setUser(session.user);
+          const normalizedUser = {
+            userId: profile?.userId ?? session.user.userId,
+            id: profile?.userId ?? session.user.id,
+            email: profile?.email ?? session.user.email,
+            role: profile?.role ?? session.user.role,
+            accountStatus: profile?.accountStatus ?? session.user.accountStatus ?? 'ACTIVE'
+          };
+          setUser(normalizedUser);
+          authSession.save({
+            ...session,
+            user: normalizedUser
+          });
           setAuthChecked(true);
         }
       } catch {
@@ -184,7 +196,7 @@ function App() {
         user ? <Navigate to={
           user.role === 'ADMIN' ? '/admin/dashboard' :
           user.role === 'CATERER' ? '/owner/dashboard' : '/client/home'
-        } /> : (isValidLoginRole ? <Register onLogin={handleLogin} /> : <Navigate to="/" replace />)
+        } /> : (isValidRegisterRole ? <Register onLogin={handleLogin} /> : <Navigate to="/" replace />)
       } />
       <Route path="/forgot-password" element={user ? <Navigate to="/" /> : <ForgotPassword />} />
 

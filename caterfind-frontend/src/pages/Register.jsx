@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { authAPI, fileAPI } from '../services/api';
 import {
-    UtensilsCrossed, Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff, ArrowLeft,
+    Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff, ArrowLeft,
     User, Phone, Building, MapPin, Hash, ChefHat, Home, LocateFixed
 } from 'lucide-react';
+import logo from '@/assets/logo.png';
 import { states, getCities } from '../lib/locations';
 import '../styles/Login.css'; // Reusing login styles for consistency
 
@@ -139,9 +140,7 @@ const Register = ({ onLogin }) => {
                 </Link>
 
                 <div className="login-header">
-                    <div className="logo-icon">
-                        <UtensilsCrossed size={24} />
-                    </div>
+                    <img src={logo} alt="CaterFind Logo" className="logo-icon h-12 w-12 md:h-14 md:w-14 mx-auto mb-4 object-contain" />
                     <h1>{title}</h1>
                     <p>{subtitle}</p>
                 </div>

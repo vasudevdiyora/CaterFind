@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { authAPI } from '../services/api';
-import { UtensilsCrossed, Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import logo from '@/assets/logo.png';
 import '../styles/Login.css';
 
 const Login = ({ onLogin }) => {
@@ -37,7 +38,7 @@ const Login = ({ onLogin }) => {
         setLoading(true);
 
         try {
-            const response = await authAPI.login(email, password);
+            const response = await authAPI.login(email, password, role);
 
             if (role && response?.role && response.role.toUpperCase() !== role) {
                 setError(`This account is not allowed in the ${role.toLowerCase()} login.`);
@@ -56,7 +57,7 @@ const Login = ({ onLogin }) => {
     const getPageInfo = () => {
         switch (role) {
             case 'ADMIN':
-                return { title: 'Admin Panel', subtitle: 'Access the control center' };
+                return { title: 'Admin Portal', subtitle: 'Restricted Access' };
             case 'CATERER':
                 return { title: 'Caterer Dashboard', subtitle: 'Manage your business' };
             default:
@@ -74,9 +75,7 @@ const Login = ({ onLogin }) => {
                 </Link>
 
                 <div className="login-header">
-                    <div className="logo-icon">
-                        <UtensilsCrossed size={24} />
-                    </div>
+                    <img src={logo} alt="CaterFind Logo" className="logo-icon h-12 w-12 md:h-14 md:w-14 mx-auto mb-4 object-contain" />
                     <h1>{title}</h1>
                     <p>{subtitle}</p>
                 </div>
@@ -149,14 +148,16 @@ const Login = ({ onLogin }) => {
                     </button>
                 </form>
 
-                <div className="login-footer">
-                    <p>
-                        Don't have an account?{' '}
-                        <Link to={`/register?role=${role.toLowerCase()}`} className="font-semibold text-sky-600 hover:underline">
-                            Sign up
-                        </Link>
-                    </p>
-                </div>
+                {role !== 'ADMIN' && (
+                    <div className="login-footer">
+                        <p>
+                            Don't have an account?{' '}
+                            <Link to={`/register?role=${role.toLowerCase()}`} className="font-semibold text-sky-600 hover:underline">
+                                Sign up
+                            </Link>
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     );

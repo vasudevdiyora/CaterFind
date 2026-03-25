@@ -92,6 +92,20 @@ public class AuthService {
             return LoginResponse.failure("Invalid email or password");
         }
 
+        if (request.getRequestedRole() != null && !request.getRequestedRole().isBlank()) {
+            String normalizedRequestedRole = request.getRequestedRole().trim().toUpperCase();
+            User.UserRole requestedRole;
+            try {
+                requestedRole = User.UserRole.valueOf(normalizedRequestedRole);
+            } catch (IllegalArgumentException ex) {
+                return LoginResponse.failure("Invalid login role");
+            }
+
+            if (user.getRole() != requestedRole) {
+                return LoginResponse.failure("This account is not allowed in the selected login.");
+            }
+        }
+
         String token = jwtService.generateToken(user);
 
         return LoginResponse.success(
@@ -134,6 +148,14 @@ public class AuthService {
             role = User.UserRole.valueOf(roleStr);
         } catch (IllegalArgumentException e) {
             return LoginResponse.failure("Invalid role: " + roleStr);
+        }
+
+        if (role == User.UserRole.ADMIN) {
+            return LoginResponse.failure("Admin registration is not allowed.");
+        }
+
+        if (role != User.UserRole.CATERER && role != User.UserRole.CLIENT) {
+            return LoginResponse.failure("Unsupported registration role.");
         }
 
         // Validate numeric-only constraints and exact lengths for Aadhaar/phone

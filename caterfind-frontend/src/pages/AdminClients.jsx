@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Eye, MapPin, Calendar, MessageSquare } from 'lucide-react';
 import { adminAPI } from '../services/api';
 import Modal from '../components/Modal';
+import { formatPhoneForDisplay } from '../lib/utils';
 
 const AdminClients = () => {
     const [clients, setClients] = useState([]);
@@ -130,7 +131,7 @@ const AdminClients = () => {
                             <div>
                                 <div className="text-base font-semibold text-slate-900">{client.name}</div>
                                 <div className="text-sm text-slate-600">{client.email}</div>
-                                <div className="text-sm text-slate-600">{client.phone}</div>
+                                <div className="text-sm text-slate-600">{formatPhoneForDisplay(client.phone)}</div>
                             </div>
                             <button
                                 onClick={() => setSelectedClient(client)}
@@ -200,7 +201,7 @@ const AdminClients = () => {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm text-foreground">{client.email}</div>
-                                        <div className="text-xs text-muted-foreground">{client.phone}</div>
+                                        <div className="text-xs text-muted-foreground">{formatPhoneForDisplay(client.phone)}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center gap-1 text-sm text-foreground">
@@ -266,7 +267,7 @@ const AdminClients = () => {
                         </div>
                         <div>
                             <label className="text-sm font-medium text-muted-foreground">Phone</label>
-                            <p className="text-foreground">{selectedClient.phone}</p>
+                            <p className="text-foreground">{formatPhoneForDisplay(selectedClient.phone)}</p>
                         </div>
                         <div>
                             <label className="text-sm font-medium text-muted-foreground">Location</label>

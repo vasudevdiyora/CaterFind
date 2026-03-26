@@ -4,6 +4,8 @@ import {
 } from 'lucide-react';
 import { adminAPI } from '../services/api';
 import Modal from '../components/Modal';
+import Select from '../components/Select';
+import { formatPhoneForDisplay } from '../lib/utils';
 
 const AdminCaterers = () => {
     const [caterers, setCaterers] = useState([]);
@@ -135,16 +137,17 @@ const AdminCaterers = () => {
                             className="w-full h-9 pl-10 pr-4 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300"
                         />
                     </div>
-                    <select
+                    <Select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        className="h-9 px-4 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300"
-                    >
-                        <option value="all">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="pending">Pending</option>
-                        <option value="suspended">Suspended</option>
-                    </select>
+                        options={[
+                            { value: 'all', label: 'All Status' },
+                            { value: 'active', label: 'Active' },
+                            { value: 'pending', label: 'Pending' },
+                            { value: 'suspended', label: 'Suspended' }
+                        ]}
+                        placeholder="Filter by status"
+                    />
                 </div>
             </div>
 
@@ -172,7 +175,7 @@ const AdminCaterers = () => {
                             <div>
                                 <div className="text-slate-500">Contact</div>
                                 <div className="text-slate-800 truncate">{caterer.email}</div>
-                                <div className="text-slate-600">{caterer.phone}</div>
+                                <div className="text-slate-600">{formatPhoneForDisplay(caterer.phone)}</div>
                             </div>
                             <div>
                                 <div className="text-slate-500">Location</div>
@@ -277,7 +280,7 @@ const AdminCaterers = () => {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm text-foreground">{caterer.email}</div>
-                                        <div className="text-xs text-muted-foreground">{caterer.phone}</div>
+                                        <div className="text-xs text-muted-foreground">{formatPhoneForDisplay(caterer.phone)}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center gap-1 text-sm text-foreground">
@@ -388,7 +391,7 @@ const AdminCaterers = () => {
                         </div>
                         <div>
                             <label className="text-sm font-medium text-muted-foreground">Phone</label>
-                            <p className="text-foreground">{selectedCaterer.phone}</p>
+                            <p className="text-foreground">{formatPhoneForDisplay(selectedCaterer.phone)}</p>
                         </div>
                         <div>
                             <label className="text-sm font-medium text-muted-foreground">Location</label>

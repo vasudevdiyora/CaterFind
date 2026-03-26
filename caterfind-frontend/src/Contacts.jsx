@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { formatPhoneForDisplay, formatPhoneForBackend, formatPhoneForInput } from './lib/utils';
 
 const API_URL = 'http://localhost:8080/api/contacts';
 
@@ -16,7 +17,12 @@ export default function Contacts() {
     setLoading(true);
     const res = await fetch(API_URL);
     const data = await res.json();
-    setContacts(data);
+    // Strip +91 from phone numbers for display in inputs
+    const formattedData = data.map(c => ({
+      ...c,
+      phone: formatPhoneForInput(c.phone)
+    }));
+    setContacts(formattedData);
     setLoading(false);
   };
 
@@ -32,10 +38,14 @@ export default function Contacts() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const formData = {
+      ...form,
+      phone: form.phone ? formatPhoneForBackend(form.phone) : ''
+    };
     await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form)
+      body: JSON.stringify(formData)
     });
     setForm({ name: '', phone: '', email: '', notes: '' });
     fetchContacts();
@@ -53,13 +63,16 @@ export default function Contacts() {
           required
           style={{ width: '100%', marginBottom: 8, padding: 8 }}
         />
-        <input
-          name="phone"
-          placeholder="Phone"
-          value={form.phone}
-          onChange={handleChange}
-          style={{ width: '100%', marginBottom: 8, padding: 8 }}
-        />
+        <div style={{ width: '100%', marginBottom: 8, position: 'relative' }}>
+          <div style={{ position: 'absolute', left: '8px', top: '8px', color: '#999', fontSize: '12px', fontWeight: 'bold', display: form.phone ? 'block' : 'none' }}>+91</div>
+          <input
+            name="phone"
+            placeholder="+91 98765 43210"
+            value={form.phone}
+            onChange={handleChange}
+            style={{ width: '100%', marginBottom: 0, padding: '8px', paddingLeft: form.phone ? '40px' : '8px' }}
+          />
+        </div>
         <input
           name="email"
           placeholder="Email"
@@ -82,7 +95,7 @@ export default function Contacts() {
             <li key={c.id} style={{ marginBottom: 16, border: '1px solid #333', padding: 12, borderRadius: 8 }}>
               <strong>{c.name}</strong> <br />
               {c.notes && <span>Type: {c.notes} <br /></span>}
-              {c.phone && <span>Phone: {c.phone} <br /></span>}
+              {c.phone && <span>Phone: {formatPhoneForDisplay(c.phone)} <br /></span>}
               {c.email && <span>Email: {c.email}</span>}
             </li>
           ))}

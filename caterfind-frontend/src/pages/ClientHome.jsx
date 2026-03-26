@@ -18,6 +18,7 @@ import {
     ArrowRight
 } from 'lucide-react';
 import { profileAPI, discoveryAPI, fileAPI, authAPI } from '../services/api';
+import Select from '../components/Select';
 import '../styles/Table.css'; // For buttons, modals
 import '../styles/Contacts.css'; // For filter pills
 import Modal from '../components/Modal';
@@ -475,17 +476,28 @@ const ClientHome = ({ user }) => {
             <h3 className="font-bold text-lg flex items-center gap-2 text-slate-900"><SlidersHorizontal size={18} className="text-sky-600" /> Filters</h3>
             <div className="form-group">
                 <label>City</label>
-                <select className="form-select border-slate-200 focus:border-sky-500 focus:ring-sky-500" value={selectedCity} onChange={e => setSelectedCity(e.target.value)}>
-                    <option value="all">All Cities</option>
-                    {cityOptions.map(city => <option key={city} value={city}>{city}</option>)}
-                </select>
+                <Select
+                    value={selectedCity}
+                    onChange={e => setSelectedCity(e.target.value)}
+                    options={[
+                        { value: 'all', label: 'All Cities' },
+                        ...cityOptions.map(city => ({ value: city, label: city }))
+                    ]}
+                    placeholder="Select city"
+                />
             </div>
             <div className="form-group">
                 <label>Area</label>
-                <select className="form-select border-slate-200 focus:border-sky-500 focus:ring-sky-500" value={selectedArea} onChange={e => setSelectedArea(e.target.value)} disabled={selectedCity === 'all'}>
-                    <option value="all">All Areas</option>
-                    {areaOptions.map(area => <option key={area} value={area}>{area}</option>)}
-                </select>
+                <Select
+                    value={selectedArea}
+                    onChange={e => setSelectedArea(e.target.value)}
+                    disabled={selectedCity === 'all'}
+                    options={[
+                        { value: 'all', label: 'All Areas' },
+                        ...areaOptions.map(area => ({ value: area, label: area }))
+                    ]}
+                    placeholder="Select area"
+                />
             </div>
             <div className="form-group">
                 <label>Minimum Rating</label>
@@ -503,12 +515,17 @@ const ClientHome = ({ user }) => {
             </div>
             <div className="form-group">
                 <label>Sort By</label>
-                <select className="form-select border-slate-200 focus:border-sky-500 focus:ring-sky-500" value={sortBy} onChange={e => setSortBy(e.target.value)}>
-                    <option value="relevance">Relevance</option>
-                    <option value="rating_high">Top Rated (Smart)</option>
-                    <option value="rating_low">Lowest Rated</option>
-                    <option value="distance">Distance</option>
-                </select>
+                <Select
+                    value={sortBy}
+                    onChange={e => setSortBy(e.target.value)}
+                    options={[
+                        { value: 'relevance', label: 'Relevance' },
+                        { value: 'rating_high', label: 'Top Rated (Smart)' },
+                        { value: 'rating_low', label: 'Lowest Rated' },
+                        { value: 'distance', label: 'Distance' }
+                    ]}
+                    placeholder="Select sort option"
+                />
             </div>
 
             <button

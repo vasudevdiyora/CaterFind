@@ -151,7 +151,7 @@ const CatererLayout = ({ children, user, onLogout }) => {
         { path: '/owner/clients', icon: Users, label: 'Clients' },
         { path: '/owner/dish-library', icon: UtensilsCrossed, label: 'Dish Library' },
         { path: '/owner/menu-builder', icon: UtensilsCrossed, label: 'Menu Builder' },
-        { path: '/owner/menu-history', icon: ClipboardList, label: 'Menu History' },
+        { path: '/owner/menu-history', icon: ClipboardList, label: 'Menus' },
         { path: '/owner/contacts', icon: Contact, label: 'Contacts' },
         { path: '/owner/inventory', icon: Package, label: 'Inventory' },
         { path: '/owner/broadcast', icon: MessageSquare, label: 'Messages' },

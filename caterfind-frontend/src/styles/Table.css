@@ -321,7 +321,8 @@
    REORDER MODAL SPECIFIC STYLES
    ============================================================ */
 .reorder-modal .item-summary {
-    background: #222;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
     padding: 12px;
     border-radius: 10px;
     margin-bottom: 16px;
@@ -335,18 +336,18 @@
 }
 
 .reorder-modal .item-summary div div {
-    color: #fff;
+    color: #0f172a;
 }
 
 .reorder-modal .item-name {
     font-weight: 700;
-    color: #ffffff;
+    color: #0f172a;
     font-size: 1rem;
 }
 
 .reorder-modal .item-stock {
     font-size: 0.9rem;
-    color: #cbd5e1;
+    color: #475569;
     margin-top: 4px;
 }
 
@@ -356,24 +357,66 @@
     margin-left: 6px;
 }
 
-.reorder-modal .form-select {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #444;
-    border-radius: 0.5rem;
-    background: #111;
-    color: #fff;
-    font-size: 0.95rem;
-}
-
-.reorder-modal .form-select:focus {
-    outline: none;
-    border-color: var(--primary-color);
-}
-
 .reorder-modal .form-textarea {
     resize: vertical;
     text-align: left;
+}
+
+.reorder-modal .message-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.reorder-modal .message-preview-header label {
+    margin-bottom: 0;
+}
+
+.reorder-modal .message-preview-header .secondary-button {
+    flex-shrink: 0;
+}
+
+.reorder-modal .preview-box {
+    background: #f9fafb;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.625rem;
+    padding: 0.875rem 1rem;
+    color: #1e293b;
+    line-height: 1.6;
+    text-align: left;
+}
+
+.reorder-modal .preview-box p {
+    margin: 0;
+}
+
+.reorder-modal .preview-box .preview-gap {
+    min-height: 0.75rem;
+}
+
+.reorder-modal-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.reorder-modal-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #0ea5e9;
+}
+
+.reorder-modal .manual-contact-fields {
+    margin-top: 0.625rem;
+    display: grid;
+    gap: 0.5rem;
+}
+
+.reorder-modal .reorder-message-preview {
+    white-space: pre-wrap;
 }
 
 .reorder-modal .modal-actions {
@@ -381,4 +424,15 @@
     display: flex;
     justify-content: flex-end;
     gap: 0.75rem;
+}
+
+@media (max-width: 640px) {
+    .reorder-modal .message-preview-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .reorder-modal .message-preview-header .secondary-button {
+        width: 100%;
+    }
 }

@@ -6,7 +6,9 @@ import {
     User, Phone, Building, MapPin, Hash, ChefHat, Home, LocateFixed
 } from 'lucide-react';
 import logo from '@/assets/logo.png';
+import Select from '../components/Select';
 import { states, getCities } from '../lib/locations';
+import { formatPhoneForBackend } from '../lib/utils';
 import '../styles/Login.css'; // Reusing login styles for consistency
 
 const Register = ({ onLogin }) => {
@@ -91,7 +93,7 @@ const Register = ({ onLogin }) => {
             Object.assign(payload, {
                 businessName,
                 ownerName,
-                primaryPhone,
+                primaryPhone: formatPhoneForBackend(primaryPhone),
                 streetAddress,
                 address: `${streetAddress}, ${area}, ${city}`,
                 latitude: latitude ? Number(latitude) : undefined,
@@ -103,7 +105,7 @@ const Register = ({ onLogin }) => {
                 aadharDocumentUrl
             });
         } else {
-            Object.assign(payload, { name: clientName, phone: primaryPhone });
+            Object.assign(payload, { name: clientName, phone: formatPhoneForBackend(primaryPhone) });
         }
 
         setLoading(true);
@@ -171,7 +173,7 @@ const Register = ({ onLogin }) => {
                                 ) : (
                                     <FormInput id="clientName" label="Full Name" value={clientName} onChange={setClientName} icon={<User />} required />
                                 )}
-                                <FormInput id="primaryPhone" label="Contact Phone" type="tel" value={primaryPhone} onChange={setPrimaryPhone} icon={<Phone />} required wrapperClass={role === 'CLIENT' ? 'md:col-span-1' : ''} />
+                                <FormInput id="primaryPhone" label="Contact Phone" type="tel" value={primaryPhone} onChange={setPrimaryPhone} icon={<Phone />} placeholder="98765 43210" required wrapperClass={role === 'CLIENT' ? 'md:col-span-1' : ''} />
                             </div>
                         </section>
 
@@ -226,30 +228,30 @@ const Register = ({ onLogin }) => {
                                 <FormInput id="pincode" label="Pincode" value={pincode} onChangeRaw={handlePincodeChange} icon={<Hash />} maxLength={6} loading={pincodeLoading} error={pincodeError} />
 
                                 <div className="space-y-1.5">
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">State</label>
-                                    <select
-                                        className="w-full h-10 px-3 border border-slate-200 rounded-md bg-white text-slate-700 placeholder:text-slate-400 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">State <span className="text-red-500">*</span></label>
+                                    <Select
                                         value={selectedState}
                                         onChange={e => setSelectedState(e.target.value)}
-                                        required
-                                    >
-                                        <option value="">Select State</option>
-                                        {states.map(s => <option key={s} value={s}>{s}</option>)}
-                                    </select>
+                                        options={[
+                                            { value: '', label: 'Select State' },
+                                            ...states.map(s => ({ value: s, label: s }))
+                                        ]}
+                                        placeholder="Select state"
+                                    />
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">City</label>
-                                    <select
-                                        className="w-full h-10 px-3 border border-slate-200 rounded-md bg-white text-slate-700 placeholder:text-slate-400 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">City <span className="text-red-500">*</span></label>
+                                    <Select
                                         value={city}
                                         onChange={e => setCity(e.target.value)}
-                                        required
                                         disabled={!selectedState}
-                                    >
-                                        <option value="">Select City</option>
-                                        {getCities(selectedState).map(c => <option key={c} value={c}>{c}</option>)}
-                                    </select>
+                                        options={[
+                                            { value: '', label: 'Select City' },
+                                            ...getCities(selectedState).map(c => ({ value: c, label: c }))
+                                        ]}
+                                        placeholder="Select city"
+                                    />
                                 </div>
 
                                 <FormInput id="area" label="Area / Locality" value={area} onChange={setArea} icon={<MapPin />} required />
@@ -294,7 +296,7 @@ const Register = ({ onLogin }) => {
 
 const FormInput = ({ id, label, type = 'text', value, onChange, onChangeRaw, icon, required, children, wrapperClass = '', loading, error, ...props }) => (
     <div className={`space-y-1.5 ${wrapperClass}`}>
-        <label htmlFor={id} className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
+        <label htmlFor={id} className="block text-sm font-medium text-slate-700 mb-1">{label}{required ? <> <span className="text-red-500">*</span></> : null}</label>
         <div className="input-wrapper">
             {icon && <div className="input-icon">{React.cloneElement(icon, { size: 18 })}</div>}
             <input

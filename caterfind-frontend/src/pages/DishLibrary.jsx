@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Filter, Plus, Pencil, Trash2, X, Check, Utensils, Info, Upload, UtensilsCrossed } from 'lucide-react';
 import Modal from '../components/Modal';
+import Select from '../components/Select';
 import { dishAPI, fileAPI } from '../services/api';
 import { useDialog } from '../components/DialogProvider';
 import '../styles/Table.css';
@@ -246,22 +247,24 @@ function DishLibrary({ user }) {
                         />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:w-[420px]">
-                        <select
-                            className="form-select"
+                        <Select
                             value={selectedCategory}
                             onChange={(e) => setSelectedCategory(e.target.value)}
-                        >
-                            <option>All Categories</option>
-                            {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                        <select
-                            className="form-select"
+                            options={[
+                                { value: 'All Categories', label: 'All Categories' },
+                                ...availableCategories.filter(c => c !== 'All Categories').map(c => ({ value: c, label: c }))
+                            ]}
+                            placeholder="Select category"
+                        />
+                        <Select
                             value={selectedLabel}
                             onChange={(e) => setSelectedLabel(e.target.value)}
-                        >
-                            <option>All Labels</option>
-                            {availableLabels.map(l => <option key={l} value={l}>{l}</option>)}
-                        </select>
+                            options={[
+                                { value: 'All Labels', label: 'All Labels' },
+                                ...availableLabels.filter(l => l !== 'All Labels').map(l => ({ value: l, label: l }))
+                            ]}
+                            placeholder="Select label"
+                        />
                     </div>
                 </div>
             </div>
@@ -343,7 +346,7 @@ function DishLibrary({ user }) {
                                 </div>
                                 <div className="md:col-span-2 space-y-4">
                                     <div className="form-group">
-                                        <label>Dish Name</label>
+                                        <label>Dish Name <span className="text-red-500">*</span></label>
                                         <input type="text" className="form-input" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
                                     </div>
                                     <div className="form-group">
@@ -356,23 +359,33 @@ function DishLibrary({ user }) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                                 <div className="form-group">
                                     <label>Category</label>
-                                    <select className="form-select" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value, customCategory: '' })}>
-                                        <option value="">Select a category</option>
-                                        {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                                        <option value="custom">-- Add New Category --</option>
-                                    </select>
+                                    <Select
+                                        value={formData.category}
+                                        onChange={(e) => setFormData({ ...formData, category: e.target.value, customCategory: '' })}
+                                        options={[
+                                            { value: '', label: 'Select a category' },
+                                            ...availableCategories.map(c => ({ value: c, label: c })),
+                                            { value: 'custom', label: '-- Add New Category --' }
+                                        ]}
+                                        placeholder="Select a category"
+                                    />
                                     {formData.category === 'custom' && (
                                         <input type="text" placeholder="Enter new category name" className="form-input mt-2" value={formData.customCategory} onChange={(e) => setFormData({ ...formData, customCategory: e.target.value })} />
                                     )}
                                 </div>
                                 <div className="form-group">
                                     <label>Type</label>
-                                    <select className="form-select" value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })}>
-                                        <option value="Veg">Veg</option>
-                                        <option value="Non-Veg">Non-Veg</option>
-                                        <option value="Jain">Jain</option>
-                                        <option value="Swaminarayan">Swaminarayan</option>
-                                    </select>
+                                    <Select
+                                        value={formData.type}
+                                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                        options={[
+                                            { value: 'Veg', label: 'Veg' },
+                                            { value: 'Non-Veg', label: 'Non-Veg' },
+                                            { value: 'Jain', label: 'Jain' },
+                                            { value: 'Swaminarayan', label: 'Swaminarayan' }
+                                        ]}
+                                        placeholder="Select type"
+                                    />
                                 </div>
                             </div>
 

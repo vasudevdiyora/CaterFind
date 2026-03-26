@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
+import Select from './Select';
 import { moderationAPI } from '../services/api';
 import { useToast } from './ToastProvider';
 
@@ -40,14 +41,20 @@ const ReportModal = ({ isOpen, onClose, content, contentId, contentType }) => {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div>
                     <label className="text-sm font-medium text-foreground">Reason</label>
-                    <select value={reason} onChange={(e) => setReason(e.target.value)} className="form-input w-full mt-2">
-                        <option value="spam">Spam / Promotional</option>
-                        <option value="harassment">Harassment / Hate</option>
-                        <option value="inappropriate">Inappropriate Content</option>
-                        <option value="fraud">Fraud / Scams</option>
-                        <option value="privacy">Private / Personal Info</option>
-                        <option value="other">Other</option>
-                    </select>
+                    <Select
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        options={[
+                            { value: 'spam', label: 'Spam / Promotional' },
+                            { value: 'harassment', label: 'Harassment / Hate' },
+                            { value: 'inappropriate', label: 'Inappropriate Content' },
+                            { value: 'fraud', label: 'Fraud / Scams' },
+                            { value: 'privacy', label: 'Private / Personal Info' },
+                            { value: 'other', label: 'Other' }
+                        ]}
+                        placeholder="Select reason"
+                        className="w-full mt-2"
+                    />
                 </div>
 
                 <div>

@@ -3,7 +3,9 @@ import { Pencil, Trash2, Plus, Minus, Send, Package, X } from 'lucide-react';
 import { inventoryAPI, contactAPI } from '../services/api';
 import ReorderModal from './ReorderModal';
 import Modal from '../components/Modal';
+import Select from '../components/Select';
 import { useDialog } from '../components/DialogProvider';
+import { formatPhoneForDisplay, formatPhoneForBackend, formatPhoneForInput } from '../lib/utils';
 import '../styles/Table.css';
 import '../styles/Contacts.css'; // Re-using filter pills
 
@@ -48,7 +50,12 @@ function Inventory({ user }) {
     async function fetchItems() {
         try {
             const data = await inventoryAPI.getAll(user.userId);
-            setItems(data);
+            // Format phone numbers after loading
+            const formattedData = data.map(item => ({
+                ...item,
+                dealerPhone: formatPhoneForInput(item.dealerPhone)
+            }));
+            setItems(formattedData);
         } catch {
             // Error fetching inventory
         }
@@ -57,7 +64,12 @@ function Inventory({ user }) {
     async function fetchContacts() {
         try {
             const data = await contactAPI.getAll(user.userId);
-            setContacts(data);
+            // Format phone numbers after loading
+            const formattedData = data.map(c => ({
+                ...c,
+                phone: formatPhoneForInput(c.phone)
+            }));
+            setContacts(formattedData);
         } catch {
             // Error fetching contacts
         }
@@ -118,7 +130,7 @@ function Inventory({ user }) {
             unit: item.unit,
             minThreshold: item.minThreshold,
             dealerName: item.dealerName || '',
-            dealerContact: item.dealerPhone || '', // Map backend dealerPhone to frontend dealerContact
+            dealerContact: formatPhoneForInput(item.dealerPhone) || '',
             dealerContactId: item.dealerContactId || ''
         });
         setShowModal(true);
@@ -131,7 +143,7 @@ function Inventory({ user }) {
             // dealerContact (frontend) -> dealerPhone (backend)
             const payload = {
                 ...formData,
-                dealerPhone: formData.dealerContact,
+                dealerPhone: formData.dealerContact ? formatPhoneForBackend(formData.dealerContact) : '',
                 dealerContactId: formData.dealerContactId ? parseInt(formData.dealerContactId) : null
             };
 
@@ -339,50 +351,74 @@ function Inventory({ user }) {
                 <form className="item-form" onSubmit={handleSubmit}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="form-group md:col-span-2">
-                                    <label>Item Name</label>
+                                    <label>Item Name <span className="text-red-500">*</span></label>
                                     <input type="text" className="form-input" value={formData.itemName} onChange={(e) => setFormData({ ...formData, itemName: e.target.value })} required />
                                 </div>
                                 <div className="form-group">
                                     <label>Category</label>
-                                    <select className="form-select" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
-                                        {categories.filter(c => c.name !== 'All').map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-                                    </select>
+                                    <Select
+                                        value={formData.category}
+                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                        options={categories.filter(c => c.name !== 'All').map(c => ({ value: c.name, label: c.name }))}
+                                        placeholder="Select category"
+                                    />
                                 </div>
                                 <div className="form-group">
-                                    <label>Quantity</label>
-                                    <input type="number" className="form-input" value={formData.quantity} onChange={(e) => setFormData({ ...formData, quantity: e.target.value })} required />
+                                    <label>Quantity <span className="text-red-500">*</span></label>
+                                    <input type="number" className="form-input" value={formData.quantity} onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '' || Number(val) >= 0) {
+                                            setFormData({ ...formData, quantity: val });
+                                        }
+                                    }} required min="0" />
                                 </div>
                                 <div className="form-group">
                                     <label>Unit</label>
-                                    <select className="form-select" value={formData.unit} onChange={(e) => setFormData({ ...formData, unit: e.target.value })}>
-                                        <option value="kg">kg</option>
-                                        <option value="g">g</option>
-                                        <option value="litre">litre</option>
-                                        <option value="ml">ml</option>
-                                        <option value="piece">piece</option>
-                                        <option value="dozen">dozen</option>
-                                    </select>
+                                    <Select
+                                        value={formData.unit}
+                                        onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                                        options={[
+                                            { value: 'kg', label: 'kg' },
+                                            { value: 'g', label: 'g' },
+                                            { value: 'litre', label: 'litre' },
+                                            { value: 'ml', label: 'ml' },
+                                            { value: 'piece', label: 'piece' },
+                                            { value: 'dozen', label: 'dozen' }
+                                        ]}
+                                        placeholder="Select unit"
+                                    />
                                 </div>
                                 <div className="form-group">
-                                    <label>Low Stock Threshold</label>
-                                    <input type="number" className="form-input" value={formData.minThreshold} onChange={(e) => setFormData({ ...formData, minThreshold: e.target.value })} required />
+                                    <label>Low Stock Threshold <span className="text-red-500">*</span></label>
+                                    <input type="number" className="form-input" value={formData.minThreshold} onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '' || Number(val) >= 0) {
+                                            setFormData({ ...formData, minThreshold: val });
+                                        }
+                                    }} required min="0" />
                                 </div>
                                 <div className="form-group md:col-span-2">
                                     <label>Dealer / Supplier</label>
-                                    <select className="form-select" value={formData.dealerContactId} onChange={(e) => handleDealerSelect(e.target.value)}>
-                                        <option value="">Select a registered contact</option>
-                                        {contacts.filter(c => c.labels.includes('Dealer') || c.labels.includes('Supplier')).map(c => (
-                                            <option key={c.id} value={c.id}>{c.name}</option>
-                                        ))}
-                                    </select>
+                                    <Select
+                                        value={formData.dealerContactId}
+                                        onChange={(e) => handleDealerSelect(e.target.value)}
+                                        options={[
+                                            { value: '', label: 'Select a registered contact' },
+                                            ...contacts.filter(c => c.labels.includes('Dealer') || c.labels.includes('Supplier')).map(c => ({ value: c.id, label: c.name }))
+                                        ]}
+                                        placeholder="Select a contact"
+                                    />
                                 </div>
                                  <div className="form-group">
                                     <label>Dealer Name (if not in contacts)</label>
-                                    <input type="text" className="form-input" value={formData.dealerName} onChange={(e) => setFormData({ ...formData, dealerName: e.target.value })} disabled={!!formData.dealerContactId} />
+                                    <input type="text" className="form-input" value={formData.dealerName} onChange={(e) => setFormData({ ...formData, dealerName: e.target.value })} disabled={!!formData.dealerContactId} placeholder="Dealer name" />
                                 </div>
                                 <div className="form-group">
                                     <label>Dealer Contact (if not in contacts)</label>
-                                    <input type="text" className="form-input" value={formData.dealerContact} onChange={(e) => setFormData({ ...formData, dealerContact: e.target.value })} disabled={!!formData.dealerContactId} />
+                                    <div className="relative">
+                                        <span className="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-center text-slate-400 text-sm font-semibold" style={{ display: formData.dealerContact ? 'flex' : 'none' }}>+91</span>
+                                        <input type="tel" className="form-input" style={{ paddingLeft: formData.dealerContact ? '40px' : '12px' }} value={formData.dealerContact} onChange={(e) => setFormData({ ...formData, dealerContact: e.target.value })} disabled={!!formData.dealerContactId} placeholder="98765 43210" />
+                                    </div>
                                 </div>
                             </div>
                             <div className="modal-actions">

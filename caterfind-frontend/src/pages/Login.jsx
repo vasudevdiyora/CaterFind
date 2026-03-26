@@ -82,7 +82,7 @@ const Login = ({ onLogin }) => {
 
                 <form className="space-y-6" onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label htmlFor="email">Email Address</label>
+                        <label htmlFor="email">Email Address <span className="text-red-500">*</span></label>
                         <div className="input-wrapper">
                             <Mail size={18} className="input-icon" />
                             <input
@@ -98,7 +98,7 @@ const Login = ({ onLogin }) => {
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="password">Password</label>
+                        <label htmlFor="password">Password <span className="text-red-500">*</span></label>
                         <div className="input-wrapper">
                             <Lock size={18} className="input-icon" />
                             <input

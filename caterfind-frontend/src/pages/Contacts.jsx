@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { contactAPI } from '../services/api';
+import { formatPhoneForDisplay, formatPhoneForBackend, formatPhoneForInput } from '../lib/utils';
 import '../styles/Contacts.css';
 import '../styles/Table.css'; // For modal and other shared styles
 import { Plus, Search, User, Phone, Mail, MessageSquare, Languages, Pencil, Trash2, X, Users } from 'lucide-react';
 import Modal from '../components/Modal';
+import Select from '../components/Select';
 import { useDialog } from '../components/DialogProvider';
 
 /**
@@ -104,7 +106,7 @@ function Contacts({ user }) {
         setEditingContact(contact);
         setFormData({
             name: contact.name,
-            phone: contact.phone,
+            phone: formatPhoneForInput(contact.phone),
             email: contact.email,
             preferredContactMethod: contact.preferredContactMethod,
             preferredLanguage: contact.preferredLanguage || 'ENGLISH',
@@ -116,13 +118,25 @@ function Contacts({ user }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const payload = { ...formData, userId: user.userId };
+            const payload = { 
+                ...formData, 
+                userId: user.userId,
+                phone: formData.phone ? formatPhoneForBackend(formData.phone) : ''
+            };
             if (editingContact) {
                 await contactAPI.update(editingContact.id, payload);
             } else {
                 await contactAPI.create(user.userId, payload);
             }
             setShowModal(false);
+            setFormData({
+                name: '',
+                phone: '',
+                email: '',
+                preferredContactMethod: 'EMAIL',
+                preferredLanguage: 'ENGLISH',
+                labels: []
+            });
             fetchContacts();
         } catch {
             // Error saving contact
@@ -202,7 +216,7 @@ function Contacts({ user }) {
                             </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                            <a href={`tel:${contact.phone}`} className="text-slate-700 hover:text-sky-600">{contact.phone}</a>
+                            <a href={`tel:${formatPhoneForBackend(contact.phone)}`} className="text-slate-700 hover:text-sky-600">{formatPhoneForDisplay(contact.phone)}</a>
                             <a href={`mailto:${contact.email}`} className="text-slate-700 hover:text-sky-600 truncate">{contact.email}</a>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
@@ -238,7 +252,7 @@ function Contacts({ user }) {
                                         <span className="font-semibold text-slate-800">{contact.name}</span>
                                     </div>
                                 </td>
-                                <td><a href={`tel:${contact.phone}`} className="text-slate-600 hover:text-sky-600">{contact.phone}</a></td>
+                                <td><a href={`tel:${formatPhoneForBackend(contact.phone)}`} className="text-slate-600 hover:text-sky-600">{formatPhoneForDisplay(contact.phone)}</a></td>
                                 <td><a href={`mailto:${contact.email}`} className="text-slate-600 hover:text-sky-600">{contact.email}</a></td>
                                 <td>
                                     <div className="flex flex-wrap gap-1.5">
@@ -271,32 +285,45 @@ function Contacts({ user }) {
                 <form className="item-form" onSubmit={handleSubmit}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="form-group">
-                                    <label htmlFor="name"><User className="inline-icon" /> Name</label>
+                                    <label htmlFor="name"><User className="inline-icon" /> Name <span className="text-red-500">*</span></label>
                                     <input id="name" type="text" className="form-input" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
                                 </div>
                                 <div className="form-group">
-                                    <label htmlFor="phone"><Phone className="inline-icon" /> Phone</label>
-                                    <input id="phone" type="tel" className="form-input" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required />
+                                    <label htmlFor="phone"><Phone className="inline-icon" /> Phone <span className="text-red-500">*</span></label>
+                                    <div className="relative">
+                                        <span className="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-center text-slate-400 text-sm font-semibold" style={{ display: formData.phone ? 'flex' : 'none' }}>+91</span>
+                                        <input id="phone" type="tel" className="form-input" style={{ paddingLeft: formData.phone ? '40px' : '12px' }} value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="98765 43210" required />
+                                    </div>
                                 </div>
                                 <div className="form-group">
-                                    <label htmlFor="email"><Mail className="inline-icon" /> Email</label>
+                                    <label htmlFor="email"><Mail className="inline-icon" /> Email <span className="text-red-500">*</span></label>
                                     <input id="email" type="email" className="form-input" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="preferredContactMethod"><MessageSquare className="inline-icon" /> Preferred Contact Method</label>
-                                    <select id="preferredContactMethod" className="form-select" value={formData.preferredContactMethod} onChange={(e) => setFormData({ ...formData, preferredContactMethod: e.target.value })}>
-                                        <option value="SMS">SMS</option>
-                                        <option value="EMAIL">Email</option>
-                                        <option value="CALL">Call</option>
-                                    </select>
+                                    <Select
+                                        value={formData.preferredContactMethod}
+                                        onChange={(e) => setFormData({ ...formData, preferredContactMethod: e.target.value })}
+                                        options={[
+                                            { value: 'SMS', label: 'SMS' },
+                                            { value: 'EMAIL', label: 'Email' },
+                                            { value: 'CALL', label: 'Call' }
+                                        ]}
+                                        placeholder="Select contact method"
+                                    />
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="preferredLanguage"><Languages className="inline-icon" /> Preferred Language</label>
-                                    <select id="preferredLanguage" className="form-select" value={formData.preferredLanguage} onChange={(e) => setFormData({ ...formData, preferredLanguage: e.target.value })}>
-                                        <option value="ENGLISH">English</option>
-                                        <option value="HINDI">Hindi</option>
-                                        <option value="GUJARATI">Gujarati</option>
-                                    </select>
+                                    <Select
+                                        value={formData.preferredLanguage}
+                                        onChange={(e) => setFormData({ ...formData, preferredLanguage: e.target.value })}
+                                        options={[
+                                            { value: 'ENGLISH', label: 'English' },
+                                            { value: 'HINDI', label: 'Hindi' },
+                                            { value: 'GUJARATI', label: 'Gujarati' }
+                                        ]}
+                                        placeholder="Select language"
+                                    />
                                 </div>
                             </div>
 

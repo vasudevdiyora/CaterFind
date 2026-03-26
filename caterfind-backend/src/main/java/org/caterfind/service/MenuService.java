@@ -2,7 +2,12 @@ package org.caterfind.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.caterfind.dto.MenuDTO;
@@ -185,8 +190,8 @@ public class MenuService {
 
         try {
             String subject = "Menu Proposal for " + menu.getEventLocation();
-            String body = buildMenuEmailBody(menu);
-            emailService.sendEmail(recipientEmail, subject, body);
+            String body = buildMenuEmailHtml(menu);
+            emailService.sendHtmlEmail(recipientEmail, subject, body);
             // System.out.println("✅ Menu email sent to: " + recipientEmail);
         } catch (Exception e) {
             System.err.println("⚠️ Failed to send menu email: " + e.getMessage());
@@ -203,39 +208,144 @@ public class MenuService {
     }
 
     /**
-     * Build email body for menu.
+     * Build HTML email body for menu.
      */
-    private String buildMenuEmailBody(Menu menu) {
-        StringBuilder body = new StringBuilder();
-        body.append("Dear ").append(menu.getClientName()).append(",\n\n");
-        body.append("Thank you for considering our catering services for your event.\n\n");
-        body.append("EVENT DETAILS:\n");
-        body.append("Type: ").append(menu.getEventType()).append("\n");
-        body.append("Date: ").append(menu.getEventDate()).append("\n");
-        body.append("Location: ").append(menu.getEventLocation()).append("\n");
-        body.append("Number of Guests: ").append(menu.getNumberOfGuests()).append("\n\n");
-        body.append("PROPOSED MENU:\n\n");
+    private String buildMenuEmailHtml(Menu menu) {
+        String brandName = menu.getCaterer() != null && menu.getCaterer().getDisplayName() != null
+                ? menu.getCaterer().getDisplayName()
+                : "CaterFind";
 
-        // Group dishes by category
-        menu.getDishes().stream()
-                .collect(java.util.stream.Collectors.groupingBy(MenuDish::getMenuCategory))
-                .forEach((category, dishes) -> {
-                    body.append(category.toUpperCase()).append(":\n");
-                    dishes.forEach(menuDish -> {
-                        body.append("  • ").append(menuDish.getDish().getName()).append("\n");
-                        if (menuDish.getNote() != null && !menuDish.getNote().trim().isEmpty()) {
-                            body.append("      Note: ").append(menuDish.getNote().trim()).append("\n");
-                        }
-                    });
-                    body.append("\n");
-                });
+        Map<String, List<MenuDish>> groupedDishes = menu.getDishes().stream()
+                .sorted(Comparator.comparing((MenuDish dish) -> categorySortRank(dish.getMenuCategory()))
+                        .thenComparing(dish -> dish.getDisplayOrder() == null ? Integer.MAX_VALUE : dish.getDisplayOrder())
+                        .thenComparing(dish -> dish.getDish().getName(), String.CASE_INSENSITIVE_ORDER))
+                .collect(Collectors.groupingBy(
+                        dish -> formatCategoryName(dish.getMenuCategory()),
+                        LinkedHashMap::new,
+                        Collectors.toList()));
 
-        body.append("Please contact us at ").append(menu.getContactNumber());
-        body.append(" if you have any questions or would like to discuss modifications.\n\n");
-        body.append("Best regards,\n");
-        body.append(menu.getCaterer().getEmail());
+        StringBuilder menuSections = new StringBuilder();
+        for (Map.Entry<String, List<MenuDish>> entry : groupedDishes.entrySet()) {
+            menuSections.append("<div style=\"margin-top:12px;\">")
+                    .append("<strong style=\"display:block;color:#0f172a;font-size:15px;margin-bottom:6px;\">")
+                    .append(escapeHtml(entry.getKey()))
+                    .append("</strong>")
+                    .append("<ul style=\"margin:0;padding-left:18px;color:#334155;\">");
 
-        return body.toString();
+            for (MenuDish menuDish : entry.getValue()) {
+                menuSections.append("<li style=\"margin-bottom:6px;line-height:1.5;\">")
+                        .append(escapeHtml(menuDish.getDish().getName()));
+
+                if (menuDish.getNote() != null && !menuDish.getNote().trim().isEmpty()) {
+                    menuSections.append("<div style=\"color:#64748b;font-size:13px;margin-top:2px;\">Note: ")
+                            .append(escapeHtml(menuDish.getNote().trim()))
+                            .append("</div>");
+                }
+
+                menuSections.append("</li>");
+            }
+
+            menuSections.append("</ul></div>");
+        }
+
+        return "<!DOCTYPE html>"
+                + "<html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"></head>"
+                + "<body style=\"margin:0;padding:16px;background:#ffffff;font-family:Arial,sans-serif;color:#1f2937;\">"
+                + "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" style=\"max-width:640px;margin:0 auto;border-collapse:collapse;\">"
+                + "<tr><td style=\"border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 6px 16px rgba(15,23,42,0.08);overflow:hidden;\">"
+
+                + "<div style=\"background:#0ea5e9;color:#ffffff;padding:18px 20px;\">"
+                + "<h2 style=\"margin:0;font-size:22px;line-height:1.3;\">" + escapeHtml(brandName) + "</h2>"
+                + "</div>"
+
+                + "<div style=\"padding:20px;\">"
+                + "<p style=\"margin:0 0 12px 0;font-size:16px;\">Hi " + escapeHtml(menu.getClientName()) + ",</p>"
+                + "<p style=\"margin:0 0 16px 0;line-height:1.6;color:#334155;\">"
+                + "Thank you for considering our catering services. "
+                + "Here are your event details and proposed menu."
+                + "</p>"
+
+                + "<div style=\"background:#f8fafc;padding:16px;border-radius:8px;border:1px solid #e2e8f0;\">"
+                + "<h3 style=\"margin:0 0 12px 0;color:#0f172a;font-size:18px;\">Event Details</h3>"
+                + "<p style=\"margin:0 0 8px 0;\"><strong>Type:</strong> " + escapeHtml(menu.getEventType()) + "</p>"
+                + "<p style=\"margin:0 0 8px 0;\"><strong>Date:</strong> " + escapeHtml(String.valueOf(menu.getEventDate())) + "</p>"
+                + "<p style=\"margin:0 0 8px 0;\"><strong>Location:</strong> " + escapeHtml(menu.getEventLocation()) + "</p>"
+                + "<p style=\"margin:0;\"><strong>Guests:</strong> " + escapeHtml(String.valueOf(menu.getNumberOfGuests())) + "</p>"
+                + "</div>"
+
+                + "<div style=\"margin-top:18px;background:#ffffff;padding:16px;border-radius:8px;border:1px solid #e2e8f0;\">"
+                + "<h3 style=\"margin:0;color:#0ea5e9;font-size:18px;\">Proposed Menu</h3>"
+                + menuSections
+                + "</div>"
+
+                + "<div style=\"margin-top:20px;font-size:14px;line-height:1.6;color:#475569;\">"
+                + "<p style=\"margin:0 0 8px 0;\">If you have any questions, contact us:</p>"
+                + "<p style=\"margin:0 0 4px 0;\"><strong>Phone:</strong> " + escapeHtml(menu.getContactNumber()) + "</p>"
+                + "<p style=\"margin:0 0 8px 0;\"><strong>Email:</strong> " + escapeHtml(menu.getCaterer().getEmail()) + "</p>"
+                + "<p style=\"margin:10px 0 0 0;\">Best regards,<br><strong>" + escapeHtml(brandName) + "</strong></p>"
+                + "</div>"
+                + "</div>"
+
+                + "</td></tr></table>"
+                + "</body></html>";
+    }
+
+    private String formatCategoryName(String category) {
+        if (category == null || category.trim().isEmpty()) {
+            return "Other";
+        }
+
+        String trimmed = category.trim();
+        if ("main course".equalsIgnoreCase(trimmed)) {
+            return "Main Course";
+        }
+        if ("starter".equalsIgnoreCase(trimmed)) {
+            return "Starter";
+        }
+        if ("dessert".equalsIgnoreCase(trimmed)) {
+            return "Dessert";
+        }
+        if ("beverage".equalsIgnoreCase(trimmed) || "beverages".equalsIgnoreCase(trimmed)) {
+            return "Beverage";
+        }
+
+        String[] words = trimmed.toLowerCase(Locale.ENGLISH).split("\\s+");
+        List<String> titleCased = new ArrayList<>();
+        for (String word : words) {
+            if (word.isEmpty()) {
+                continue;
+            }
+            titleCased.add(Character.toUpperCase(word.charAt(0)) + word.substring(1));
+        }
+        return String.join(" ", titleCased);
+    }
+
+    private int categorySortRank(String category) {
+        String normalized = category == null ? "" : category.trim().toLowerCase(Locale.ENGLISH);
+        switch (normalized) {
+            case "beverage":
+            case "beverages":
+                return 1;
+            case "starter":
+                return 2;
+            case "main course":
+                return 3;
+            case "dessert":
+                return 4;
+            default:
+                return 5;
+        }
+    }
+
+    private String escapeHtml(String text) {
+        if (text == null) {
+            return "";
+        }
+        return text.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 
     private String normalizeIndianMobile(String contactNumber) {

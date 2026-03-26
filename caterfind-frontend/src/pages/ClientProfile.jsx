@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Edit3, Save, X, AlertCircle, CheckCircle, Mail, Phone, MapPin, CalendarDays } from 'lucide-react';
 import { authAPI } from '../services/api';
+import { formatPhoneForDisplay, formatPhoneForBackend, formatPhoneForInput } from '../lib/utils';
 import '../styles/Table.css';
 
 const ClientProfile = ({ user }) => {
@@ -30,7 +31,7 @@ const ClientProfile = ({ user }) => {
             const formatted = {
                 name: data.name || user?.displayName || '',
                 email: data.email || user?.email || '',
-                phone: data.phone || '',
+                phone: formatPhoneForInput(data.phone) || '',
                 location: data.city || data.location || '',
                 memberSince: data.createdAt
                     ? new Date(data.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -72,7 +73,7 @@ const ClientProfile = ({ user }) => {
         try {
             const payload = {
                 name: editData.name,
-                phone: editData.phone,
+                phone: editData.phone ? formatPhoneForBackend(editData.phone) : '',
                 location: editData.location
             };
             await authAPI.updateProfile(payload);
@@ -169,12 +170,13 @@ const ClientProfile = ({ user }) => {
                             <ProfileField
                                 icon={<Phone size={16} />}
                                 label="Phone"
-                                value={profile.phone}
+                                value={formatPhoneForDisplay(profile.phone)}
                                 editValue={editData.phone}
                                 editing={editing}
                                 onChange={v => setEditData(p => ({ ...p, phone: v }))}
-                                placeholder="Your phone number"
+                                placeholder="98765 43210"
                                 type="tel"
+                                hasPrefix={!!editData.phone}
                             />
                             <ProfileField
                                 icon={<MapPin size={16} />}
@@ -218,7 +220,7 @@ const ClientProfile = ({ user }) => {
     );
 };
 
-const ProfileField = ({ icon, label, value, editValue, editing, onChange, placeholder, type = 'text', readonly = false }) => {
+const ProfileField = ({ icon, label, value, editValue, editing, onChange, placeholder, type = 'text', readonly = false, hasPrefix = false }) => {
     return (
         <div className="rounded-xl border border-slate-200 bg-white p-4">
             <label className="text-sm font-semibold text-slate-600 flex items-center gap-2">
@@ -226,13 +228,19 @@ const ProfileField = ({ icon, label, value, editValue, editing, onChange, placeh
                 <span>{label}</span>
             </label>
             {editing && !readonly ? (
-                <input
-                    type={type}
-                    className="mt-2 w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all"
-                    value={editValue}
-                    onChange={e => onChange(e.target.value)}
-                    placeholder={placeholder}
-                />
+                <div className="relative mt-2">
+                    {hasPrefix && type === 'tel' && (
+                        <span className="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-center text-slate-400 text-sm font-semibold">+91</span>
+                    )}
+                    <input
+                        type={type}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all"
+                        style={{ paddingLeft: hasPrefix && type === 'tel' ? '35px' : '12px' }}
+                        value={editValue}
+                        onChange={e => onChange(e.target.value)}
+                        placeholder={placeholder}
+                    />
+                </div>
             ) : (
                 <p className="text-slate-900 font-semibold pt-2">{value || '---'}</p>
             )}

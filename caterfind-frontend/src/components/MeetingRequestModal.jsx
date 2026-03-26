@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, Users, MapPin, MessageCircle } from 'lucide-react';
 import Modal from './Modal';
+import Select from './Select';
 import { meetingRequestAPI } from '../services/api';
 
 /**
@@ -30,6 +31,10 @@ const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId }) => {
     ];
 
     const handleChange = (field, value) => {
+        // Prevent negative values for numeric fields
+        if (field === 'guests' && value !== '' && Number(value) < 0) {
+            return; // Ignore negative input
+        }
         setFormData(prev => ({ ...prev, [field]: value }));
         setError(''); // Clear error on input change
     };
@@ -40,6 +45,13 @@ const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId }) => {
         setError('');
 
         try {
+            // Validate numeric fields
+            if (!formData.guests || Number(formData.guests) <= 0) {
+                setError('Number of guests must be greater than 0');
+                setSubmitting(false);
+                return;
+            }
+
             // Prepare request data
             const requestData = {
                 catererId: catererId,
@@ -88,7 +100,7 @@ const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId }) => {
                     <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
                             <Calendar size={16} />
-                            Event Date *
+                            Event Date <span className="text-red-500">*</span>
                         </label>
                         <input
                             type="date"
@@ -104,7 +116,7 @@ const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId }) => {
                     <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
                             <Users size={16} />
-                            Approx Number of Guest *
+                            Approx Number of Guest <span className="text-red-500">*</span>
                         </label>
                         <input
                             type="number"
@@ -121,7 +133,7 @@ const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId }) => {
                     <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
                             <MapPin size={16} />
-                            Event Location *
+                            Event Location <span className="text-red-500">*</span>
                         </label>
                         <input
                             type="text"
@@ -136,19 +148,17 @@ const MeetingRequestModal = ({ isOpen, onClose, catererName, catererId }) => {
                     {/* Event Type */}
                     <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                            Event Type *
+                            Event Type <span className="text-red-500">*</span>
                         </label>
-                        <select
-                            required
+                        <Select
                             value={formData.eventType}
                             onChange={(e) => handleChange('eventType', e.target.value)}
-                            className="w-full px-4 py-3 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                        >
-                            <option value="">Select event type</option>
-                            {eventTypes.map(type => (
-                                <option key={type} value={type}>{type}</option>
-                            ))}
-                        </select>
+                            options={[
+                                { value: '', label: 'Select event type' },
+                                ...eventTypes.map(type => ({ value: type, label: type }))
+                            ]}
+                            placeholder="Select event type"
+                        />
                     </div>
 
                     {/* Message */}

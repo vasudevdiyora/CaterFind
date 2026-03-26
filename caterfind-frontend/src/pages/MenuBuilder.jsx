@@ -3,6 +3,8 @@ import { dishAPI, fileAPI, menuAPI } from '@/services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Plus, Search, X, Trash2, Save, Send, Edit3, Utensils, Calendar, Users, Building, Info, Mail, Phone, GripVertical, ArrowUp, ArrowDown } from 'lucide-react';
 import Modal from '@/components/Modal';
+import Select from '@/components/Select';
+import { formatPhoneForDisplay, formatPhoneForBackend } from '@/lib/utils';
 import '../styles/Table.css'; // Reusing modal and table styles
 import '../styles/Contacts.css'; // Reusing filter pills
 
@@ -382,7 +384,11 @@ function MenuBuilder({ user }) {
         if (!clientDetails.clientName) errors.clientName = 'Client name is required';
         if (!clientDetails.eventType) errors.eventType = 'Event type is required';
         if (!clientDetails.eventDate) errors.eventDate = 'Event date is required';
-        if (!clientDetails.numberOfGuests) errors.numberOfGuests = 'Number of guests is required';
+        if (!clientDetails.numberOfGuests) {
+            errors.numberOfGuests = 'Number of guests is required';
+        } else if (Number(clientDetails.numberOfGuests) <= 0) {
+            errors.numberOfGuests = 'Number of guests must be greater than 0';
+        }
         if (!clientDetails.contactNumber) {
             errors.contactNumber = 'Contact number is required';
         } else if (!/^\d{10}$/.test(clientDetails.contactNumber)) {
@@ -657,8 +663,7 @@ function MenuBuilder({ user }) {
             eventLocation: `${clientDetails.venueName}, ${clientDetails.venueAddress}`.trim(),
             eventDate: clientDetails.eventDate,
             numberOfGuests: Number(clientDetails.numberOfGuests),
-            // Service will normalize and prepend +91; we send raw 10-digit number
-            contactNumber: clientDetails.contactNumber,
+            contactNumber: formatPhoneForBackend(clientDetails.contactNumber),
             clientEmail: normalizedClientEmail,
             dishes,
         };
@@ -734,40 +739,49 @@ function MenuBuilder({ user }) {
             <h2 className="text-xl font-bold text-slate-800 mb-6">Step 1: Client & Event Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 <div className="form-group">
-                    <label htmlFor="clientName">Client Name</label>
+                    <label htmlFor="clientName">Client Name <span className="text-red-500">*</span></label>
                     <input id="clientName" name="clientName" type="text" className={`form-input ${formErrors.clientName ? 'error' : ''}`} value={clientDetails.clientName} onChange={handleInputChange} placeholder="e.g., John Doe" />
                     {formErrors.clientName && <p className="form-error-text">{formErrors.clientName}</p>}
                 </div>
                 <div className="form-group">
-                    <label htmlFor="eventType">Event Type</label>
-                    <select id="eventType" name="eventType" className={`form-select ${formErrors.eventType ? 'error' : ''}`} value={clientDetails.eventType} onChange={handleInputChange}>
-                        <option value="">Select event type</option>
-                        {eventTypes.map((t) => (
-                            <option key={t} value={t}>{t}</option>
-                        ))}
-                    </select>
+                    <label htmlFor="eventType">Event Type <span className="text-red-500">*</span></label>
+                    <Select
+                        value={clientDetails.eventType}
+                        onChange={(e) => handleInputChange({ target: { name: 'eventType', value: e.target.value } })}
+                        options={[
+                            { value: '', label: 'Select event type' },
+                            ...eventTypes.map(t => ({ value: t, label: t }))
+                        ]}
+                        placeholder="Select event type"
+                        errorClass={formErrors.eventType ? 'error' : ''}
+                    />
                     {formErrors.eventType && <p className="form-error-text">{formErrors.eventType}</p>}
                 </div>
                 <div className="form-group">
-                    <label htmlFor="eventDate">Event Date</label>
+                    <label htmlFor="eventDate">Event Date <span className="text-red-500">*</span></label>
                     <input id="eventDate" name="eventDate" type="date" className={`form-input ${formErrors.eventDate ? 'error' : ''}`} value={clientDetails.eventDate} onChange={handleInputChange} min={getTodayDateString()} />
                     {formErrors.eventDate && <p className="form-error-text">{formErrors.eventDate}</p>}
                 </div>
                 <div className="form-group">
-                    <label htmlFor="numberOfGuests">Number of Guests</label>
-                    <input id="numberOfGuests" name="numberOfGuests" type="number" className={`form-input ${formErrors.numberOfGuests ? 'error' : ''}`} value={clientDetails.numberOfGuests} onChange={handleInputChange} placeholder="e.g., 150" />
+                    <label htmlFor="numberOfGuests">Number of Guests <span className="text-red-500">*</span></label>
+                    <input id="numberOfGuests" name="numberOfGuests" type="number" className={`form-input ${formErrors.numberOfGuests ? 'error' : ''}`} value={clientDetails.numberOfGuests} onChange={handleInputChange} placeholder="e.g., 150" min="1" />
                     {formErrors.numberOfGuests && <p className="form-error-text">{formErrors.numberOfGuests}</p>}
                 </div>
                 <div className="form-group">
                     <label htmlFor="mealTime">Meal Time</label>
-                    <select id="mealTime" name="mealTime" className="form-select" value={clientDetails.mealTime} onChange={handleInputChange}>
-                        <option value="">Select meal time</option>
-                        <option value="Breakfast">Breakfast</option>
-                        <option value="Brunch">Brunch</option>
-                        <option value="Lunch">Lunch</option>
-                        <option value="Dinner">Dinner</option>
-                        <option value="High-Tea">High-Tea</option>
-                    </select>
+                    <Select
+                        value={clientDetails.mealTime}
+                        onChange={(e) => handleInputChange({ target: { name: 'mealTime', value: e.target.value } })}
+                        options={[
+                            { value: '', label: 'Select meal time' },
+                            { value: 'Breakfast', label: 'Breakfast' },
+                            { value: 'Brunch', label: 'Brunch' },
+                            { value: 'Lunch', label: 'Lunch' },
+                            { value: 'Dinner', label: 'Dinner' },
+                            { value: 'High-Tea', label: 'High-Tea' }
+                        ]}
+                        placeholder="Select meal time"
+                    />
                 </div>
                 <div className="form-group">
                     <label htmlFor="venueName">Venue Name</label>
@@ -778,7 +792,7 @@ function MenuBuilder({ user }) {
                     <input id="venueAddress" name="venueAddress" type="text" className="form-input" value={clientDetails.venueAddress} onChange={handleInputChange} placeholder="Full address of the event location" />
                 </div>
                 <div className="form-group">
-                    <label htmlFor="contactNumber">Contact Number</label>
+                    <label htmlFor="contactNumber">Contact Number <span className="text-red-500">*</span></label>
                     <div className="relative">
                         <span className="pointer-events-none absolute inset-y-0 left-0 flex w-12 items-center justify-center text-slate-500">+91</span>
                         <input id="contactNumber" name="contactNumber" type="tel" className={`form-input !pl-14 ${formErrors.contactNumber ? 'error' : ''}`} value={clientDetails.contactNumber} onChange={handleInputChange} placeholder="98765 43210" required />
@@ -786,7 +800,7 @@ function MenuBuilder({ user }) {
                     {formErrors.contactNumber && <p className="form-error-text">{formErrors.contactNumber}</p>}
                 </div>
                 <div className="form-group">
-                    <label htmlFor="clientEmail">Client Email</label>
+                    <label htmlFor="clientEmail">Client Email <span className="text-red-500">*</span></label>
                     <input id="clientEmail" name="clientEmail" type="email" className={`form-input ${formErrors.clientEmail ? 'error' : ''}`} value={clientDetails.clientEmail} onChange={handleInputChange} placeholder="e.g., john.doe@example.com" required />
                     {formErrors.clientEmail && <p className="form-error-text">{formErrors.clientEmail}</p>}
                 </div>
@@ -823,14 +837,20 @@ function MenuBuilder({ user }) {
                             />
                         </div>
                         <div className="lg:col-span-3">
-                            <select className="form-select !py-2.5" value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setLabelFilter('All Labels'); }}>
-                                {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
+                            <Select
+                                value={categoryFilter}
+                                onChange={(e) => { setCategoryFilter(e.target.value); setLabelFilter('All Labels'); }}
+                                options={categories.map(c => ({ value: c, label: c }))}
+                                placeholder="Select category"
+                            />
                         </div>
                         <div className="lg:col-span-3">
-                            <select className="form-select !py-2.5" value={labelFilter} onChange={(e) => setLabelFilter(e.target.value)}>
-                                {labels.map(label => <option key={label} value={label}>{label}</option>)}
-                            </select>
+                            <Select
+                                value={labelFilter}
+                                onChange={(e) => setLabelFilter(e.target.value)}
+                                options={labels.map(label => ({ value: label, label: label }))}
+                                placeholder="Select label"
+                            />
                         </div>
                     </div>
                 </div>
@@ -983,7 +1003,7 @@ function MenuBuilder({ user }) {
                         <div className="flex items-start gap-2"><Users size={16} className="text-slate-500 mt-0.5" /><p><strong className="font-semibold text-slate-600">Guests:</strong> {clientDetails.numberOfGuests}</p></div>
                         <div className="flex items-start gap-2"><Building size={16} className="text-slate-500 mt-0.5" /><p><strong className="font-semibold text-slate-600">Venue:</strong> {clientDetails.venueName}</p></div>
                         <div className="flex items-start gap-2"><Mail size={16} className="text-slate-500 mt-0.5" /><p><strong className="font-semibold text-slate-600">Email:</strong> {clientDetails.clientEmail}</p></div>
-                        <div className="flex items-start gap-2"><Phone size={16} className="text-slate-500 mt-0.5" /><p><strong className="font-semibold text-slate-600">Phone:</strong> {clientDetails.contactNumber}</p></div>
+                        <div className="flex items-start gap-2"><Phone size={16} className="text-slate-500 mt-0.5" /><p><strong className="font-semibold text-slate-600">Phone:</strong> {formatPhoneForDisplay(clientDetails.contactNumber)}</p></div>
                     </div>
                 </div>
 

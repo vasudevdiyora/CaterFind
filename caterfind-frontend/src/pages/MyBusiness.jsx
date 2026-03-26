@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Modal from '../components/Modal';
 import { fileAPI, profileAPI, authAPI, locationAPI } from '../services/api';
+import { formatPhoneForBackend, formatPhoneForInput } from '../lib/utils';
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -152,8 +153,8 @@ function MyBusiness({ user }) {
                 setFormData({
                     businessName: data.businessName || '',
                     description: data.description || '',
-                    primaryPhone: data.primaryPhone || '',
-                    alternatePhone: data.alternatePhone || '',
+                    primaryPhone: formatPhoneForInput(data.primaryPhone) || '',
+                    alternatePhone: formatPhoneForInput(data.alternatePhone) || '',
                     email: data.email || '',
                     streetAddress: data.streetAddress || '',
                     pincode: data.pincode || '',
@@ -370,7 +371,9 @@ function MyBusiness({ user }) {
             ...formData,
             email: finalEmail || formData.email,
             description: currentDescription,
-            businessPhotos: photoUrls
+            businessPhotos: photoUrls,
+            primaryPhone: formData.primaryPhone ? formatPhoneForBackend(formData.primaryPhone) : '',
+            alternatePhone: formData.alternatePhone ? formatPhoneForBackend(formData.alternatePhone) : ''
         };
 
         try {
@@ -472,7 +475,7 @@ function MyBusiness({ user }) {
                     <div className="lg:col-span-2 space-y-5">
                         <FormSection title="Basic Information" icon={<Building size={20} />}>
                             <div className="form-group">
-                                <label htmlFor="businessName">Business Name</label>
+                                <label htmlFor="businessName">Business Name <span className="text-red-500">*</span></label>
                                 <input id="businessName" type="text" className="form-input" value={formData.businessName} onChange={e => handleChange('businessName', e.target.value)} required />
                             </div>
                             <div className="form-group">
@@ -493,11 +496,17 @@ function MyBusiness({ user }) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="form-group">
                                     <label htmlFor="primaryPhone">Primary Phone</label>
-                                    <input id="primaryPhone" type="tel" className="form-input" value={formData.primaryPhone} onChange={e => handleChange('primaryPhone', e.target.value)} />
+                                    <div className="relative">
+                                        <span className="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-center text-slate-400 text-sm font-semibold" style={{ display: formData.primaryPhone ? 'flex' : 'none' }}>+91</span>
+                                        <input id="primaryPhone" type="tel" className="form-input" style={{ paddingLeft: formData.primaryPhone ? '40px' : '12px' }} value={formData.primaryPhone} onChange={e => handleChange('primaryPhone', e.target.value)} placeholder="98765 43210" />
+                                    </div>
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="alternatePhone">Alternate Phone</label>
-                                    <input id="alternatePhone" type="tel" className="form-input" value={formData.alternatePhone} onChange={e => handleChange('alternatePhone', e.target.value)} />
+                                    <div className="relative">
+                                        <span className="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-center text-slate-400 text-sm font-semibold" style={{ display: formData.alternatePhone ? 'flex' : 'none' }}>+91</span>
+                                        <input id="alternatePhone" type="tel" className="form-input" style={{ paddingLeft: formData.alternatePhone ? '40px' : '12px' }} value={formData.alternatePhone} onChange={e => handleChange('alternatePhone', e.target.value)} placeholder="98765 43210" />
+                                    </div>
                                 </div>
                             </div>
                             <div className="form-group">
@@ -550,7 +559,7 @@ function MyBusiness({ user }) {
                         <FormSection title="Location & Service Area" icon={<MapPin size={20} />}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="form-group">
-                                    <label htmlFor="pincode">Pincode</label>
+                                    <label htmlFor="pincode">Pincode <span className="text-red-500">*</span></label>
                                     <input
                                         id="pincode"
                                         type="text"
@@ -571,12 +580,12 @@ function MyBusiness({ user }) {
                                     )}
                                 </div>
                                 <div className="form-group">
-                                    <label htmlFor="city">City</label>
+                                    <label htmlFor="city">City <span className="text-red-500">*</span></label>
                                     <input id="city" type="text" className="form-input" value={formData.city} onChange={e => handleChange('city', e.target.value)} required />
                                 </div>
                             </div>
                             <div className="form-group">
-                                <label htmlFor="streetAddress">Street Address</label>
+                                <label htmlFor="streetAddress">Street Address <span className="text-red-500">*</span></label>
                                 <input id="streetAddress" type="text" className="form-input" value={formData.streetAddress} onChange={e => handleChange('streetAddress', e.target.value)} required />
                             </div>
                             <div className="form-group">
@@ -616,7 +625,7 @@ function MyBusiness({ user }) {
                         We've sent a One-Time Password (OTP) to <strong>{pendingNewEmail}</strong>. Please enter it below to confirm the change.
                     </p>
                     <div className="form-group">
-                        <label htmlFor="otp">Enter OTP</label>
+                        <label htmlFor="otp">Enter OTP <span className="text-red-500">*</span></label>
                         <input id="otp" type="text" className="form-input text-center tracking-[0.5em]" value={otpValue} onChange={e => setOtpValue(e.target.value)} maxLength="6" required />
                     </div>
                     {otpError && <p className="form-error-text mt-2">{otpError}</p>}

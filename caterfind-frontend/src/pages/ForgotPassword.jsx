@@ -89,7 +89,7 @@ const ForgotPassword = () => {
                 {step === 1 && (
                     <form onSubmit={handleRequestOtp} className="space-y-6">
                         <div className="form-group">
-                            <label htmlFor="email">Email Address</label>
+                            <label htmlFor="email">Email Address <span className="text-red-500">*</span></label>
                             <div className="input-wrapper">
                                 <Mail size={18} className="input-icon" />
                                 <input
@@ -119,7 +119,7 @@ const ForgotPassword = () => {
                     <form onSubmit={handleResetPassword} className="space-y-6">
                         <div className="form-group">
                             <label className="flex justify-between">
-                                <span>OTP Code</span>
+                                <span>OTP Code <span className="text-red-500">*</span></span>
                                 <button type="button" onClick={() => setStep(1)} className="text-xs text-sky-600 hover:underline">Change Email</button>
                             </label>
                             <input
@@ -134,7 +134,7 @@ const ForgotPassword = () => {
                         </div>
 
                         <div className="form-group">
-                            <label>New Password</label>
+                            <label>New Password <span className="text-red-500">*</span></label>
                             <div className="input-wrapper">
                                 <Lock size={18} className="input-icon" />
                                 <input
@@ -149,7 +149,7 @@ const ForgotPassword = () => {
                         </div>
 
                         <div className="form-group">
-                            <label>Confirm Password</label>
+                            <label>Confirm Password <span className="text-red-500">*</span></label>
                             <div className="input-wrapper">
                                 <Lock size={18} className="input-icon" />
                                 <input

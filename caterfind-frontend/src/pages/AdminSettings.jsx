@@ -78,7 +78,26 @@ const AdminSettings = () => {
     };
 
     const handleChange = (key, value) => {
-        setSettings(prev => ({ ...prev, [key]: value }));
+        // Validate numeric fields
+        let validValue = value;
+        
+        if (key === 'commissionPercentage') {
+            // Ensure value is between 0 and 100
+            const numVal = Number(value);
+            if (numVal < 0) validValue = 0;
+            if (numVal > 100) validValue = 100;
+        } else if (key === 'minimumCommission') {
+            // Ensure value is >= 0
+            const numVal = Number(value);
+            if (numVal < 0) validValue = 0;
+        } else if (key === 'sessionTimeout') {
+            // Ensure value is between 5 and 120
+            const numVal = Number(value);
+            if (numVal < 5) validValue = 5;
+            if (numVal > 120) validValue = 120;
+        }
+        
+        setSettings(prev => ({ ...prev, [key]: validValue }));
     };
 
     const handleSave = async () => {
@@ -291,7 +310,12 @@ const AdminSettings = () => {
                             <input
                                 type="number"
                                 value={settings.commissionPercentage}
-                                onChange={(e) => handleChange('commissionPercentage', Number(e.target.value))}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === '' || (Number(val) >= 0 && Number(val) <= 100)) {
+                                        handleChange('commissionPercentage', val === '' ? '' : Number(val));
+                                    }
+                                }}
                                 className="w-32 h-9 px-3 bg-white border border-slate-200 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300"
                                 min="0"
                                 max="100"
@@ -311,7 +335,12 @@ const AdminSettings = () => {
                             <input
                                 type="number"
                                 value={settings.minimumCommission}
-                                onChange={(e) => handleChange('minimumCommission', Number(e.target.value))}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === '' || Number(val) >= 0) {
+                                        handleChange('minimumCommission', val === '' ? '' : Number(val));
+                                    }
+                                }}
                                 className="w-32 h-9 px-3 bg-white border border-slate-200 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300"
                                 min="0"
                             />
@@ -357,7 +386,12 @@ const AdminSettings = () => {
                         <input
                             type="number"
                             value={settings.sessionTimeout}
-                            onChange={(e) => handleChange('sessionTimeout', Number(e.target.value))}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '' || (Number(val) >= 5 && Number(val) <= 120)) {
+                                    handleChange('sessionTimeout', val === '' ? '' : Number(val));
+                                }
+                            }}
                             className="w-32 h-9 px-3 bg-white border border-slate-200 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300"
                             min="5"
                             max="120"

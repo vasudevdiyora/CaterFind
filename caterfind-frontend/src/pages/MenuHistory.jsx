@@ -74,8 +74,8 @@ function MenuHistory({ user }) {
             setUpcomingMenus(upcoming);
             setPastMenus(past);
         } catch (error) {
-            console.error('Error loading menu history:', error);
-            alert('Failed to load menu history');
+            console.error('Error loading menus:', error);
+            alert('Failed to load menus');
         } finally {
             setLoading(false);
         }
@@ -113,7 +113,7 @@ function MenuHistory({ user }) {
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
                         <FileClock className="w-6 h-6" />
-                        Menu History
+                        Menus
                     </h1>
                     <button
                         onClick={() => navigate('/owner/menu-builder')}

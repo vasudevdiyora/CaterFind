@@ -1,9 +1,12 @@
 package org.caterfind.service;
 
+import javax.mail.internet.MimeMessage;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 /**
@@ -46,6 +49,32 @@ public class EmailService {
 
         } catch (Exception e) {
             System.err.println("❌ Failed to send email: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Send an HTML email using JavaMail MimeMessage.
+     *
+     * @param toEmail Recipient email address
+     * @param subject Email subject
+     * @param htmlBody HTML email body
+     * @return true if sent successfully, false otherwise
+     */
+    public boolean sendHtmlEmail(String toEmail, String subject, String htmlBody) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+            helper.setText(htmlBody, true);
+
+            mailSender.send(message);
+            return true;
+        } catch (Exception e) {
+            System.err.println("Failed to send HTML email: " + e.getMessage());
             e.printStackTrace();
             return false;
         }

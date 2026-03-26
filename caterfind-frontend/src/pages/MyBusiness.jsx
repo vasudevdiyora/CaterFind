@@ -183,7 +183,11 @@ function MyBusiness({ user }) {
     };
 
     const handleChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        const normalizedValue = (field === 'primaryPhone' || field === 'alternatePhone')
+            ? String(value || '').replace(/\D/g, '').slice(0, 10)
+            : value;
+
+        setFormData(prev => ({ ...prev, [field]: normalizedValue }));
     };
 
     const extractLocationFromPostalApi = (payload) => {

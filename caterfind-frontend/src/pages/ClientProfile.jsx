@@ -173,7 +173,7 @@ const ClientProfile = ({ user }) => {
                                 value={formatPhoneForDisplay(profile.phone)}
                                 editValue={editData.phone}
                                 editing={editing}
-                                onChange={v => setEditData(p => ({ ...p, phone: v }))}
+                                onChange={v => setEditData(p => ({ ...p, phone: String(v || '').replace(/\D/g, '').slice(0, 10) }))}
                                 placeholder="98765 43210"
                                 type="tel"
                                 hasPrefix={!!editData.phone}

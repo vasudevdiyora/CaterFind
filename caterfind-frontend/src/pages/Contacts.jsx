@@ -292,7 +292,16 @@ function Contacts({ user }) {
                                     <label htmlFor="phone"><Phone className="inline-icon" /> Phone <span className="text-red-500">*</span></label>
                                     <div className="relative">
                                         <span className="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-center text-slate-400 text-sm font-semibold" style={{ display: formData.phone ? 'flex' : 'none' }}>+91</span>
-                                        <input id="phone" type="tel" className="form-input" style={{ paddingLeft: formData.phone ? '40px' : '12px' }} value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="98765 43210" required />
+                                        <input
+                                            id="phone"
+                                            type="tel"
+                                            className="form-input"
+                                            style={{ paddingLeft: formData.phone ? '40px' : '12px' }}
+                                            value={formData.phone}
+                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                                            placeholder="98765 43210"
+                                            required
+                                        />
                                     </div>
                                 </div>
                                 <div className="form-group">

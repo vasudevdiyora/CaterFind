@@ -24,6 +24,47 @@ const Modal = ({
         return () => window.removeEventListener('keydown', onKey);
     }, [onClose]);
 
+    useEffect(() => {
+        if (!isOpen || typeof document === 'undefined') return;
+
+        const body = document.body;
+        const sidebar = document.querySelector('aside');
+        const activeElement = document.activeElement;
+        const wasFocusInsideSidebar = sidebar && activeElement instanceof HTMLElement && sidebar.contains(activeElement);
+
+        const currentCount = Number(body.dataset.modalOpenCount || '0');
+        body.dataset.modalOpenCount = String(currentCount + 1);
+
+        if (currentCount === 0) {
+            body.dataset.modalPrevOverflow = body.style.overflow || '';
+            body.style.overflow = 'hidden';
+        }
+
+        if (sidebar) {
+            sidebar.setAttribute('inert', '');
+            sidebar.setAttribute('aria-hidden', 'true');
+        }
+
+        if (wasFocusInsideSidebar) {
+            activeElement.blur();
+        }
+
+        return () => {
+            const nextCount = Math.max(0, Number(body.dataset.modalOpenCount || '1') - 1);
+            body.dataset.modalOpenCount = String(nextCount);
+
+            if (nextCount === 0) {
+                delete body.dataset.modalOpenCount;
+                body.style.overflow = body.dataset.modalPrevOverflow || '';
+                delete body.dataset.modalPrevOverflow;
+                if (sidebar) {
+                    sidebar.removeAttribute('inert');
+                    sidebar.removeAttribute('aria-hidden');
+                }
+            }
+        };
+    }, [isOpen]);
+
     // NOTE: hooks must be called in the same order every render.
     // Don't early-return before all hooks are declared — check `isOpen` after hooks.
 
@@ -63,26 +104,6 @@ const Modal = ({
 
     const overlayClass = 'modal-overlay';
 
-    // Compute overlay left offset on desktop so it doesn't cover the persistent sidebar.
-    const [overlayStyle, setOverlayStyle] = useState(null);
-
-    useEffect(() => {
-        if (isMobile || !applyDesktopSidebarOffset) {
-            const t = setTimeout(() => setOverlayStyle(null), 0);
-            return () => clearTimeout(t);
-        }
-
-        try {
-            const aside = document.querySelector('aside');
-            const width = aside ? Math.round(aside.getBoundingClientRect().width) : 256;
-            const t = setTimeout(() => setOverlayStyle({ left: `${width}px` }), 0);
-            return () => clearTimeout(t);
-        } catch {
-            const t = setTimeout(() => setOverlayStyle({ left: '256px' }), 0);
-            return () => clearTimeout(t);
-        }
-    }, [isMobile, applyDesktopSidebarOffset]);
-
     if (!shouldRender) return null;
 
     // Side panels are intended for mobile; don't render overlay/panel on desktop
@@ -93,14 +114,14 @@ const Modal = ({
             <div
                 className={`${overlayClass} ${isVisible ? 'is-open' : ''}`}
                 ref={overlayRef}
-                style={overlayStyle || undefined}
-                onMouseDown={(e) => { if (e.target === overlayRef.current) onClose(); }}
+                data-desktop-sidebar-offset={applyDesktopSidebarOffset ? 'true' : 'false'}
             >
+                <div className="modal-backdrop" onClick={onClose} />
                 <div
                     className={`${className} modal-side ${side === 'left' ? 'side-left' : 'side-right'} ${isVisible ? 'is-open' : ''}`}
                     role="dialog"
                     aria-modal="true"
-                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
                 >
                     {children}
                 </div>
@@ -112,23 +133,25 @@ const Modal = ({
         <div
             className={`${overlayClass} ${isVisible ? 'is-open' : ''}`}
             ref={overlayRef}
-            style={overlayStyle || undefined}
-            onMouseDown={(e) => { if (e.target === overlayRef.current) onClose(); }}
+            data-desktop-sidebar-offset={applyDesktopSidebarOffset ? 'true' : 'false'}
         >
-            <div className={`modal-content ${className} ${isVisible ? 'is-open' : ''}`} role="dialog" aria-modal="true">
-                {showHeader && (
-                    <div className="modal-header">
-                        {title ? (
-                            typeof title === 'string' ? <h2>{title}</h2> : <div>{title}</div>
-                        ) : null}
-                        <button type="button" className="close-btn" onClick={onClose} aria-label="Close">
-                            <X size={20} />
-                        </button>
-                    </div>
-                )}
+            <div className="modal-backdrop" onClick={onClose} />
+            <div className="modal-surface">
+                <div className={`modal-content ${className} ${isVisible ? 'is-open' : ''}`} role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+                    {showHeader && (
+                        <div className="modal-header">
+                            {title ? (
+                                typeof title === 'string' ? <h2>{title}</h2> : <div>{title}</div>
+                            ) : null}
+                            <button type="button" className="close-btn" onClick={onClose} aria-label="Close">
+                                <X size={20} />
+                            </button>
+                        </div>
+                    )}
 
-                <div className="modal-body">
-                    {children}
+                    <div className="modal-body">
+                        {children}
+                    </div>
                 </div>
             </div>
         </div>

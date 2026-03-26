@@ -17,7 +17,8 @@ export function cn(...inputs) {
 export function formatPhoneForInput(phone) {
     if (!phone) return '';
     const str = String(phone).trim();
-    return str.startsWith('+91') ? str.slice(3) : str;
+    const withoutPrefix = str.startsWith('+91') ? str.slice(3) : str;
+    return withoutPrefix.replace(/\D/g, '').slice(0, 10);
 }
 
 /**
@@ -28,10 +29,10 @@ export function formatPhoneForInput(phone) {
 export function formatPhoneForBackend(phone) {
     if (!phone) return '';
     const str = String(phone).trim();
-    if (!str.startsWith('+91')) {
-        return '+91' + str;
-    }
-    return str;
+    const withoutPrefix = str.startsWith('+91') ? str.slice(3) : str;
+    const digits = withoutPrefix.replace(/\D/g, '').slice(0, 10);
+    if (!digits) return '';
+    return '+91' + digits;
 }
 
 /**
@@ -41,9 +42,7 @@ export function formatPhoneForBackend(phone) {
  */
 export function formatPhoneForDisplay(phone) {
     if (!phone) return '';
-    const str = String(phone).trim();
-    if (!str.startsWith('+91')) {
-        return '+91' + str;
-    }
-    return str;
+    const digits = formatPhoneForInput(phone);
+    if (!digits) return '';
+    return '+91' + digits;
 }

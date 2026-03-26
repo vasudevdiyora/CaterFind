@@ -8,7 +8,7 @@ import {
 import logo from '@/assets/logo.png';
 import Select from '../components/Select';
 import { states, getCities } from '../lib/locations';
-import { formatPhoneForBackend } from '../lib/utils';
+import { formatPhoneForInput } from '../lib/utils';
 import '../styles/Login.css'; // Reusing login styles for consistency
 
 const Register = ({ onLogin }) => {
@@ -87,13 +87,14 @@ const Register = ({ onLogin }) => {
         if (password !== confirmPassword) return setError('Passwords do not match.');
         if (password.length < 6) return setError('Password must be at least 6 characters.');
 
+        const normalizedPrimaryPhone = formatPhoneForInput(primaryPhone);
         const payload = { email, password, role, pincode, state: selectedState, city, area };
 
         if (role === 'CATERER') {
             Object.assign(payload, {
                 businessName,
                 ownerName,
-                primaryPhone: formatPhoneForBackend(primaryPhone),
+                primaryPhone: normalizedPrimaryPhone,
                 streetAddress,
                 address: `${streetAddress}, ${area}, ${city}`,
                 latitude: latitude ? Number(latitude) : undefined,
@@ -105,7 +106,7 @@ const Register = ({ onLogin }) => {
                 aadharDocumentUrl
             });
         } else {
-            Object.assign(payload, { name: clientName, phone: formatPhoneForBackend(primaryPhone) });
+            Object.assign(payload, { name: clientName, phone: normalizedPrimaryPhone });
         }
 
         setLoading(true);
@@ -304,7 +305,12 @@ const FormInput = ({ id, label, type = 'text', value, onChange, onChangeRaw, ico
                 type={type}
                 className={`form-input w-full h-10 px-3 border border-slate-200 rounded-md bg-white text-slate-700 placeholder:text-slate-400 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 ${icon ? 'with-icon' : ''} ${children ? 'pr-24' : ''}`}
                 value={value}
-                onChange={onChangeRaw || (e => onChange(e.target.value))}
+                onChange={onChangeRaw || (e => {
+                    const nextValue = type === 'tel'
+                        ? e.target.value.replace(/\D/g, '').slice(0, 10)
+                        : e.target.value;
+                    onChange(nextValue);
+                })}
                 required={required}
                 {...props}
             />

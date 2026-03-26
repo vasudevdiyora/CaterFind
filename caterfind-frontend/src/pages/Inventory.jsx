@@ -417,7 +417,15 @@ function Inventory({ user }) {
                                     <label>Dealer Contact (if not in contacts)</label>
                                     <div className="relative">
                                         <span className="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-center text-slate-400 text-sm font-semibold" style={{ display: formData.dealerContact ? 'flex' : 'none' }}>+91</span>
-                                        <input type="tel" className="form-input" style={{ paddingLeft: formData.dealerContact ? '40px' : '12px' }} value={formData.dealerContact} onChange={(e) => setFormData({ ...formData, dealerContact: e.target.value })} disabled={!!formData.dealerContactId} placeholder="98765 43210" />
+                                        <input
+                                            type="tel"
+                                            className="form-input"
+                                            style={{ paddingLeft: formData.dealerContact ? '40px' : '12px' }}
+                                            value={formData.dealerContact}
+                                            onChange={(e) => setFormData({ ...formData, dealerContact: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                                            disabled={!!formData.dealerContactId}
+                                            placeholder="98765 43210"
+                                        />
                                     </div>
                                 </div>
                             </div>

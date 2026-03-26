@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { dishAPI, fileAPI, menuAPI } from '@/services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, Search, X, Trash2, Save, Send, Edit3, Utensils, Calendar, Users, Building, Info, Mail, Phone, GripVertical, ArrowUp, ArrowDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, X, Trash2, Save, Send, Edit3, Utensils, Calendar, Users, Building, Info, Mail, Phone, GripVertical, ArrowUp, ArrowDown } from 'lucide-react';
 import Modal from '@/components/Modal';
 import Select from '@/components/Select';
-import { formatPhoneForDisplay, formatPhoneForBackend } from '@/lib/utils';
+import { formatPhoneForDisplay } from '@/lib/utils';
 import '../styles/Table.css'; // Reusing modal and table styles
 import '../styles/Contacts.css'; // Reusing filter pills
 
@@ -359,9 +359,9 @@ function MenuBuilder({ user }) {
     // Handle client details form change
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        const normalizedValue = name === 'contactNumber' ?
-            value.replace(/\D/g, '').slice(0, 10) :
-            value;
+        const normalizedValue = name === 'contactNumber'
+            ? value.replace(/\D/g, '').slice(0, 10)
+            : value;
 
         setClientDetails(prev => ({ ...prev, [name]: normalizedValue }));
         setIsDirty(true);
@@ -391,8 +391,8 @@ function MenuBuilder({ user }) {
         }
         if (!clientDetails.contactNumber) {
             errors.contactNumber = 'Contact number is required';
-        } else if (!/^\d{10}$/.test(clientDetails.contactNumber)) {
-            errors.contactNumber = 'Must be a 10-digit phone number';
+        } else if (!/^[6-9]\d{9}$/.test(clientDetails.contactNumber)) {
+            errors.contactNumber = 'Must be a valid 10-digit Indian mobile number';
         }
         if (!clientDetails.clientEmail) {
             errors.clientEmail = 'Client email is required';
@@ -663,7 +663,7 @@ function MenuBuilder({ user }) {
             eventLocation: `${clientDetails.venueName}, ${clientDetails.venueAddress}`.trim(),
             eventDate: clientDetails.eventDate,
             numberOfGuests: Number(clientDetails.numberOfGuests),
-            contactNumber: formatPhoneForBackend(clientDetails.contactNumber),
+            contactNumber: clientDetails.contactNumber,
             clientEmail: normalizedClientEmail,
             dishes,
         };
@@ -931,7 +931,20 @@ function MenuBuilder({ user }) {
                             const alreadySelected = isDishSelected(dish);
 
                             return (
-                            <div key={`${dish.id || dish.name}-${index}`} className="rounded-lg border border-slate-200 bg-white p-3">
+                            <div
+                                key={`${dish.id || dish.name}-${index}`}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => alreadySelected ? removeDishByIdentity(dish) : addDishToMenu(dish)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        alreadySelected ? removeDishByIdentity(dish) : addDishToMenu(dish);
+                                    }
+                                }}
+                                className={`rounded-lg border p-3 transition-all cursor-pointer ${alreadySelected ? 'border-sky-400 bg-sky-50 shadow-sm' : 'border-slate-200 bg-white hover:shadow-sm'}`}
+                                aria-label={`${alreadySelected ? 'Remove' : 'Add'} ${dish.name}`}
+                            >
                                 <div className="flex items-center gap-3">
                                     <img
                                         src={getDishImageSrc(dish.imageUrl)}
@@ -958,14 +971,9 @@ function MenuBuilder({ user }) {
 
                                 <p className="text-xs text-slate-500 mt-2">Used {dish.count} times</p>
 
-                                <button
-                                    type="button"
-                                    className="secondary-button w-full mt-3 !py-1.5"
-                                    onClick={() => alreadySelected ? removeDishByIdentity(dish) : addDishToMenu(dish)}
-                                    aria-label={`Add ${dish.name}`}
-                                >
-                                    {alreadySelected ? 'Added (Click to remove)' : <><Plus size={14} className="mr-1" /> Quick Add</>}
-                                </button>
+                                <p className={`mt-3 text-sm font-semibold ${alreadySelected ? 'text-sky-700' : 'text-slate-600'}`}>
+                                    {alreadySelected ? 'Added (Click to remove)' : 'Click card to quick add'}
+                                </p>
                             </div>
                         )})}
                     </div>
@@ -988,8 +996,14 @@ function MenuBuilder({ user }) {
             <div className="surface-card p-6 md:p-8">
                 <div className="flex justify-between items-start">
                     <h2 className="text-xl font-bold text-slate-800 mb-6">Step 3: Review & Send</h2>
-                    <button className="secondary-button-sm" onClick={() => setCurrentStep(1)}>
-                        <Edit3 size={14} className="mr-2" /> Edit Details
+                    <button
+                        type="button"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-sky-200 bg-sky-50 text-sky-700 text-sm font-semibold hover:bg-sky-100 transition-colors whitespace-nowrap"
+                        onClick={() => setCurrentStep(1)}
+                        aria-label="Edit event details"
+                    >
+                        <Edit3 size={14} />
+                        Edit Details
                     </button>
                 </div>
 

@@ -33,7 +33,11 @@ export default function Contacts() {
   }, []);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const nextValue = e.target.name === 'phone'
+      ? e.target.value.replace(/\D/g, '').slice(0, 10)
+      : e.target.value;
+
+    setForm({ ...form, [e.target.name]: nextValue });
   };
 
   const handleSubmit = async (e) => {

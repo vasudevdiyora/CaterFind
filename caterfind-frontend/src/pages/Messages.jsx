@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { messageAPI, contactAPI } from '../services/api';
 import '../styles/Messages.css';
+import Modal from '../components/Modal';
 
 /**
  * Messages Page Component (Premium Design)
@@ -316,49 +317,52 @@ function Messages({ user }) {
             </div>
 
             {/* Message History Modal/Panel */}
-            {showHistory && (
-                <div className="history-overlay" onClick={() => setShowHistory(false)}>
-                    <div className="history-panel" onClick={e => e.stopPropagation()}>
-                        <div className="history-header">
-                            <h2 className="history-title">📜 Message History</h2>
-                            <button
-                                className="history-close-btn"
-                                onClick={() => setShowHistory(false)}
-                            >
-                                ✕
-                            </button>
-                        </div>
-                        <div className="history-content">
-                            {messageLogs.length === 0 ? (
-                                <div className="history-empty">
-                                    <div className="empty-icon">💬</div>
-                                    <p className="empty-text">No messages sent yet</p>
-                                </div>
-                            ) : (
-                                <div className="history-list">
-                                    {messageLogs.map(log => (
-                                        <div key={log.id} className="history-item">
-                                            <div className="history-item-header">
-                                                <span className="history-recipient">{log.contactName}</span>
-                                                <span className="history-time">
-                                                    {new Date(log.sentAt).toLocaleString()}
-                                                </span>
-                                            </div>
-                                            <p className="history-message">{log.messageText}</p>
-                                            <div className="history-item-footer">
-                                                <span className="history-method">
-                                                    {log.contactMethod === 'EMAIL' ? '📧 EMAIL' :
-                                                        log.contactMethod === 'CALL' ? '📞 CALL' : '📱 SMS'}
-                                                </span>
-                                            </div>
+            <Modal
+                isOpen={showHistory}
+                onClose={() => setShowHistory(false)}
+                showHeader={false}
+                className="!p-0 !max-w-[700px] overflow-hidden"
+            >
+                <div className="history-panel" onClick={(e) => e.stopPropagation()}>
+                    <div className="history-header">
+                        <h2 className="history-title">📜 Message History</h2>
+                        <button
+                            className="history-close-btn"
+                            onClick={() => setShowHistory(false)}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <div className="history-content">
+                        {messageLogs.length === 0 ? (
+                            <div className="history-empty">
+                                <div className="empty-icon">💬</div>
+                                <p className="empty-text">No messages sent yet</p>
+                            </div>
+                        ) : (
+                            <div className="history-list">
+                                {messageLogs.map(log => (
+                                    <div key={log.id} className="history-item">
+                                        <div className="history-item-header">
+                                            <span className="history-recipient">{log.contactName}</span>
+                                            <span className="history-time">
+                                                {new Date(log.sentAt).toLocaleString()}
+                                            </span>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                                        <p className="history-message">{log.messageText}</p>
+                                        <div className="history-item-footer">
+                                            <span className="history-method">
+                                                {log.contactMethod === 'EMAIL' ? '📧 EMAIL' :
+                                                    log.contactMethod === 'CALL' ? '📞 CALL' : '📱 SMS'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
-            )}
+            </Modal>
         </div>
     );
 }

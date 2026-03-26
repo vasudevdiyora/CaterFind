@@ -85,7 +85,7 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
                     ...c,
                     phone: formatPhoneForInput(c.phone)
                 }));
-                setAllContacts(Array.isArray(contacts) ? contacts : []);
+                setAllContacts(Array.isArray(formattedContacts) ? formattedContacts : []);
             } catch (_err) {
                 console.error('Failed to load contacts:', _err);
                 setAllContacts([]);
@@ -110,7 +110,7 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
                     if (contact) {
                         method = contact.preferredContactMethod || 'SMS';
                         name = contact.name;
-                        phone = contact.phone;
+                        phone = formatPhoneForInput(contact.phone);
                         email = contact.email;
                         contactId = contact.id;
                     }
@@ -154,7 +154,7 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
             return;
         }
 
-        setContactPhone(value);
+        setContactPhone(value.replace(/\D/g, '').slice(0, 10));
         setContactEmail('');
         setContactMethod('SMS');
     };
@@ -166,7 +166,7 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
             // Reset to manual/default
             setSelectedContactId('');
             setContactName(manualDealerName);
-            setContactPhone(manualDealerPhone);
+            setContactPhone(formatPhoneForInput(manualDealerPhone));
             setContactEmail('');
             setContactMethod('SMS');
             return;
@@ -178,7 +178,7 @@ const ReorderModal = ({ item, catererId, onClose, onSuccess }) => {
             const contact = await contactAPI.getById(contactId);
             if (contact) {
                 setContactName(contact.name);
-                setContactPhone(contact.phone || '');
+                setContactPhone(formatPhoneForInput(contact.phone));
                 setContactEmail(contact.email || '');
                 setContactMethod(contact.preferredContactMethod || 'SMS');
             }

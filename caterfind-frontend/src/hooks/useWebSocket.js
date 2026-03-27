@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { WS_ENDPOINT } from '../services/api';
+import { WS_ENDPOINT, authSession } from '../services/api';
 
 /**
  * WebSocket Hook for Real-time Messaging
@@ -329,6 +329,7 @@ const useWebSocket = (userId, userRole) => {
             const client = new Client({
                 webSocketFactory: () => new SockJS(WS_ENDPOINT),
                 connectHeaders: {
+                    Authorization: authSession.get()?.token ? `Bearer ${authSession.get().token}` : '',
                     userId: userId?.toString(),
                     role: userRole
                 },

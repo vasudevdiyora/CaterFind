@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { formatPhoneForDisplay, formatPhoneForBackend, formatPhoneForInput } from './lib/utils';
+import { API_BASE_URL } from './services/api';
 
-const API_URL = 'http://localhost:8080/api/contacts';
+const API_URL = `${API_BASE_URL}/api/contacts`;
 
 export default function Contacts() {
   const [contacts, setContacts] = useState([]);

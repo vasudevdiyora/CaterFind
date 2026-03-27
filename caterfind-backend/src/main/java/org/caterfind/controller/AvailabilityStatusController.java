@@ -18,7 +18,7 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/api/availability")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "${app.cors.allowed-origins}")
 public class AvailabilityStatusController {
 
     @Autowired

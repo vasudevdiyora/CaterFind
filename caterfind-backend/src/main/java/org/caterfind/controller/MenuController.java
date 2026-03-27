@@ -14,7 +14,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/menus")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "${app.cors.allowed-origins}")
 public class MenuController {
 
     @Autowired

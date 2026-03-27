@@ -28,7 +28,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/inventory")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "${app.cors.allowed-origins}")
 public class InventoryController {
 
     @Autowired

@@ -1,10 +1,10 @@
 package org.caterfind.repository;
 
+import java.util.Optional;
+
 import org.caterfind.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-
-import java.util.Optional;
 
 /**
  * Repository interface for User entity.
@@ -33,4 +33,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return true if email exists, false otherwise
      */
     boolean existsByEmail(String email);
+
+    /**
+     * Check if any user exists for a given role.
+     * Used for startup admin seeding to avoid duplicate admin creation.
+     *
+     * @param role Role to check
+     * @return true if at least one user with the role exists
+     */
+    boolean existsByRole(User.UserRole role);
 }

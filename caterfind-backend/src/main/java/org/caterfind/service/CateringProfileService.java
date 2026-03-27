@@ -30,6 +30,7 @@ public class CateringProfileService {
      * @param userId User ID of the caterer
      * @return CateringProfileDTO with business details
      */
+    @Transactional(readOnly = true)
     public CateringProfileDTO getProfile(Long userId) {
         Optional<CateringProfile> profileOpt = cateringProfileRepository.findByUserId(userId);
 
@@ -51,6 +52,7 @@ public class CateringProfileService {
      *
      * @return List of CateringProfileDTO
      */
+    @Transactional(readOnly = true)
     public java.util.List<CateringProfileDTO> getAllProfiles() {
         return cateringProfileRepository.findAll().stream()
                 .map(this::mapToDTO)

@@ -19,11 +19,31 @@ const normalizeBaseUrl = (value, fallback) => {
   return raw.endsWith('/') ? raw.slice(0, -1) : raw;
 };
 
-export const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL, 'http://localhost:8080');
+const API_ENV_VALUE = import.meta.env.VITE_API_BASE_URL;
+const WS_ENV_VALUE = import.meta.env.VITE_WS_BASE_URL;
+
+export const API_BASE_URL = normalizeBaseUrl(API_ENV_VALUE, 'http://localhost:8080');
 export const WS_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_WS_BASE_URL, API_BASE_URL);
 export const WS_ENDPOINT = `${WS_BASE_URL}/ws/chat`;
 const AUTH_SESSION_KEY = 'caterfind_auth_session';
 export const AUTH_EXPIRED_EVENT = 'caterfind:auth-expired';
+
+if (!API_ENV_VALUE) {
+  console.warn('[env] Missing VITE_API_BASE_URL. Falling back to http://localhost:8080');
+}
+
+if (!WS_ENV_VALUE) {
+  console.warn('[env] Missing VITE_WS_BASE_URL. Reusing VITE_API_BASE_URL');
+}
+
+if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+  if (API_BASE_URL.startsWith('http://')) {
+    console.warn('[mixed-content] HTTPS frontend calling HTTP API. Use HTTPS backend/Nginx for production.');
+  }
+  if (WS_BASE_URL.startsWith('http://')) {
+    console.warn('[mixed-content] HTTPS frontend opening insecure WebSocket base URL. Use HTTPS backend/Nginx for production.');
+  }
+}
 
 const readStoredSession = () => {
   try {
@@ -46,10 +66,17 @@ const authFetch = async (url, options = {}) => {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await window.fetch(url, {
-    ...options,
-    headers
-  });
+  let response;
+  try {
+    response = await window.fetch(url, {
+      ...options,
+      headers
+    });
+  } catch (error) {
+    const networkError = new Error('Network error. Please check your internet connection and API URL.');
+    networkError.cause = error;
+    throw networkError;
+  }
 
   if (response.status === 401) {
     localStorage.removeItem(AUTH_SESSION_KEY);
@@ -651,8 +678,18 @@ export const fileAPI = {
    */
   getImageUrl: (relativePath) => {
     if (!relativePath) return '';
-    if (relativePath.startsWith('http')) return relativePath; // External URL
-    return `${API_BASE_URL}${relativePath}`;
+
+    const raw = String(relativePath).trim().replace(/^"|"$/g, '');
+    if (!raw) return '';
+
+    if (/^data:image\//i.test(raw) || /^https?:\/\//i.test(raw)) {
+      return raw;
+    }
+
+    // Normalize path fragments to consistent URL segments.
+    const normalized = raw.replace(/\\/g, '/');
+    const path = normalized.startsWith('/') ? normalized : `/${normalized}`;
+    return `${API_BASE_URL}${path}`;
   }
 };
 

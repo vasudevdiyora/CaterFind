@@ -49,6 +49,7 @@ public class MenuService {
     /**
      * Get all menus for a caterer.
      */
+    @Transactional(readOnly = true)
     public List<MenuDTO> getMenusByCatererId(Long catererId) {
         return menuRepository.findByCatererIdOrderByEventDateDescCreatedAtDesc(catererId).stream()
                 .map(MenuDTO::new)
@@ -59,6 +60,7 @@ public class MenuService {
          * Get upcoming menus for a caterer where the event date is strictly in the future.
          * Uses tomorrow as the start (excludes today).
      */
+    @Transactional(readOnly = true)
     public List<MenuDTO> getUpcomingMenusByCatererId(Long catererId) {
         LocalDate startDate = LocalDate.now().plusDays(1);
         LocalDate farFuture = LocalDate.of(2100, 12, 31);
@@ -73,6 +75,7 @@ public class MenuService {
     /**
      * Get past menus for a caterer within the last N days.
      */
+    @Transactional(readOnly = true)
     public List<MenuDTO> getPastMenusByCatererId(Long catererId, int days) {
         int safeDays = Math.max(1, days);
         LocalDate today = LocalDate.now();
@@ -89,6 +92,7 @@ public class MenuService {
     /**
      * Get menu by ID.
      */
+    @Transactional(readOnly = true)
     public MenuDTO getMenuById(Long id) {
         Menu menu = menuRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Menu not found with id: " + id));

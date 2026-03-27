@@ -25,7 +25,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/contacts")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "${app.cors.allowed-origins}")
 public class ContactController {
 
     @Autowired

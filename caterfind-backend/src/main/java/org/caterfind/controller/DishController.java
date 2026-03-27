@@ -10,7 +10,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/dishes")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "${app.cors.allowed-origins}")
 public class DishController {
 
     @Autowired

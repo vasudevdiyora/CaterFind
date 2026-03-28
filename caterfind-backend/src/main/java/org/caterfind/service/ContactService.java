@@ -1,5 +1,12 @@
 package org.caterfind.service;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.persistence.EntityManager;
+
 import org.caterfind.dto.ContactDTO;
 import org.caterfind.entity.Contact;
 import org.caterfind.entity.ContactLabel;
@@ -7,11 +14,7 @@ import org.caterfind.repository.ContactLabelRepository;
 import org.caterfind.repository.ContactRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Contact service for managing caterer's contacts.
@@ -26,6 +29,7 @@ import java.util.stream.Collectors;
  * These are internal contacts for caterer coordination.
  */
 @Service
+@Transactional
 public class ContactService {
 
     @Autowired
@@ -33,6 +37,9 @@ public class ContactService {
 
     @Autowired
     private ContactLabelRepository contactLabelRepository;
+
+    @Autowired
+    private EntityManager entityManager;
 
     /**
      * Get all contacts for a caterer.
@@ -74,21 +81,33 @@ public class ContactService {
         contact.setName(contactDTO.getName());
         contact.setPhone(contactDTO.getPhone());
         contact.setEmail(contactDTO.getEmail());
-        contact.setPreferredContactMethod(
+        
+        // Set preferred contact method with default fallback
+        if (contactDTO.getPreferredContactMethod() != null && !contactDTO.getPreferredContactMethod().isEmpty()) {
+            contact.setPreferredContactMethod(
                 Contact.ContactMethod.valueOf(contactDTO.getPreferredContactMethod()));
+        } else {
+            contact.setPreferredContactMethod(Contact.ContactMethod.EMAIL);
+        }
         
         // Set preferred language (default to ENGLISH if not provided)
-        if (contactDTO.getPreferredLanguage() != null) {
+        if (contactDTO.getPreferredLanguage() != null && !contactDTO.getPreferredLanguage().isEmpty()) {
             contact.setPreferredLanguage(
                 Contact.Language.valueOf(contactDTO.getPreferredLanguage()));
+        } else {
+            contact.setPreferredLanguage(Contact.Language.ENGLISH);
         }
 
-        // Assign labels
+        // Assign labels - merge detached entities into current session
         if (contactDTO.getLabels() != null && !contactDTO.getLabels().isEmpty()) {
             Set<ContactLabel> labels = new HashSet<>();
             for (String labelName : contactDTO.getLabels()) {
                 contactLabelRepository.findByLabelName(labelName)
-                        .ifPresent(labels::add);
+                        .ifPresent(label -> {
+                            // Merge the detached entity into the current session
+                            ContactLabel mergedLabel = entityManager.merge(label);
+                            labels.add(mergedLabel);
+                        });
             }
             contact.setLabels(labels);
         }
@@ -110,21 +129,33 @@ public class ContactService {
                     contact.setName(contactDTO.getName());
                     contact.setPhone(contactDTO.getPhone());
                     contact.setEmail(contactDTO.getEmail());
-                    contact.setPreferredContactMethod(
+                    
+                    // Set preferred contact method with default fallback
+                    if (contactDTO.getPreferredContactMethod() != null && !contactDTO.getPreferredContactMethod().isEmpty()) {
+                        contact.setPreferredContactMethod(
                             Contact.ContactMethod.valueOf(contactDTO.getPreferredContactMethod()));
+                    } else {
+                        contact.setPreferredContactMethod(Contact.ContactMethod.EMAIL);
+                    }
                     
                     // Update preferred language
-                    if (contactDTO.getPreferredLanguage() != null) {
+                    if (contactDTO.getPreferredLanguage() != null && !contactDTO.getPreferredLanguage().isEmpty()) {
                         contact.setPreferredLanguage(
                             Contact.Language.valueOf(contactDTO.getPreferredLanguage()));
+                    } else {
+                        contact.setPreferredLanguage(Contact.Language.ENGLISH);
                     }
 
-                    // Update labels
+                    // Update labels - merge detached entities into current session
                     if (contactDTO.getLabels() != null) {
                         Set<ContactLabel> labels = new HashSet<>();
                         for (String labelName : contactDTO.getLabels()) {
                             contactLabelRepository.findByLabelName(labelName)
-                                    .ifPresent(labels::add);
+                                    .ifPresent(label -> {
+                                        // Merge the detached entity into the current session
+                                        ContactLabel mergedLabel = entityManager.merge(label);
+                                        labels.add(mergedLabel);
+                                    });
                         }
                         contact.setLabels(labels);
                     }

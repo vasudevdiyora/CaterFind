@@ -4,7 +4,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.caterfind.service.FileStorageService;
+import org.caterfind.service.LocalStorageService;
+import org.caterfind.service.StorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +39,7 @@ public class FileUploadController {
     private static final long WARN_DISK_SPACE = 500 * 1024 * 1024; // 500MB warning
 
     @Autowired
-    private FileStorageService fileStorageService;
+    private StorageService storageService;
 
     /**
      * Upload single image/video file
@@ -73,22 +74,24 @@ public class FileUploadController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
             }
             
-            // Check available disk space
-            java.io.File uploadDir = new java.io.File("uploads");
-            long availableSpace = uploadDir.getFreeSpace();
-            if (availableSpace < file.getSize() * 2) {
-                Map<String, String> error = new HashMap<>();
-                error.put("error", "Server storage full");
-                logger.warn("Low disk space: {} bytes available", availableSpace);
-                return ResponseEntity.status(HttpStatus.INSUFFICIENT_STORAGE).body(error);
-            }
-            
-            if (availableSpace < WARN_DISK_SPACE) {
-                logger.warn("Disk space warning: only {} bytes available", availableSpace);
+            if (storageService instanceof LocalStorageService) {
+                // Check available disk space
+                java.io.File uploadDir = new java.io.File("uploads");
+                long availableSpace = uploadDir.getFreeSpace();
+                if (availableSpace < file.getSize() * 2) {
+                    Map<String, String> error = new HashMap<>();
+                    error.put("error", "Server storage full");
+                    logger.warn("Low disk space: {} bytes available", availableSpace);
+                    return ResponseEntity.status(HttpStatus.INSUFFICIENT_STORAGE).body(error);
+                }
+
+                if (availableSpace < WARN_DISK_SPACE) {
+                    logger.warn("Disk space warning: only {} bytes available", availableSpace);
+                }
             }
 
             // Store file and get URL
-            String fileUrl = fileStorageService.storeFile(file);
+            String fileUrl = storageService.storeFile(file);
 
             // Return URL in response
             Map<String, String> response = new HashMap<>();
@@ -127,8 +130,8 @@ public class FileUploadController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
             }
             
-            // SECURITY: Must start with /uploads/ to prevent directory traversal
-            if (!fileUrl.startsWith("/uploads/") && !fileUrl.startsWith("uploads/")) {
+            // SECURITY: Must be a local uploads path or remote URL
+            if (!(fileUrl.startsWith("/uploads/") || fileUrl.startsWith("uploads/") || fileUrl.startsWith("http"))) {
                 logger.warn("Path traversal attempt detected: {}", fileUrl);
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "Invalid file path");
@@ -143,7 +146,7 @@ public class FileUploadController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
             }
             
-            boolean deleted = fileStorageService.deleteFile(fileUrl);
+            boolean deleted = storageService.deleteFile(fileUrl);
             
             if (deleted) {
                 Map<String, String> response = new HashMap<>();

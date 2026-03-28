@@ -22,7 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
  * For production, this can be easily replaced with cloud storage (Cloudinary, S3, etc.)
  */
 @Service
-public class FileStorageService {
+public class LocalStorageService implements StorageService {
 
     @Value("${file.upload-dir:uploads/images}")
     private String uploadDir;
@@ -34,6 +34,7 @@ public class FileStorageService {
      * @return URL path to access the file (e.g., "/uploads/abc123.jpg")
      * @throws IOException if file storage fails
      */
+    @Override
     public String storeFile(MultipartFile file) throws IOException {
         // Validate file
         if (file.isEmpty()) {
@@ -75,6 +76,7 @@ public class FileStorageService {
      * @param fileUrl URL path of the file (e.g., "/uploads/abc123.jpg")
      * @return true if deleted successfully
      */
+    @Override
     public boolean deleteFile(String fileUrl) {
         try {
             if (fileUrl == null || !fileUrl.startsWith("/uploads/")) {

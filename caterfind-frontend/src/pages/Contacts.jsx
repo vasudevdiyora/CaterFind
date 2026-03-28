@@ -27,6 +27,7 @@ function Contacts({ user }) {
         preferredLanguage: 'ENGLISH',
         labels: []
     });
+    const [error, setError] = useState(null);
 
     const labelFilters = [
         { id: 'All', label: 'All Contacts' },
@@ -75,6 +76,7 @@ function Contacts({ user }) {
 
     const handleAdd = () => {
         setEditingContact(null);
+        setError(null);
         setFormData({
             name: '',
             phone: '',
@@ -117,6 +119,19 @@ function Contacts({ user }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError(null);
+        
+        // Validate required fields
+        if (!formData.name || !formData.name.trim()) {
+            setError('Contact name is required');
+            return;
+        }
+        
+        if (!formData.phone || !formData.phone.trim()) {
+            setError('Phone number is required');
+            return;
+        }
+        
         try {
             const payload = { 
                 ...formData, 
@@ -138,8 +153,10 @@ function Contacts({ user }) {
                 labels: []
             });
             fetchContacts();
-        } catch {
-            // Error saving contact
+        } catch (err) {
+            const errorMessage = err?.message || 'Failed to save contact. Please try again.';
+            console.error('[Contacts] Error saving contact:', err);
+            setError(errorMessage);
         }
     };
 
@@ -283,6 +300,11 @@ function Contacts({ user }) {
 
             <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={editingContact ? 'Edit Contact' : 'Add New Contact'} className="">
                 <form className="item-form" onSubmit={handleSubmit}>
+                            {error && (
+                                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+                                    {error}
+                                </div>
+                            )}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="form-group">
                                     <label htmlFor="name"><User className="inline-icon" /> Name <span className="text-red-500">*</span></label>

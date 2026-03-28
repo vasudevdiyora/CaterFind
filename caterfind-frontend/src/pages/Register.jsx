@@ -1,6 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { authAPI, fileAPI } from '../services/api';
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import {
     Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff, ArrowLeft,
     User, Phone, Building, MapPin, Hash, ChefHat, Home, LocateFixed
@@ -10,6 +16,55 @@ import Select from '../components/Select';
 import { states, getCities } from '../lib/locations';
 import { formatPhoneForInput } from '../lib/utils';
 import '../styles/Login.css'; // Reusing login styles for consistency
+
+const DEFAULT_MAP_CENTER = [22.9734, 78.6569];
+
+const registerLocationIcon = L.icon({
+    iconUrl: markerIcon,
+    iconRetinaUrl: markerIcon2x,
+    shadowUrl: markerShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
+function MapCenterUpdater({ position }) {
+    const map = useMap();
+
+    useEffect(() => {
+        if (position) {
+            map.setView(position, Math.max(map.getZoom(), 14));
+        }
+    }, [map, position]);
+
+    return null;
+}
+
+function LocationSelectorMarker({ position, onPositionSelect }) {
+    useMapEvents({
+        click(event) {
+            const { lat, lng } = event.latlng;
+            onPositionSelect(lat, lng);
+        }
+    });
+
+    if (!position) return null;
+
+    return (
+        <Marker
+            position={position}
+            icon={registerLocationIcon}
+            draggable
+            eventHandlers={{
+                dragend: (event) => {
+                    const { lat, lng } = event.target.getLatLng();
+                    onPositionSelect(lat, lng);
+                }
+            }}
+        />
+    );
+}
 
 const Register = ({ onLogin }) => {
     const _navigate = null;
@@ -46,6 +101,10 @@ const Register = ({ onLogin }) => {
     const [pincodeLoading, _setPincodeLoading] = useState(false);
     const [pincodeError, setPincodeError] = useState('');
     const [locating, setLocating] = useState(false);
+    const [mapPosition, setMapPosition] = useState(null);
+    const [cityLocating, setCityLocating] = useState(false);
+    const [cityMapMessage, setCityMapMessage] = useState('');
+    const cityLookupRequestRef = useRef(0);
 
     const getRoleFromQuery = () => new URLSearchParams(location.search).get('role')?.toUpperCase() || 'CLIENT';
     const [role, setRole] = useState(getRoleFromQuery());
@@ -54,9 +113,126 @@ const Register = ({ onLogin }) => {
         setRole(getRoleFromQuery());
     }, [location.search]);
 
+    useEffect(() => {
+        const lat = parseFloat(latitude);
+        const lng = parseFloat(longitude);
+        if (!Number.isNaN(lat) && !Number.isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+            setMapPosition([lat, lng]);
+            return;
+        }
+        setMapPosition(null);
+    }, [latitude, longitude]);
+
+    const geocodeAndSetLocation = async (query, successMessage, requestId) => {
+        const endpoint = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+        const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
+        const rows = response.ok ? await response.json() : [];
+
+        if (requestId !== cityLookupRequestRef.current) return false;
+
+        const first = Array.isArray(rows) ? rows[0] : null;
+        const latValue = Number(first?.lat);
+        const lngValue = Number(first?.lon);
+        if (Number.isNaN(latValue) || Number.isNaN(lngValue)) {
+            return false;
+        }
+
+        setLatitude(latValue.toFixed(6));
+        setLongitude(lngValue.toFixed(6));
+        setCityMapMessage(successMessage);
+        return true;
+    };
+
+    useEffect(() => {
+        if (role !== 'CATERER') return;
+
+        const trimmedPincode = String(pincode || '').trim();
+        if (trimmedPincode.length !== 6) return;
+
+        const lat = parseFloat(latitude);
+        const lng = parseFloat(longitude);
+        const hasValidCoordinates = !Number.isNaN(lat) && !Number.isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+        if (hasValidCoordinates) {
+            setCityLocating(false);
+            setCityMapMessage('');
+            return;
+        }
+
+        const requestId = cityLookupRequestRef.current + 1;
+        cityLookupRequestRef.current = requestId;
+        setCityLocating(true);
+        setCityMapMessage('Finding pincode on map...');
+
+        geocodeAndSetLocation(`${trimmedPincode}, India`, `Map centered near pincode ${trimmedPincode}. Adjust marker for exact address.`, requestId)
+            .then((ok) => {
+                if (requestId !== cityLookupRequestRef.current) return;
+                if (!ok) {
+                    setCityMapMessage('Could not locate this pincode. Trying selected city...');
+                }
+            })
+            .catch(() => {
+                if (requestId !== cityLookupRequestRef.current) return;
+                setCityMapMessage('Could not locate this pincode. Trying selected city...');
+            })
+            .finally(() => {
+                if (requestId === cityLookupRequestRef.current) {
+                    setCityLocating(false);
+                }
+            });
+    }, [role, pincode]);
+
+    useEffect(() => {
+        if (role !== 'CATERER') return;
+
+        const trimmedCity = String(city || '').trim();
+        if (!trimmedCity) {
+            setCityLocating(false);
+            setCityMapMessage('');
+            return;
+        }
+
+        const lat = parseFloat(latitude);
+        const lng = parseFloat(longitude);
+        const hasValidCoordinates = !Number.isNaN(lat) && !Number.isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+        if (hasValidCoordinates) {
+            setCityLocating(false);
+            setCityMapMessage('');
+            return;
+        }
+
+        if (String(pincode || '').trim().length === 6) {
+            // Prefer pincode as the first map hint because it is generally more precise than city.
+            return;
+        }
+
+        const requestId = cityLookupRequestRef.current + 1;
+        cityLookupRequestRef.current = requestId;
+        setCityLocating(true);
+        setCityMapMessage('Finding selected city on map...');
+
+        const query = [trimmedCity, selectedState, 'India'].filter(Boolean).join(', ');
+
+        geocodeAndSetLocation(query, `Map centered near ${trimmedCity}. Adjust marker for exact address.`, requestId)
+            .then((ok) => {
+                if (requestId !== cityLookupRequestRef.current) return;
+                if (!ok) {
+                    setCityMapMessage('Could not locate this city exactly. Please place marker manually.');
+                }
+            })
+            .catch(() => {
+                if (requestId !== cityLookupRequestRef.current) return;
+                setCityMapMessage('Could not fetch city location right now. Please place marker manually.');
+            })
+            .finally(() => {
+                if (requestId === cityLookupRequestRef.current) {
+                    setCityLocating(false);
+                }
+            });
+    }, [role, city, selectedState, pincode]);
+
     // Allow manual pincode entry — do not auto-lookup remote API
     const handlePincodeChange = (e) => {
-        const val = e.target.value.replace(/\D/g, '');
+        const val = e.target.value.replace(/\D/g, '').slice(0, 6);
         setPincode(val);
         setPincodeError('');
     };
@@ -69,8 +245,8 @@ const Register = ({ onLogin }) => {
         setLocating(true);
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                setLatitude(String(position.coords.latitude));
-                setLongitude(String(position.coords.longitude));
+                setLatitude(position.coords.latitude.toFixed(6));
+                setLongitude(position.coords.longitude.toFixed(6));
                 setLocating(false);
             },
             () => {
@@ -78,6 +254,11 @@ const Register = ({ onLogin }) => {
                 setLocating(false);
             }
         );
+    };
+
+    const handleMapPositionSelect = (lat, lng) => {
+        setLatitude(lat.toFixed(6));
+        setLongitude(lng.toFixed(6));
     };
 
     const handleSubmit = async (e) => {
@@ -266,6 +447,31 @@ const Register = ({ onLogin }) => {
                                                 {locating ? 'Locating...' : 'Use Current'}
                                             </button>
                                         </FormInput>
+                                        <div className="md:col-span-2">
+                                            <p className="text-sm text-slate-700 font-medium mb-2">Select on Map</p>
+                                            <div className="h-80 w-full rounded-lg overflow-hidden relative border border-slate-200">
+                                                <MapContainer center={mapPosition || DEFAULT_MAP_CENTER} zoom={mapPosition ? 14 : 5} scrollWheelZoom={true} className="h-full w-full">
+                                                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                                                    <MapCenterUpdater position={mapPosition} />
+                                                    <LocationSelectorMarker position={mapPosition} onPositionSelect={handleMapPositionSelect} />
+                                                </MapContainer>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleUseCurrentLocation}
+                                                    className="absolute top-2 right-2 z-[1000] inline-flex items-center justify-center w-9 h-9 rounded-md bg-white text-slate-700 border border-slate-200 shadow-sm hover:bg-slate-50"
+                                                    disabled={locating}
+                                                    aria-label="Use current location"
+                                                >
+                                                    <LocateFixed size={16} className={locating ? 'animate-spin' : ''} />
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-slate-500 mt-2">Click anywhere on the map or drag the marker to set your business location.</p>
+                                            {cityMapMessage && (
+                                                <p className={`text-xs mt-1 ${cityMapMessage.startsWith('Could not') ? 'text-amber-600' : 'text-slate-500'}`}>
+                                                    {cityLocating ? 'Finding selected city on map...' : cityMapMessage}
+                                                </p>
+                                            )}
+                                        </div>
                                     </>
                                 )}
                             </div>

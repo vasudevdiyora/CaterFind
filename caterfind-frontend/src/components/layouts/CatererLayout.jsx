@@ -161,7 +161,7 @@ const CatererLayout = ({ children, user, onLogout }) => {
     const activeTitle = activeNavItem?.label || 'Workspace';
 
     return (
-        <div className="flex h-screen bg-slate-50 overflow-hidden">
+        <div className="flex app-height bg-slate-50 overflow-hidden">
             {/* If caterer not approved, show review message instead of full layout */}
             {user?.accountStatus && user?.accountStatus !== 'ACTIVE' ? (
                 <div className="flex-1 flex items-center justify-center p-8">
@@ -219,7 +219,7 @@ const CatererLayout = ({ children, user, onLogout }) => {
 
                             {/* Navigation Links */}
                             <nav className={cn(
-                                "flex-1 overflow-y-auto custom-scrollbar",
+                                "flex-1 min-h-0 overflow-y-auto custom-scrollbar",
                                 sidebarCollapsed ? "px-2 py-4 space-y-2" : "p-4 space-y-1"
                             )}>
                                 {navItems.map(({ path, icon, label }) => {
@@ -273,6 +273,7 @@ const CatererLayout = ({ children, user, onLogout }) => {
                     <Modal isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} side="left" className="p-0 bg-transparent !max-w-none">
                         <aside className={cn(
                             "lg:hidden fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200",
+                            "mobile-drawer-height",
                             "transform transition-transform duration-200 ease-in-out",
                             "translate-x-0"
                         )}>
@@ -295,7 +296,7 @@ const CatererLayout = ({ children, user, onLogout }) => {
                                 </div>
 
                                 {/* Navigation Links */}
-                                <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
+                                <nav className="flex-1 min-h-0 p-4 space-y-1 overflow-y-auto custom-scrollbar">
                                     {navItems.map(({ path, icon, label }) => {
                                         const NavIcon = icon;
 

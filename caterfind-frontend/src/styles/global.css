@@ -3,24 +3,34 @@
 
 @import "tailwindcss";
 
-/* Prevent vertical overscroll/pull-to-refresh bounce, but keep horizontal swipe navigation */
-html,
-body {
-  /* Root-level scroll policy for container-based scrolling:
-     - full-height so child containers can manage scrolling
-     - hide horizontal overflow globally to prevent page-wide horizontal scroll
-      - disable vertical overscroll bounce/chaining at the root so scroll is contained
-     - keep touch-action default so touchpad gestures are not blocked
-  */
+/* Root scroll containment for container-based scrolling architecture */
+html {
+  /* Lock viewport to prevent document-level scrolling */
   height: 100%;
+  width: 100%;
   overflow-x: hidden;
-    overscroll-behavior-y: none;
-    overscroll-behavior-x: auto;
-  touch-action: auto;
+  overflow-y: auto;
+  /* Prevent scroll chaining and momentum scrolling issues on Android/iOS */
+  overscroll-behavior: none;
+  /* Optimized touch behavior: disable 300ms tap delay on mobile */
+  touch-action: manipulation;
+  /* Standard font sizing reference */
+  font-size: 16px;
 }
 
-html {
-  font-size: 16px;
+body {
+  /* Ensure body fills viewport completely */
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  /* Allow scroll event delegation to body (mobile scroll fallback) */
+  overflow: visible;
+  /* Prevent scroll chaining to prevent double-scrolling */
+  overscroll-behavior: none;
+  /* Flex layout ensures proper child container sizing */
+  display: flex;
+  flex-direction: column;
 }
 
 @theme {
@@ -87,10 +97,20 @@ html {
     @apply bg-slate-50 text-slate-900 font-sans antialiased;
     font-family: 'Plus Jakarta Sans', sans-serif;
     line-height: 1.5;
+    /* Ensure body fills html (no extra space) */
+    display: flex;
+    flex-direction: column;
   }
 
   #root {
-    min-height: 100vh;
+    /* React app root: fill entire viewport 
+       Container-based scrolling happens in child components */
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    /* Allow scroll delegation to child containers (mobile scroll fix) */
+    overflow: visible;
   }
 
   h1,
@@ -220,8 +240,32 @@ html {
     @apply w-full max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8;
   }
 
+  .app-height {
+    height: 100dvh;
+  }
+
+  .app-min-height {
+    min-height: 100dvh;
+  }
+
+  .mobile-drawer-height {
+    height: 100dvh;
+    max-height: 100dvh;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
   /* Enable smooth native touch scrolling for scroll containers */
   .touch-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Ensure scroll containment in child containers (Android fix) */
+  .scroll-container {
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Prevent scroll chaining to parent on Android */
+    overscroll-behavior: contain;
+    /* Enable smooth momentum scrolling on iOS */
     -webkit-overflow-scrolling: touch;
   }
 

@@ -55,7 +55,7 @@ const Landing = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-slate-100 text-slate-900 animate-fade-in">
+        <div className="app-min-height bg-gradient-to-b from-sky-50 via-white to-slate-100 text-slate-900 animate-fade-in">
             <nav className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/85 backdrop-blur">
                 <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
                     <button

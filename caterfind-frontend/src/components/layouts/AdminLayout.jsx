@@ -20,7 +20,7 @@ const AdminLayout = ({ user, children, onLogout }) => {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50 flex overflow-x-hidden">
+        <div className="app-min-height bg-slate-50 flex overflow-x-hidden">
             <RoleSidebar
                 menuItems={menuItems}
                 roleSubtitle="Admin Portal"

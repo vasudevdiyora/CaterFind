@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 .login-container {
-    @apply min-h-screen w-full bg-slate-100 flex items-center justify-center p-4;
+    @apply w-full bg-slate-100 flex items-center justify-center p-4;
+    min-height: 100dvh;
 }
 
 .login-card {

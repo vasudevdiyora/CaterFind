@@ -253,7 +253,7 @@ const AdminClients = () => {
                 isOpen={!!selectedClient}
                 onClose={() => setSelectedClient(null)}
                 title={<h2 className="text-xl font-bold text-foreground">Client Details</h2>}
-                className="bg-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-auto"
+                className="bg-card rounded-lg max-w-2xl w-full max-h-[90dvh] overflow-auto"
             >
                 {selectedClient && (
                     <div className="p-6 space-y-4">

@@ -4,7 +4,7 @@
 
 .sidebar {
     width: var(--sidebar-width);
-    min-height: 100vh;
+    min-height: 100dvh;
     background-color: var(--bg-sidebar);
     border-right: 1px solid var(--border-color);
     display: flex;

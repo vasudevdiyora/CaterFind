@@ -95,6 +95,7 @@ function MyBusiness({ user }) {
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [uploadingProfileImage, setUploadingProfileImage] = useState(false);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [_uploadingVideo, setUploadingVideo] = useState(false);
     const [locatingPosition, setLocatingPosition] = useState(false);
@@ -120,6 +121,7 @@ function MyBusiness({ user }) {
     const [otpSuccess, setOtpSuccess] = useState('');
 
     const photoInputRef = useRef(null);
+    const profileImageInputRef = useRef(null);
     const _videoInputRef = useRef(null);
     const lastPincodeLookupRef = useRef('');
     const pincodeRequestSeqRef = useRef(0);
@@ -432,6 +434,22 @@ function MyBusiness({ user }) {
         }
     };
 
+    const handleProfileImageUpload = async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setUploadingProfileImage(true);
+        try {
+            const result = await fileAPI.upload(file);
+            setFormData(prev => ({ ...prev, imageUrl: result.url }));
+        } catch (error) {
+            alert(`Failed to upload profile picture: ${error.message}`);
+        } finally {
+            setUploadingProfileImage(false);
+            event.target.value = '';
+        }
+    };
+
     const removeMedia = (index, type) => {
         if (type === 'photo') {
             setBusinessPhotos(prev => prev.filter((_, i) => i !== index));
@@ -521,6 +539,55 @@ function MyBusiness({ user }) {
                         </FormSection>
 
                         <FormSection title="Photos & Media" icon={<ImageIcon size={20} />}>
+                            <div>
+                                <label className="form-label">Profile Picture</label>
+                                <div className="flex flex-wrap items-center gap-4">
+                                    <div className="w-24 h-24 rounded-full border border-slate-200 bg-slate-100 overflow-hidden flex items-center justify-center">
+                                        {formData.imageUrl ? (
+                                            <img
+                                                src={getBusinessPhotoSrc(formData.imageUrl)}
+                                                alt="Profile"
+                                                className="w-full h-full object-cover"
+                                                onError={(event) => {
+                                                    event.currentTarget.onerror = null;
+                                                    event.currentTarget.src = FALLBACK_BUSINESS_PHOTO;
+                                                }}
+                                            />
+                                        ) : (
+                                            <ImageIcon size={22} className="text-slate-400" />
+                                        )}
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button
+                                            type="button"
+                                            className="secondary-button-sm"
+                                            onClick={() => profileImageInputRef.current?.click()}
+                                            disabled={uploadingProfileImage}
+                                        >
+                                            {uploadingProfileImage ? <Loader className="animate-spin w-4 h-4 mr-2" /> : <Upload size={14} className="mr-2" />}
+                                            {formData.imageUrl ? 'Change Photo' : 'Upload Photo'}
+                                        </button>
+                                        {formData.imageUrl && (
+                                            <button
+                                                type="button"
+                                                className="secondary-button-sm text-red-600"
+                                                onClick={() => setFormData(prev => ({ ...prev, imageUrl: '' }))}
+                                            >
+                                                <Trash2 size={14} className="mr-2" /> Remove
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-2">Upload the latest profile picture, then click Save Changes to update what clients see.</p>
+                                <input
+                                    type="file"
+                                    ref={profileImageInputRef}
+                                    onChange={handleProfileImageUpload}
+                                    className="hidden"
+                                    accept="image/*"
+                                />
+                            </div>
+
                             <div>
                                 <label className="form-label">Business Photos</label>
                                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">

@@ -1,6 +1,7 @@
 package org.caterfind.service;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,7 +41,8 @@ public class FileStorageService {
         }
 
         // Get original filename and validate
-        String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
+        String incomingFilename = file.getOriginalFilename();
+        String originalFilename = StringUtils.cleanPath(incomingFilename != null ? incomingFilename : "uploaded-file");
         
         // Check for invalid characters in filename
         if (originalFilename.contains("..")) {
@@ -59,7 +61,9 @@ public class FileStorageService {
 
         // Copy file to the target location
         Path targetLocation = uploadPath.resolve(newFilename);
-        Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+        try (InputStream inputStream = file.getInputStream()) {
+            Files.copy(inputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
+        }
 
         // Return URL path (relative to server)
         return "/uploads/images/" + newFilename;

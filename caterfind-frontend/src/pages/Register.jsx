@@ -317,7 +317,7 @@ const Register = ({ onLogin }) => {
         : { title: 'Create an Account', subtitle: 'Start discovering amazing caterers' };
 
     return (
-        <div className="login-container !bg-slate-50">
+        <div className="login-container !bg-slate-50 !items-start py-6">
             <div className="login-card !max-w-4xl">
                 <Link to="/" className="back-button">
                     <ArrowLeft size={16} /> Back to Home

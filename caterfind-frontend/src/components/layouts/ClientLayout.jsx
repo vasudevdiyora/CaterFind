@@ -51,7 +51,7 @@ const ClientLayout = ({ user, children, onLogout }) => {
     }, [fallbackName]);
 
     return (
-        <div className="min-h-screen bg-slate-50 flex overflow-x-hidden">
+        <div className="app-min-height bg-slate-50 flex overflow-x-hidden">
             <RoleSidebar
                 menuItems={menuItems}
                 roleSubtitle="Client Panel"

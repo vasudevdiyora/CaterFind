@@ -171,7 +171,7 @@ function App() {
   if (!authChecked) {
     return (
       <ToastProvider>
-        <div className="min-h-screen bg-background" />
+        <div className="app-min-height bg-background" />
       </ToastProvider>
     );
   }

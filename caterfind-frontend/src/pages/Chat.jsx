@@ -191,7 +191,7 @@ const Chat = ({ user }) => {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-7.5rem)]">
+        <div className="flex flex-col h-[calc(100dvh-7.5rem)]">
             {/* Page Header */}
             <div className="mb-4 sm:mb-6 flex-shrink-0">
                 <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Messages</h1>

@@ -59,7 +59,7 @@ const BottomNavigation = ({ userName = 'Client', mobileOpen = false, onClose = (
     return (
         <>
             {/* Desktop sidebar */}
-            <aside className="hidden lg:block fixed top-0 left-0 h-screen w-64 bg-white border-r border-slate-200 z-40">
+            <aside className="hidden lg:block fixed top-0 left-0 app-height w-64 bg-white border-r border-slate-200 z-40">
                 <div className="h-14 border-b border-slate-200 px-4 flex items-center">
                     <span className="text-2xl">🍽️</span>
                     <span className="ml-2 font-bold text-lg text-slate-900">CaterFind</span>
@@ -117,7 +117,7 @@ const BottomNavigation = ({ userName = 'Client', mobileOpen = false, onClose = (
 
             {/* Mobile drawer */}
             <aside
-                className={`fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50 transform transition-transform duration-200 lg:hidden flex flex-col ${
+                className={`fixed top-0 left-0 mobile-drawer-height w-64 bg-white shadow-lg z-50 transform transition-transform duration-200 lg:hidden flex flex-col ${
                     mobileOpen ? 'translate-x-0' : '-translate-x-full'
                 }`}
                 aria-hidden={!mobileOpen}
@@ -141,7 +141,7 @@ const BottomNavigation = ({ userName = 'Client', mobileOpen = false, onClose = (
                     {userName}
                 </div>
 
-                <div className="p-4 space-y-1.5 overflow-y-auto flex-1">
+                <div className="p-4 space-y-1.5 overflow-y-auto flex-1 min-h-0 touch-scroll">
                     {navItems.map((item) => {
                         const Icon = item.icon;
                         const active = isActive(item.path);

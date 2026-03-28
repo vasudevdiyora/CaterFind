@@ -1,8 +1,6 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  /* App container: inherit full viewport from global.css */
+  /* Do NOT override height/overflow to prevent scroll trapping */
 }
 
 .logo {

@@ -1200,7 +1200,7 @@ function MenuBuilder({ user }) {
                 {selectedDishes.length === 0 ? (
                     <p className="text-sm text-slate-500">No dishes selected yet.</p>
                 ) : (
-                    <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                    <div className="space-y-3 max-h-[60dvh] overflow-y-auto pr-1">
                         {selectedDishes.map((dish, index) => (
                             <div key={`${dish.id || dish.name}-${index}`} className="flex items-center gap-3 rounded-lg border border-slate-200 p-3 bg-slate-50/50">
                                 <img

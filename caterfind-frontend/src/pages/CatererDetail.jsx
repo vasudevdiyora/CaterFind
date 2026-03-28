@@ -178,7 +178,7 @@ const CatererDetail = ({ user }) => {
     const ratingLabel = ratingValue ? `${ratingValue}/5` : 'New';
 
     return (
-        <div className="bg-slate-50 min-h-screen">
+        <div className="bg-slate-50 app-min-height">
             <div className="max-w-7xl mx-auto">
                 {/* Header and Back Button */}
                 <header className="py-6 px-3 sm:px-4 lg:px-6">
@@ -453,7 +453,7 @@ const CatererDetail = ({ user }) => {
                             <ChevronLeft />
                         </button>
 
-                        <img src={activePhoto} alt="Gallery" className="max-w-full max-h-[80vh] object-contain rounded" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://via.placeholder.com/800x480?text=Image'; }} />
+                        <img src={activePhoto} alt="Gallery" className="max-w-full max-h-[80dvh] object-contain rounded" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://via.placeholder.com/800x480?text=Image'; }} />
 
                         <button aria-label="Next image" className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 rounded-full p-2 shadow hover:bg-white" onClick={() => {
                             const nextIndex = (activePhotoIndex + 1) % galleryImages.length;

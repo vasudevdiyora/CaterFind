@@ -145,7 +145,7 @@ const RoleSidebar = ({
 
                     <nav
                         className={cn(
-                            'flex-1 overflow-y-auto custom-scrollbar',
+                            'flex-1 min-h-0 overflow-y-auto custom-scrollbar',
                             sidebarCollapsed ? 'px-2 py-4 space-y-2' : 'p-4 space-y-1'
                         )}
                     >
@@ -168,7 +168,7 @@ const RoleSidebar = ({
             </aside>
 
             <Modal isOpen={Boolean(mobileOpen)} onClose={closeMobileSidebar} side="left" className="p-0 bg-transparent !max-w-none">
-                <aside className="lg:hidden fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transform transition-transform duration-200 ease-in-out translate-x-0">
+                <aside className="lg:hidden fixed inset-y-0 left-0 z-50 w-64 mobile-drawer-height bg-white border-r border-slate-200 transform transition-transform duration-200 ease-in-out translate-x-0">
                     <div className="flex flex-col h-full">
                         <div className="h-16 px-6 border-b border-slate-100 flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -190,7 +190,7 @@ const RoleSidebar = ({
                             </button>
                         </div>
 
-                        <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
+                        <nav className="flex-1 min-h-0 p-4 space-y-1 overflow-y-auto custom-scrollbar">
                             {menuItems.map((item) => renderNavItem(item, true))}
                         </nav>
 

@@ -161,10 +161,12 @@ function Contacts({ user }) {
     };
 
     const toggleLabel = (label) => {
-        // Only allow one label per contact
+        // Allow multiple labels per contact
         setFormData(prev => ({
             ...prev,
-            labels: prev.labels.includes(label) ? [] : [label]
+            labels: prev.labels.includes(label)
+                ? prev.labels.filter(existingLabel => existingLabel !== label)
+                : [...prev.labels, label]
         }));
     };
 

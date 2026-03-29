@@ -98,18 +98,9 @@ public class ContactService {
             contact.setPreferredLanguage(Contact.Language.ENGLISH);
         }
 
-        // Assign labels - merge detached entities into current session
+        // Assign labels. Missing labels are created so production does not depend on seed SQL.
         if (contactDTO.getLabels() != null && !contactDTO.getLabels().isEmpty()) {
-            Set<ContactLabel> labels = new HashSet<>();
-            for (String labelName : contactDTO.getLabels()) {
-                contactLabelRepository.findByLabelName(labelName)
-                        .ifPresent(label -> {
-                            // Merge the detached entity into the current session
-                            ContactLabel mergedLabel = entityManager.merge(label);
-                            labels.add(mergedLabel);
-                        });
-            }
-            contact.setLabels(labels);
+            contact.setLabels(resolveLabels(contactDTO.getLabels()));
         }
 
         Contact saved = contactRepository.save(contact);
@@ -146,18 +137,9 @@ public class ContactService {
                         contact.setPreferredLanguage(Contact.Language.ENGLISH);
                     }
 
-                    // Update labels - merge detached entities into current session
+                    // Update labels. Missing labels are created so production does not depend on seed SQL.
                     if (contactDTO.getLabels() != null) {
-                        Set<ContactLabel> labels = new HashSet<>();
-                        for (String labelName : contactDTO.getLabels()) {
-                            contactLabelRepository.findByLabelName(labelName)
-                                    .ifPresent(label -> {
-                                        // Merge the detached entity into the current session
-                                        ContactLabel mergedLabel = entityManager.merge(label);
-                                        labels.add(mergedLabel);
-                                    });
-                        }
-                        contact.setLabels(labels);
+                        contact.setLabels(resolveLabels(contactDTO.getLabels()));
                     }
 
                     Contact updated = contactRepository.save(contact);
@@ -200,5 +182,33 @@ public class ContactService {
                 contact.getPreferredContactMethod().name(),
                 contact.getPreferredLanguage() != null ? contact.getPreferredLanguage().name() : "ENGLISH",
                 labelNames);
+    }
+
+    private Set<ContactLabel> resolveLabels(List<String> labelNames) {
+        Set<ContactLabel> labels = new HashSet<>();
+        for (String labelName : labelNames) {
+            ContactLabel label = resolveOrCreateLabel(labelName);
+            if (label != null) {
+                labels.add(label);
+            }
+        }
+        return labels;
+    }
+
+    private ContactLabel resolveOrCreateLabel(String rawLabelName) {
+        if (rawLabelName == null) {
+            return null;
+        }
+
+        String normalized = rawLabelName.trim();
+        if (normalized.isEmpty()) {
+            return null;
+        }
+
+        ContactLabel label = contactLabelRepository.findByLabelName(normalized)
+                .or(() -> contactLabelRepository.findByLabelNameIgnoreCase(normalized))
+                .orElseGet(() -> contactLabelRepository.save(new ContactLabel(normalized)));
+
+        return entityManager.merge(label);
     }
 }
